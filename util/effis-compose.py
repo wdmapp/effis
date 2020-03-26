@@ -759,7 +759,6 @@ class KittieJob(cheetah.Campaign):
                 for i in range(entry['processes-per-node']):
                     for j in range(cpp):
                         self.node_layout[self.machine][index].cpu[CPUstart + i*cpp + j] = "{0}:{1}".format(codename, i)
-                        print(index, "{0}:{1}".format(codename, i), added)
 
                     # This isn't exactly right yet
                     if ('use-gpus' in entry) and entry['use-gpus']:

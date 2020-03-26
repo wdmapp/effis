@@ -1,4 +1,4 @@
-execute_process(COMMAND ${PROJECT_SOURCE_DIR}/util/kittie-cpp.py repo ${CMAKE_CURRENT_SOURCE_DIR} --tree-output=${CMAKE_CURRENT_BINARY_DIR})
+execute_process(COMMAND ${PROJECT_SOURCE_DIR}/util/effis-cpp.py repo ${CMAKE_CURRENT_SOURCE_DIR} --tree-output=${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_CXX_STANDARD 11)
 
 add_executable(writer-mixed ${CMAKE_CURRENT_BINARY_DIR}/writer-kittie.F90)
