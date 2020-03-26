@@ -12,7 +12,6 @@ if mpi.UseComm:
 
 
 if __name__ == "__main__":
-    print(socket.gethostname())
 
     if mpi.UseComm:
         comm = MPI.COMM_WORLD

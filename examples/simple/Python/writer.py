@@ -15,7 +15,6 @@ if mpi.UseComm:
 
 
 if __name__ == "__main__":
-    print(socket.gethostname())
     nelems = 10
 
     if mpi.UseComm:

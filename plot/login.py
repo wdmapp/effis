@@ -108,7 +108,6 @@ if __name__ == "__main__":
                 setup['done'] += 1
                 continue
 
-            print("Getting step from ", name); sys.stdout.flush()
             varid = setup[name]['io'].InquireVariable("Step")
             setup[name]['engine'].Get(varid, setup[name]['LastStep'])
             setup[name]['engine'].EndStep()

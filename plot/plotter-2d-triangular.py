@@ -123,9 +123,7 @@ if __name__ == "__main__":
     plotter.ConnectToStepInfo(adios, group="plotter")
     plotter.GetMatchingSelections(adios, args.gridvar, exclude=args.exclude, only=args.only, xomit=False, allx=False)
 
-    print('C'); sys.stdout.flush()
     plotter.data = ReadMesh(args.nodes, args.triangles, griddata=plotter.data)
-    print('D'); sys.stdout.flush()
 
     if plotter.Active:
 

@@ -328,7 +328,6 @@ class KittiePlotter(object):
 
         #@effis-begin self.engine--->"plotter"
         ReadStatus = self.engine.BeginStep(kittie.Kittie.ReadStepMode, 0.0)
-        print(ReadStatus); sys.stdout.flush()
         #@effis-end
 
         self.DoPlot = True
@@ -344,7 +343,6 @@ class KittiePlotter(object):
 
         elif ReadStatus != adios2.StepStatus.OK:
             if (self.rank == 0) and self.on:
-                print(self.LastStepFile); sys.stdout.flush()
                 while not os.path.exists(self.LastStepFile):
                     continue
                 print("found", self.LastStepFile); sys.stdout.flush()
