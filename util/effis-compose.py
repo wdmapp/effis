@@ -927,25 +927,23 @@ class KittieJob(cheetah.Campaign):
                     engine = entry['engine']
                     if type(engine) is str:
                         gstr = "{0}{1}engines({2}) = '{3}'".format(gstr, '\n', i+1, engine)
-                    elif type(engine) is OrderedDict:
-                        gstr = "{0}{1}engines({2}) = '{3}'".format(gstr, '\n', i+1, engine['name'])
-                        enginekeys = list(engine.keys())
-                        for j in range(len(enginekeys)):
-                            if enginekeys[j] == "name":
-                                del enginekeys[j]
-                                break
-                        nparams = len(enginekeys)
-                        gstr = "{0}{1}nparams({2}) = {3}".format(gstr, '\n', i+1, nparams)
 
-                for j in range(nparams):
-                    key = enginekeys[j]
-                    params += ["params({0}, {1}) = '{2}'".format(i+1, j+1, key)]
-                    if (engine[key] == False):
-                        values += ["values({0}, {1}) = 'Off'".format(i+1, j+1)]
-                    elif (engine[key] == True):
-                        values += ["values({0}, {1}) = 'On'".format(i+1, j+1)]
-                    else:
-                        values += ["values({0}, {1}) = '{2}'".format(i+1, j+1, engine[key])]
+                if 'params' in entry:
+                    engineparams = list(entry['params'].keys())
+                    nparams = len(engineparams)
+                    gstr = "{0}{1}nparams({2}) = {3}".format(gstr, '\n', i+1, nparams)
+
+                    for j in range(nparams):
+                        key = engineparams[j]
+                        params += ["params({0}, {1}) = '{2}'".format(i+1, j+1, key)]
+                       
+                        if type(entry['params'][key]) == bool:
+                            if entry['params'][key]:
+                                values += ["values({0}, {1}) = 'On'".format(i+1, j+1)]
+                            else:
+                                values += ["values({0}, {1}) = 'Off'".format(i+1, j+1)]
+                        else:
+                            values += ["values({0}, {1}) = '{2}'".format(i+1, j+1, entry['params'][key])]
 
                 if "plot" in entry:
                     gstr = "{0}{1}nplots({2}) = {3}".format(gstr, "\n", i+1, len(entry['plot']))

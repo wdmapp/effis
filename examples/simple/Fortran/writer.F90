@@ -27,8 +27,10 @@ program writer
     !@effis-init comm=comm
 	call adios2_init(adios, comm, ierr)
 
-    !@effis-begin "Jabberwocky"->"Jaberwocky"
+    !@effis-begin "Jabberwocky"->"Jabberwocky"
 	call adios2_declare_io(io, adios, "Jabberwocky", ierr)
+	!call adios2_set_engine(io, "SST", ierr)
+	!call adios2_set_parameter(io, "RendezvousReaderCount", "0", ierr)
 
     GlobalDims(1) = nelems * nproc
 	Offsets(1) = nelems * rank
@@ -39,7 +41,7 @@ program writer
 	call adios2_open(engine, io, "Jabberwocky.bp", adios2_mode_write, comm, ierr)
 
 	do i=1, 10
-        !@effis-timer start="LoopTimer", comm=comm
+        ! !@effis-timer start="LoopTimer", comm=comm
 
 		call random_number(RandomReals)
 		call random_number(RandomReals2)
@@ -52,7 +54,7 @@ program writer
 		call adios2_end_step(engine, ierr)
 		call sleep(1)
 
-        !@effis-timer stop="LoopTimer"
+        ! !@effis-timer stop="LoopTimer"
 	end do
 
 	call adios2_close(engine, ierr)
