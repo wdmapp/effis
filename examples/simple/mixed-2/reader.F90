@@ -17,11 +17,9 @@ program reader
     !@effis-init comm=comm
 	call adios2_init(adios, comm, ierr)
 
-    !@effis-begin "Jabber"->"Jabber"
-    call adios2_declare_io(io, adios, "Jabber", ierr)
-	call adios2_open(engine, io, "Jabber.bp", adios2_mode_read, comm, ierr)
-	
-	call adios2_current_step(current_step, engine, ierr)
+    !@effis-begin "Jabberwocky"->"Jabberwocky"
+    call adios2_declare_io(io, adios, "Jabberwocky", ierr)
+	call adios2_open(engine, io, "Jabberwocky.bp", adios2_mode_read, comm, ierr)
 
 	do while (.true.)
 
@@ -34,7 +32,7 @@ program reader
 		end if
 
 		call adios2_current_step(current_step, engine, ierr)
-        write (*, "('Read step: ', i0)") current_step
+        write (6, "('APP step: ', i0)") current_step
 		call adios2_end_step(engine, ierr)
 
 	end do

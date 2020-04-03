@@ -12,24 +12,23 @@ int main(int argc, char **argv)
     //@effis-init comm=comm
 	adios2::ADIOS adios(comm);
 
-    //@effis-begin "Jabberwocky"->"Jaberwocky"
+    //@effis-begin "Jabberwocky"->"Jabberwocky"
 	adios2::IO reader_io = adios.DeclareIO("Jabberwocky");
 	adios2::Engine reader = reader_io.Open("Jabberwocky.bp", adios2::Mode::Read, comm);
 
     while (true)
 	{
-		adios2::StepStatus status = reader.BeginStep(adios2::StepMode::Read, 10.0);
+		adios2::StepStatus status = reader.BeginStep(adios2::StepMode::Read, 1.0);
 
         if (status == adios2::StepStatus::NotReady)
 		{
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             continue;
 		}
 		else if (status != adios2::StepStatus::OK)
 		{
             break;
 		}
-		std::cout << reader.CurrentStep() << std::endl;
+		std::cout << "Read step: " << reader.CurrentStep() << std::endl;
         reader.EndStep();
 	}
 

@@ -9,7 +9,7 @@ run:
   writer:
     processes: 1
     processes-per-node: 1
-    executable_path: writer
+    executable_path: writer.py
     .Jabberwocky:
       output_path: test-file.bp
       adios_engine: SST
@@ -17,7 +17,7 @@ run:
   reader:
     processes: 1
     processes-per-node: 1
-    executable_path: reader
+    executable_path: reader.py
     .Jabberwocky:
       reads: writer.Jabberwocky
 

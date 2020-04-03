@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 	MPI_Comm_size(comm, &nproc);
 
     //@effis-init comm=comm
-	adios2::ADIOS adios(comm, adios2::DebugON);
+	//adios2::ADIOS adios(comm, adios2::DebugON);
 
     //@effis-begin "Jabberwocky"->"Jabberwocky"
 	adios2::IO reader_io = adios.DeclareIO("Jabberwocky");
@@ -23,11 +23,10 @@ int main(int argc, char **argv)
 
     while (true)
 	{
-		adios2::StepStatus status = reader.BeginStep(adios2::StepMode::Read, 10.0);
+		adios2::StepStatus status = reader.BeginStep(adios2::StepMode::Read, 1.0);
 
         if (status == adios2::StepStatus::NotReady)
 		{
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             continue;
 		}
 		else if (status != adios2::StepStatus::OK)
@@ -37,7 +36,6 @@ int main(int argc, char **argv)
 
 		adios2::Variable<double> random = reader_io.InquireVariable<double>("RandomReals");
 		adios2::Dims shape = random.Shape();
-		std::cout << "Step: " << reader.CurrentStep() << ", (" << shape[0] << "," << shape[1] << ")" << std::endl;
 
 		const int s = 0;
 		auto d1 = shape[0];
@@ -56,6 +54,7 @@ int main(int argc, char **argv)
 		random.SetSelection(sel);
 		reader.Get(random, data);
         reader.EndStep();
+		std::cout << "Read step: " << reader.CurrentStep() << std::endl;
 	}
 
     reader.Close();

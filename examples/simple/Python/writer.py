@@ -63,15 +63,7 @@ if __name__ == "__main__":
         engine = io.Open("Jabberwocky.bp", adios2.Mode.Write)
 
 
-    # Write
-    if rank == 0:
-        vKnownInt = io.InquireVariable("KnownInt")
-        engine.Put(vKnownInt,  KnownInt)
-        engine.Put(vRandomInt, RandomInt)
-
-
     for i in range(10):
-        #@effis-timer start="LoopTimer", comm=comm
 
         RandomInts = np.random.randint(0, 1000, size=nelems, dtype=np.int64)
         RandomInts2 = np.random.randint(0, 1000, size=nelems, dtype=np.int64)
@@ -84,13 +76,8 @@ if __name__ == "__main__":
             engine.Put(vRandomInts2, RandomInts2)
             engine.EndStep()
 
-        time.sleep(1)
-
-        #@effis-timer stop="LoopTimer"
-
     engine.Close()
     #@effis-end
-
 
     #@effis-finalize
 

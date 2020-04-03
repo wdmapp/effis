@@ -20,12 +20,13 @@ program writer
 	call mpi_comm_rank(comm, rank, ierr)
 	call mpi_comm_size(comm, nproc, ierr)
 
+
 	do i=1, nelems
 		KnownInts(i) = i
 	end do
 
     !@effis-init comm=comm
-	call adios2_init(adios, comm, .true., ierr)
+	!call adios2_init(adios, comm, .true., ierr)
 
     !@effis-begin "Jabberwocky"->"Jabberwocky"
 	call adios2_declare_io(io, adios, "Jabberwocky", ierr)
@@ -49,7 +50,7 @@ program writer
 		call adios2_put(engine, "KnownInts",   KnownInts, ierr)
 		call adios2_put(engine, "RandomReals", RandomReals, ierr)
 		call adios2_end_step(engine, ierr)
-		call sleep(1)
+        write (*, "('Write step: ', i0)") i
 	end do
 
 	call adios2_close(engine, ierr)

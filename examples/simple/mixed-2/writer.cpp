@@ -1,6 +1,9 @@
 #include "adios2.h"
 #include <mpi.h>
 #include <cstdlib>
+#include <thread>
+#include <chrono>
+#include <iostream>
 
 int main(int argc, char **argv)
 {
@@ -50,7 +53,7 @@ int main(int argc, char **argv)
         engine.Put(vKnownInts,  KnownInts);
         engine.Put(vRandomInts, RandomInts);
         engine.EndStep();
-		std::cout << "Step: " << j << std::endl;
+		std::cout << "writer step: " << j << std::endl;
 
 	}
 

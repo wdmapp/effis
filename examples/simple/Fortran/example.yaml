@@ -3,6 +3,7 @@ rundir: runs/run-1
 
 machine:
   name: local
+  #job_setup: ./setup.sh
 
 run:
 
@@ -18,6 +19,6 @@ run:
     processes: 1
     processes-per-node: 1
     executable_path: reader
-    .Jabberwocky:
+    .Jabber:
       reads: writer.Jabberwocky
 
