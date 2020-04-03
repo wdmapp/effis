@@ -729,12 +729,10 @@ module kittie
 			do i=1, nnames
 				if ((trim(names(i)) == trim(groupname)) .and. (trim(engines(i)) /= "")) then
 					call adios2_set_engine(io, trim(engines(i)), ierr)
+					do j=1, nparams(i)
+						call adios2_set_parameter(io, trim(params(i, j)), trim(values(i, j)), ierr)
+					end do
 				end if
-
-				do j=1, nparams(i)
-					call adios2_set_parameter(io, trim(params(i, j)), trim(values(i, j)), ierr)
-				end do
-
 			end do
 
 			if (present(iierr)) then
