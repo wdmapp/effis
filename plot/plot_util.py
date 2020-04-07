@@ -239,20 +239,18 @@ class KittiePlotter(object):
         else:
             explicit = True
 
-        #@effis-begin self.gname->self.gname
-        self.io = adios.DeclareIO(self.gname)
+        #@effis-begin "plotter"->"plotter"
+        self.io = adios.DeclareIO("plotter")
+        self.engine = self.io.Open("", adios2.Mode.Read, self.comm)
+        self.engine.BeginStep(kittie.Kittie.ReadStepMode, -1.0)
+        self.io = kittie.Kittie.adios.AtIO("plotter")
+
         if self.rank == 0:
-            self.engine = self.io.Open(self.gname, adios2.Mode.Read, MPI.COMM_SELF)
-            self.engine.BeginStep(kittie.Kittie.ReadStepMode, -1.0)
-            self.io = kittie.Kittie.adios.AtIO(self.gname)
             if y == "match-dimensions":
                 self._GetSelections(xaxis, exclude=exclude, only=only, xomit=xomit)
             else:
                 xstart, xcount, xname, xtype, ystart, ycount, yname, ytype = self._GetExplicit(xaxis, y)
 
-            self.engine.Close()
-            self.io.RemoveAllVariables()
-            self.io.RemoveAllAttributes()
         #@effis-end
 
         if y == "match-dimensions":
@@ -266,12 +264,6 @@ class KittiePlotter(object):
         if (self.rank == 0) and (not os.path.exists('images')):
             os.makedirs('images')
 
-        # Only do something on the processes where there's a plot
-        color = 0
-        if len(self.DimInfo['UserMatches']) > 0:
-            color = 1
-        self.ReadComm = self.comm.Split(color, self.rank)
-
         if self.Active:
             self._SetupArrays(allx, explicit=explicit)
             if explicit:
@@ -280,10 +272,6 @@ class KittiePlotter(object):
                 self.uStarts = [ystart, xstart]
                 self.uCounts = [ycount, xcount]
             filename = None
-
-            #@effis-begin self.io-->"plotter"
-            self.engine = self.io.Open(filename, adios2.Mode.Read, self.ReadComm)
-            #@effis-end
 
 
     def _CheckStepFile(self):
@@ -395,7 +383,8 @@ class KittiePlotter(object):
 
     def GetPlotData(self, y="match-dimensions"):
 
-        self._ScheduleReads(y=y)
+        if self.Active:
+            self._ScheduleReads(y=y)
 
         #@effis-begin self.engine--->"plotter"
         self.engine.EndStep()
@@ -407,13 +396,13 @@ class KittiePlotter(object):
             if not os.path.exists(self.outdir):
                 os.makedirs(self.outdir)
 
-        self.ReadComm.Barrier()
-        self.LastFoundData = self.data['_StepNumber']
-        #LastFoundStep[0] = LastFoundData[0]
+        self.comm.Barrier()
+        if self.Active:
+            self.LastFoundData = self.data['_StepNumber']
 
 
     def StepDone(self):
-        self.ReadComm.Barrier()
+        self.comm.Barrier()
         if self.on and (self.rank == 0):
             #@effis-begin self.DoneEngine--->"done"
             self.DoneEngine.BeginStep()

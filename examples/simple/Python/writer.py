@@ -63,7 +63,7 @@ if __name__ == "__main__":
         engine = io.Open("Jabberwocky.bp", adios2.Mode.Write)
 
 
-    for i in range(10):
+    for i in range(30):
 
         RandomInts = np.random.randint(0, 1000, size=nelems, dtype=np.int64)
         RandomInts2 = np.random.randint(0, 1000, size=nelems, dtype=np.int64)
@@ -75,6 +75,9 @@ if __name__ == "__main__":
             engine.Put(vRandomInts, RandomInts)
             engine.Put(vRandomInts2, RandomInts2)
             engine.EndStep()
+
+        print('Increment:', i); sys.stdout.flush()
+        time.sleep(2)
 
     engine.Close()
     #@effis-end

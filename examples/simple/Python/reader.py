@@ -3,6 +3,7 @@
 import adios2
 import time
 import socket
+import sys
 
 class mpi:
     UseComm = True
@@ -39,7 +40,7 @@ if __name__ == "__main__":
         elif status != adios2.StepStatus.OK:
             break
 
-        print(reader.CurrentStep())
+        print("Found:", reader.CurrentStep()); sys.stdout.flush()
         reader.EndStep()
 
     reader.Close()

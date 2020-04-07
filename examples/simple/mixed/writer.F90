@@ -41,7 +41,7 @@ program writer
     call adios2_define_variable(varid, io, "RandomReals", adios2_type_dp,       2, GlobalDims, Offsets, LocalDims, .true., ierr)
 	call adios2_open(engine, io, "Jabberwocky.bp", adios2_mode_write, comm, ierr)
 
-	do i=1, 10
+	do i=1, 20
 		call random_number(RandomReals)
 		RandomReals = RandomReals + (rank + 1)
 		dt = i * 1.0
@@ -51,6 +51,7 @@ program writer
 		call adios2_put(engine, "RandomReals", RandomReals, ierr)
 		call adios2_end_step(engine, ierr)
         write (*, "('Write step: ', i0)") i
+		call sleep(1)
 	end do
 
 	call adios2_close(engine, ierr)

@@ -120,19 +120,20 @@ if __name__ == "__main__":
     #@effis-init comm=comm
     adios = adios2.ADIOS(comm)
     plotter = plot_util.KittiePlotter(comm, on=args.use_dashboard)
-    plotter.ConnectToStepInfo(adios, group="plotter")
     plotter.GetMatchingSelections(adios, args.gridvar, exclude=args.exclude, only=args.only, xomit=False, allx=False)
+    plotter.ConnectToStepInfo(adios, group="plotter")
 
     plotter.data = ReadMesh(args.nodes, args.triangles, griddata=plotter.data)
 
-    if plotter.Active:
+    force = True
+    while force or plotter.NotDone:
 
-        while plotter.NotDone:
-
-            if plotter.DoPlot:
-                plotter.GetPlotData()
+        if force or plotter.DoPlot:
+            plotter.GetPlotData()
+            if plotter.Active:
                 Plot(plotter.data, args.nodes, args.triangles, plotter.outdir, xname="r", yname="z", cmap=args.colormap, nlevels=args.nlevels, minmax=True)
-                plotter.StepDone()
+            plotter.StepDone()
+        force = False
 
     #@effis-finalize
 

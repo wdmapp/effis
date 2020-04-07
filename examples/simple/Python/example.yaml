@@ -13,6 +13,9 @@ run:
     .Jabberwocky:
       output_path: test-file.bp
       adios_engine: SST
+      adios_engine_params:
+        RendezvouReaderCount: 2
+        FirstTimestepPrecious: "TRUE"
 
   reader:
     processes: 1
@@ -20,4 +23,8 @@ run:
     executable_path: reader.py
     .Jabberwocky:
       reads: writer.Jabberwocky
+
+  plot-1D:
+    data: writer.Jabberwocky
+    x: KnownInts
 

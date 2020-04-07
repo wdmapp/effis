@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 
     while (true)
 	{
-		adios2::StepStatus status = reader.BeginStep(adios2::StepMode::Read, 1.0);
+		adios2::StepStatus status = reader.BeginStep(adios2::StepMode::Read, 10.0);
 
         if (status == adios2::StepStatus::NotReady)
 		{

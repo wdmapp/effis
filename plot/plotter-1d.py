@@ -107,21 +107,25 @@ if __name__ == "__main__":
     #@effis-init comm=comm
     adios = adios2.ADIOS(comm)
     plotter = plot_util.KittiePlotter(comm, on=args.use_dashboard)
-    plotter.ConnectToStepInfo(adios, group="plotter")
     plotter.GetMatchingSelections(adios, args.xaxis, exclude=args.exclude, only=args.only, xomit=True, y=args.y)
+    plotter.ConnectToStepInfo(adios, group="plotter")
 
-    if plotter.Active:
 
-        while plotter.NotDone:
+    force = True
+    while force or plotter.NotDone:
 
-            if plotter.DoPlot:
-                plotter.GetPlotData(y=args.y)
+        if force or plotter.DoPlot:
+            plotter.GetPlotData(y=args.y)
+
+            if plotter.Active:
                 if args.output and args.output.lower() == 'bp':
                     StepFile(plotter.data, plotter.outdir)
                 elif args.output and args.output.lower() == 'plotly':
                     Plotly(plotter.data, plotter.DimInfo['xname'], plotter.outdir)
                 elif not args.output or args.output.lower() == 'matplot':
                     Plot(plotter.data, plotter.DimInfo['xname'], plotter.outdir)
-                plotter.StepDone()
+
+            plotter.StepDone()
+        force = False
 
     #@effis-finalize

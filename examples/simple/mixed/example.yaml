@@ -7,12 +7,15 @@ machine:
 run:
 
   writer:
-    processes: 1
-    processes-per-node: 1
+    processes: 2
+    processes-per-node: 2
     executable_path: writer
     .Jabberwocky:
       output_path: test-file.bp
       adios_engine: SST
+      adios_engine_params:
+        RendezvousReaderCount: 2
+        FirstTimestepPrecious: "TRUE"
 
   reader:
     processes: 1
@@ -20,4 +23,9 @@ run:
     executable_path: reader
     .Jabberwocky:
       reads: writer.Jabberwocky
+
+  plot-colormap:
+    data: writer.Jabberwocky
+    only: RandomReals
+    colortype: Blues
 
