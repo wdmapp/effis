@@ -500,6 +500,12 @@ class KittieJob(cheetah.Campaign):
             if (codename == "plot-triangular"):
                 self.codesetup[codename][self.keywords['path']] = os.path.join(updir, "plot", "plotter-2d-triangular.py")
 
+                if ('use' in self.config[self.keywords['dashboard']]) and (self.config[self.keywords['dashboard']]['use']):
+                    self.codesetup[codename][self.keywords['options']]['use-dashboard'] = 'on'
+                    if not uselogin:
+                        self.config[lname] = self.config[self.keywords['dashboard']]
+                        uselogin = True
+
             if (codename == "plot-colormap"):
                 self.codesetup[codename][self.keywords['path']] = os.path.join(updir, "plot", "plotter-2d.py")
                 if "only" in self.codesetup[codename]:
