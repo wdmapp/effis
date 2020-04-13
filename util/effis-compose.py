@@ -151,8 +151,6 @@ class KittieJob(cheetah.Campaign):
 
         self._SetIfNotFound(self.config['machine'], 'job_setup', value=None, level=logging.INFO)
         self._SetIfNotFound(self.config['machine'], 'submit_setup', value=None, level=logging.INFO)
-        self._SetIfNotFound(self.config['machine'], 'script', value=None, level=logging.INFO)
-
         self._SetIfNotFound(self.config['machine'], 'scheduler_args', value=None, level=logging.INFO)
 
 
@@ -482,10 +480,6 @@ class KittieJob(cheetah.Campaign):
         else:
             self.launchmode = 'default'
             subdirs = True
-
-        if self.config['machine'][self.keywords['script']] is not None:
-            self.launchmode = 'default'
-            subdirs = False
 
         
         self.stepinfo = {}
@@ -1035,13 +1029,6 @@ class KittieJob(cheetah.Campaign):
                 outfile.write(outstr)
 
 
-    def FromScript(self):
-        if self.config['machine'][self.keywords['script']] is not None:
-            with open(os.path.join(self.mainpath, ".kittie-script.sh"), 'w') as outfile:
-                outfile.write('cd {0}\n'.format(self.mainpath))
-                outfile.write('bsub {0}'.format(self.config['machine'][self.keywords['script']]))
-
-
     def CopyInput(self, yamlfile):
         outdir = os.path.join(self.config[self.keywords['rundir']], '.kittie-input')
         os.makedirs(outdir)
@@ -1069,9 +1056,6 @@ class KittieJob(cheetah.Campaign):
         super(KittieJob, self).__init__(self.machine, "")
         self.make_experiment_run_dir(self.output_dir)
 
-        if self.config['machine'][self.keywords['script']] is not None:
-            self.launchmode = 'MPMD'
-
         self.Copy()
         self.PreSubmitCommands()
         self.Link()
@@ -1083,7 +1067,6 @@ class KittieJob(cheetah.Campaign):
         self.WritePlotsFile()
         """
 
-        self.FromScript()
         self.CopyInput(YamlFile)
         self.MoveLog()
 
