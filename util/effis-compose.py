@@ -473,13 +473,12 @@ class KittieJob(cheetah.Campaign):
 
         # Cheetah options that Setup the codes that will lanuch
         self.codes = []
+        subdirs = True
 
         if self.config[self.keywords['mpmd']]:
             self.launchmode = 'MPMD'
-            subdirs = False
         else:
             self.launchmode = 'default'
-            subdirs = True
 
         
         self.stepinfo = {}
@@ -578,10 +577,7 @@ class KittieJob(cheetah.Campaign):
                 if self.keywords['filename'] in entry:
                     fname = entry[self.keywords['filename']]
                     if not fname.startswith('/'):
-                        if self.launchmode != "MPMD":
-                            fname = os.path.join(self.mainpath, codename, fname)
-                        else:
-                            fname = os.path.join(self.mainpath, fname)
+                        fname = os.path.join(self.mainpath, codename, fname)
                     self.codesetup[codename]['groups'][key]['filename'] = fname
 
                 if self.keywords['engine'] in entry:
@@ -616,8 +612,7 @@ class KittieJob(cheetah.Campaign):
                     elif 'filename' in other:
                         self.codesetup[codename]['groups'][key]['filename'] = self.codesetup[code]['groups'][group]['filename']
 
-                    if self.launchmode != "MPMD":
-                        self.codesetup[codename]['groups'][key]['stepfile'] = os.path.join(self.mainpath, code, code + '-step.bp')
+                    self.codesetup[codename]['groups'][key]['stepfile'] = os.path.join(self.mainpath, code, code + '-step.bp')
 
                     #self.codesetup[codename]['groups'][key]['filename'] = self.codesetup[code]['groups'][group]['filename']
                     if 'engine' in other:
@@ -663,10 +658,7 @@ class KittieJob(cheetah.Campaign):
                     if 'plots' in self.codesetup[codename]['groups'][groupname]:
                         cname, gname = self.codesetup[codename]['groups'][groupname]['plots'].split('.', 1)
                         name = "{0}-{1}-StepsDone.bp".format(codename, gname)
-                        if self.launchmode != "MPMD":
-                            name = os.path.join(self.mainpath, codename, name)
-                        else:
-                            name = os.path.join(self.mainpath, name)
+                        name = os.path.join(self.mainpath, codename, name)
                         self.stepinfo['{0}.{1}'.format(cname, gname)] = name
 
 
@@ -833,10 +825,7 @@ class KittieJob(cheetah.Campaign):
         self._Copy(self.config, self.mainpath)
 
         for codename in self.codenames:
-            if self.launchmode == "MPMD":
-                codepath = os.path.join(self.mainpath)
-            else:
-                codepath = os.path.join(self.mainpath, codename)
+            codepath = os.path.join(self.mainpath, codename)
             self._Copy(self.codesetup[codename], codepath)
 
 
@@ -849,10 +838,7 @@ class KittieJob(cheetah.Campaign):
         """
         self._DoCommands(self.mainpath, self.config)
         for codename in self.config['run']:
-            if self.launchmode == "MPMD":
-                path = self.mainpath
-            else:
-                path = os.path.join(self.mainpath, codename)
+            path = os.path.join(self.mainpath, codename)
             self._DoCommands(path, self.config['run'][codename])
 
 
@@ -869,18 +855,12 @@ class KittieJob(cheetah.Campaign):
         mainlist = os.listdir(self.mainpath)
         os.makedirs(self.timingdir)
 
-        if self.launchmode == "MPMD":
-            linksrc = os.path.join(self.cheetahdir, self.cheetahsub)
-            linkpath = os.path.join(self.config[self.keywords['rundir']], "run")
+        for name in mainlist:
+            if name.startswith('codar.cheetah.') or name.startswith('.codar.cheetah.') or  (name == "tau.conf"):
+                continue
+            linksrc = os.path.join(self.cheetahdir, self.cheetahsub, name)
+            linkpath = os.path.join(self.config[self.keywords['rundir']], name)
             os.symlink(linksrc, linkpath)
-
-        else:
-            for name in mainlist:
-                if name.startswith('codar.cheetah.') or name.startswith('.codar.cheetah.') or  (name == "tau.conf"):
-                    continue
-                linksrc = os.path.join(self.cheetahdir, self.cheetahsub, name)
-                linkpath = os.path.join(self.config[self.keywords['rundir']], name)
-                os.symlink(linksrc, linkpath)
 
 
 
@@ -962,12 +942,9 @@ class KittieJob(cheetah.Campaign):
             plots_list = ["plots_list", '\n'.join(pstrs)]
             params_list = ["params_list", '\n'.join(params+values)]
             outstr = kittie_common.Namelist(names, names_list, plots_list, params_list)
-            kittie_common.NMLFile("kittie-groups", self.mainpath, outstr, codename=codename, appname=k, launchmode=self.launchmode)
+            kittie_common.NMLFile("kittie-groups", self.mainpath, outstr, codename=codename, appname=k)
 
-            if self.launchmode == "default":
-                outdir = os.path.join(self.mainpath, codename)
-            else:
-                outdir = self.mainpath
+            outdir = os.path.join(self.mainpath, codename)
             self.codesetup[codename]['groups'][".timingdir"] = self.timingdir
             outstr = yaml.dump(self.codesetup[codename]['groups'], default_flow_style=False, Dumper=self.OrderedDumper)
             outname = os.path.join(outdir, ".kittie-groups-{0}.yaml".format(k))
@@ -976,10 +953,7 @@ class KittieJob(cheetah.Campaign):
 
         if "monitors" in self.codenames:
             codename = "monitors"
-            if self.launchmode == "default":
-                outdir = os.path.join(self.mainpath, codename)
-            else:
-                outdir = self.mainpath
+            outdir = os.path.join(self.mainpath, codename)
 
             outname = os.path.join(outdir, "groups.yaml")
             outstr = yaml.dump(self.monitors['groups'], default_flow_style=False, Dumper=self.OrderedDumper)
@@ -1005,12 +979,9 @@ class KittieJob(cheetah.Campaign):
             nlist = ["codes", nstrs]
             glist = ["codes_list", gstrs]
             outstr = kittie_common.Namelist(nlist, glist)
-            kittie_common.NMLFile("kittie-codenames", self.mainpath, outstr, codename=codename, appname=i, launchmode=self.launchmode)
+            kittie_common.NMLFile("kittie-codenames", self.mainpath, outstr, codename=codename, appname=i)
 
-            if self.launchmode == "default":
-                outdir = os.path.join(self.mainpath, codename)
-            else:
-                outdir = self.mainpath
+            outdir = os.path.join(self.mainpath, codename)
             outdict = {'n': len(self.codenames), 'codename': str(codename), 'codes': list(self.codenames)}
             outstr = yaml.dump(outdict, default_flow_style=False)
             outname = os.path.join(outdir, ".kittie-codenames-{0}.yaml".format(i))
@@ -1020,10 +991,7 @@ class KittieJob(cheetah.Campaign):
 
     def WriteStepsFile(self):
         if self.stepinfo != {}:
-            if self.launchmode != "MPMD":
-                outname = os.path.join(self.mainpath, self.keywords['login-proc'], "step-info.yaml")
-            else:
-                outname = os.path.join(self.mainpath, "step-info.yaml")
+            outname = os.path.join(self.mainpath, self.keywords['login-proc'], "step-info.yaml")
             outstr = yaml.dump(self.stepinfo, default_flow_style=False)
             with open(outname, "w") as outfile:
                 outfile.write(outstr)
