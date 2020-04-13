@@ -16,7 +16,9 @@ program writer
 	type(adios2_variable) :: varid
 
 	call mpi_init(ierr)
-	call mpi_comm_dup(MPI_COMM_WORLD, comm, ierr)
+	call mpi_comm_rank(MPI_COMM_WORLD, rank, ierr)
+
+	call mpi_comm_split(MPI_COMM_WORLD, 0, rank, comm, ierr)
 	call mpi_comm_rank(comm, rank, ierr)
 	call mpi_comm_size(comm, nproc, ierr)
 

@@ -9,7 +9,9 @@ int main(int argc, char **argv)
 	MPI_Comm comm;
 	int rank, nproc;
 	MPI_Init(&argc, &argv);
-	MPI_Comm_dup(MPI_COMM_WORLD, &comm);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	MPI_Comm_split(MPI_COMM_WORLD, 1, rank, &comm);
 	MPI_Comm_rank(comm, &rank);
 	MPI_Comm_size(comm, &nproc);
 
