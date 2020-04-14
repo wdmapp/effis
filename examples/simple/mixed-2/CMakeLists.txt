@@ -21,3 +21,5 @@ install(
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/example.yaml DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/mixed-2)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/writer.cpp DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/mixed-2)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/reader.F90 DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/mixed-2)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/writer-kittie.cpp DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/mixed-2)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/reader-kittie.F90 DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/mixed-2)

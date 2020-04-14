@@ -12,7 +12,7 @@ run:
     executable_path: writer
     .Jabberwocky:
       output_path: test-file.bp
-      adios_engine: BP4
+      adios_engine: SST
       adios_engine_params:
         RendezvousReaderCount: 2
         FirstTimestepPrecious: "TRUE"
@@ -24,8 +24,8 @@ run:
     .Jabberwocky:
       reads: writer.Jabberwocky
 
-  #plot-colormap:
-  #  data: writer.Jabberwocky
-  #  only: RandomReals
-  #  colortype: Blues
+  plot-colormap:
+    data: writer.Jabberwocky
+    only: RandomReals
+    colortype: Blues
 
