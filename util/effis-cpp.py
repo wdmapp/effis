@@ -9,6 +9,7 @@ import subprocess
 import yaml
 import logging
 import sys
+import stat
 import kittie_common
 
 
@@ -748,6 +749,8 @@ class BlockFiles(object):
 
             with open(outfile, 'w') as out:
                 out.write(UpdatedText)
+            if ext == ".py":
+                os.chmod(outfile, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH | stat.S_IWUSR)
 
         if self.language == "fortran":
             for InitFile in InitFiles:
