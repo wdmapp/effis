@@ -10,15 +10,8 @@ add_executable(reader-mixed ${CMAKE_CURRENT_BINARY_DIR}/reader-kittie.cpp)
 target_link_libraries(reader-mixed kittie adios2::adios2)
 set_target_properties(reader-mixed PROPERTIES OUTPUT_NAME reader)
 
-install(
-	TARGETS writer-mixed
-	DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/mixed
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-install(
-	TARGETS reader-mixed
-	DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/mixed
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-
+install(TARGETS writer-mixed DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/mixed)
+install(TARGETS reader-mixed DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/mixed)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/example.yaml DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/mixed)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/writer.F90 DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/mixed)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/reader.cpp DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/mixed)

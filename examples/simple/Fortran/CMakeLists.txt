@@ -7,15 +7,8 @@ target_link_libraries(writer kittie_f adios2::adios2_f)
 add_executable(reader ${CMAKE_CURRENT_BINARY_DIR}/reader-kittie.F90)
 target_link_libraries(reader kittie_f adios2::adios2_f)
 
-install(
-	TARGETS writer 
-	DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/Fortran
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-install(
-	TARGETS reader
-	DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/Fortran
-	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-
+install(TARGETS writer DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/Fortran)
+install(TARGETS reader DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/Fortran)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/example.yaml DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/Fortran)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/setup.sh DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/Fortran)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/writer.F90 DESTINATION ${CMAKE_INSTALL_PREFIX}/examples/simple/Fortran)
