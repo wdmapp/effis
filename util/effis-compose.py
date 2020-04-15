@@ -550,7 +550,8 @@ class KittieJob(cheetah.Campaign):
             groupname = "." + StepGroup
             if groupname not in self.codesetup[codename].keys():
                 self.codesetup[codename][groupname] = {}
-                self.codesetup[codename][groupname][self.keywords['engine']] = 'BP4'
+                #self.codesetup[codename][groupname][self.keywords['engine']] = 'BP4'
+                self.codesetup[codename][groupname][self.keywords['engine']] = 'SST'
                 self.codesetup[codename][groupname][self.keywords['params']] = {}
                 self.codesetup[codename][groupname][self.keywords['params']]["RendezvousReaderCount"] = 0
                 self.codesetup[codename][groupname][self.keywords['params']]["QueueLimit"] = 1

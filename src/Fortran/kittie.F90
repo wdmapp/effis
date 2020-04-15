@@ -694,26 +694,6 @@ module kittie
 #		endif
 
 
-		subroutine kittie_declare_io(groupname, ierr)
-			! Initialize a new Kittie coupling I/O group
-			character(len=*), intent(in) :: groupname
-			integer, intent(out) :: ierr
-			integer :: i, j
-			type(adios2_io) :: io
-			call adios2_declare_io(io, kittie_adios, trim(groupname), ierr)
-			do i=1, nnames
-				if ((trim(names(i)) == trim(groupname)) .and. (trim(engines(i)) /= "")) then
-					call adios2_set_engine(io, trim(engines(i)), ierr)
-				end if
-
-				do j=1, nparams(i)
-					call adios2_set_parameter(io, params(i, j), values(i, j), ierr)
-				end do
-					
-			end do
-		end subroutine kittie_declare_io
-
-
 		function KittieDeclareIO(groupname, iierr) result(io)
 			! Initialize a new Kittie coupling I/O group
 			character(len=*), intent(in) :: groupname
@@ -934,9 +914,11 @@ module kittie
 				kittie_StepNumber = num
 
 				if (.not. kittie_StepInit) then
-					call adios2_declare_io(kittie_StepIO, kittie_adios, trim(kittie_StepGroupname), ierr)
+					!!call adios2_declare_io(kittie_StepIO, kittie_adios, trim(kittie_StepGroupname), ierr)
+					kittie_StepIO = KittieDeclareIO(trim(kittie_StepGroupname), ierr)
 					call adios2_define_variable(varid, kittie_StepIO, "StepNumber",   adios2_type_integer4, ierr)
 					call adios2_define_variable(varid, kittie_StepIO, "StepPhysical", adios2_type_dp,       ierr)
+
 					!call adios2_set_engine(kittie_StepIO, "SST", ierr)
 					!call adios2_set_parameter(kittie_StepIO, "RendezvousReaderCount", "0", ierr)
 					!call adios2_set_parameter(kittie_StepIO, "QueueLimit", "1", ierr)

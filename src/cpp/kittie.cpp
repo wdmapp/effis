@@ -286,7 +286,6 @@ void kittie::write_step(double physical, int number)
 
 		if (!kittie::stepinit)
 		{
-			//adios2::IO io = kittie::adios->DeclareIO(kittie::StepGroupname);
 			adios2::IO io = kittie::declare_io(kittie::StepGroupname);
 			adios2::Variable<int> VarNumber = io.DefineVariable<int>("StepNumber");
 			adios2::Variable<double> VarStep = io.DefineVariable<double>("StepPhysical");

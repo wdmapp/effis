@@ -413,7 +413,8 @@ class Kittie(object):
             cls.StepPhysical = np.array([physical], dtype=np.float64)
             cls.StepNumber = np.array([number], dtype=np.int64)
             if not cls.StepInit:
-                cls.StepIO = cls.adios.DeclareIO(cls.StepGroupname)
+                cls.StepIO = cls.declare_io(cls.StepGroupname)
+                #cls.StepIO = cls.adios.DeclareIO(cls.StepGroupname)
                 cls.StepIO.DefineVariable("StepNumber", cls.StepNumber, [], [], [])
                 cls.StepIO.DefineVariable("StepPhysical", cls.StepPhysical, [], [], [])
                 """
