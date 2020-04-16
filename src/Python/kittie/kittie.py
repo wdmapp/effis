@@ -364,9 +364,9 @@ class Kittie(object):
     @classmethod
     def Finalize(cls):
         for name in cls.Couplers.keys():
-            filename = cls.Couplers[name].filename + ".done"
             cls.Couplers[name].close()
             if (cls.rank == 0) and (cls.Couplers[name].mode == adios2.Mode.Write):
+                filename = cls.Couplers[name].filename + ".done"
                 filename = cls.Touch(filename)
 
         if cls.StepInit:
@@ -413,6 +413,7 @@ class Kittie(object):
             cls.StepNumber = np.array([number], dtype=np.int64)
             if not cls.StepInit:
                 cls.StepIO = cls.declare_io(cls.StepGroupname)
+                cls.Couplers[cls.StepGroupname].mode = None
                 #cls.StepIO = cls.adios.DeclareIO(cls.StepGroupname)
                 cls.StepIO.DefineVariable("StepNumber", cls.StepNumber, [], [], [])
                 cls.StepIO.DefineVariable("StepPhysical", cls.StepPhysical, [], [], [])
