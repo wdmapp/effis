@@ -10,7 +10,6 @@ import time
 import os
 import copy
 import numpy as np
-import yaml
 import subprocess
 import yaml
 import numpy as np
@@ -296,7 +295,7 @@ class Kittie(object):
         yamlfile = os.environ["KITTIE_YAML_FILE"]
         if os.path.exists(yamlfile):
             with open(yamlfile, 'r') as ystream:
-                config = yaml.load(ystream)
+                config = yaml.load(ystream, Loader=yaml.FullLoader)
             #cls.appname = config["appname"] + "-" + num
             #cls.CompileGroups = config["groups"]
     """
@@ -307,7 +306,7 @@ class Kittie(object):
         yamlfile = ".kittie-groups-" + os.environ["KITTIE_NUM"] + ".yaml"
         if os.path.exists(yamlfile):
             with open(yamlfile, 'r') as ystream:
-                cls.YamlEngineSettings = yaml.load(ystream)
+                cls.YamlEngineSettings = yaml.load(ystream, Loader=yaml.FullLoader)
             cls.timingdir = cls.YamlEngineSettings['.timingdir']
             del cls.YamlEngineSettings['.timingdir']
             for name in cls.YamlEngineSettings:
@@ -320,7 +319,7 @@ class Kittie(object):
         yamlfile =  ".kittie-codenames-" + os.environ["KITTIE_NUM"] + ".yaml"
         if os.path.exists(yamlfile):
             with open(yamlfile, 'r') as ystream:
-                config = yaml.load(ystream)
+                config = yaml.load(ystream, Loader=yaml.FullLoader)
             cls.Codename = config["codename"]
             cls.MyReading = cls.reading + "-" + cls.Codename + readid
             for name in config["codes"]:

@@ -37,7 +37,7 @@ class KittiePlotter(object):
 
         yamlfile = ".kittie-groups-" + os.environ["KITTIE_NUM"] + ".yaml"
         with open(yamlfile, 'r') as ystream:
-            self.config = yaml.load(ystream)
+            self.config = yaml.load(ystream, Loader=yaml.FullLoader)
 
         # Handle MPMD if needed
         if "mpmd" in self.config:
@@ -177,7 +177,7 @@ class KittiePlotter(object):
         if (self.rank == 0) and self.on:
             yamlfile = ".kittie-codenames-" + os.environ["KITTIE_NUM"] + ".yaml"
             with open(yamlfile, 'r') as ystream:
-                codeconfig = yaml.load(ystream)
+                codeconfig = yaml.load(ystream, Loader=yaml.FullLoader)
             appname = codeconfig['codename']
             self.StepGroup = appname + "-step"
             StepFile = self.config[self.gname]['stepfile']
