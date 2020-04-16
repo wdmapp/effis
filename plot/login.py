@@ -53,7 +53,7 @@ if __name__ == "__main__":
     indent = 4
     yamlfile = "step-info.yaml"
     with open(yamlfile, 'r') as ystream:
-        config = yaml.load(ystream)
+        config = yaml.load(ystream, Loader=yaml.FullLoader)
 
     timefile, timedict = IndexJSON(config, indent=indent)
     del config['login']
