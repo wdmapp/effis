@@ -187,16 +187,8 @@ class KittiePlotter(object):
             self.StepEngine = None
             self.code, self.group = self.config[self.gname]['reads'].strip().split('.', 1)
 
-
             #@effis-begin self.StepGroup->self.StepGroup
             self.StepIO = adios.DeclareIO(self.StepGroup)
-            """
-            self.StepIO.SetEngine("SST")
-            self.StepIO.SetParameter("MarshalMethod", "BP")
-            self.StepIO.SetParameter("RendezvousReaderCount", "0")
-            self.StepIO.SetParameter("QueueLimit", "1")
-            self.StepIO.SetParameter("QueueFullPolicy", "Discard")
-            """
             if not(os.path.exists(self.LastStepFile)):
                 self.StepEngine = self.StepIO.Open(StepFile, adios2.Mode.Read, MPI.COMM_SELF)
                 self.StepOpen = True
@@ -210,7 +202,6 @@ class KittiePlotter(object):
         self.SecondLastFoundSim  = np.array([-1], dtype=np.int64)
 
         if (self.rank == 0) and self.on:
-
             #@effis-begin "done"->"done"
             self.DoneIO = adios.DeclareIO("done")
             self.DoneIO.SetEngine('BP4')
@@ -244,13 +235,11 @@ class KittiePlotter(object):
         self.engine = self.io.Open("", adios2.Mode.Read, self.comm)
         self.engine.BeginStep(kittie.Kittie.ReadStepMode, -1.0)
         self.io = kittie.Kittie.adios.AtIO("plotter")
-
         if self.rank == 0:
             if y == "match-dimensions":
                 self._GetSelections(xaxis, exclude=exclude, only=only, xomit=xomit)
             else:
                 xstart, xcount, xname, xtype, ystart, ycount, yname, ytype = self._GetExplicit(xaxis, y)
-
         #@effis-end
 
         if y == "match-dimensions":
@@ -306,6 +295,13 @@ class KittiePlotter(object):
         return NewStep
 
 
+    def PutStep(self, varr):
+        #@effis-begin self.DoneEngine--->"done"
+        self.DoneEngine.BeginStep()
+        self.DoneEngine.Put(self.vDone, varr)
+        self.DoneEngine.EndStep()
+        #@effis-end
+    
 
     @property
     def NotDone(self):
@@ -322,11 +318,14 @@ class KittiePlotter(object):
 
         if ReadStatus == adios2.StepStatus.NotReady:
             if self.on and (self.rank == 0) and NewStep and (self.SecondLastFoundSim[0] > self.LastFoundData[0]):
+                self.PutStep(self.SecondLastFoundSim)
+                """
                 #@effis-begin self.DoneEngine--->"done"
                 self.DoneEngine.BeginStep()
                 self.DoneEngine.Put(self.vDone, self.SecondLastFoundSim)
                 self.DoneEngine.EndStep()
                 #@effis-end
+                """
             self.DoPlot = False
 
         elif ReadStatus != adios2.StepStatus.OK:
@@ -338,11 +337,14 @@ class KittiePlotter(object):
                     text = infile.read()
                 last = int(text.strip())
                 if NewStep or (last > self.LastFoundData[0]):
+                    self.PutStep(np.array([last], dtype=np.int64))
+                    """
                     #@effis-begin self.DoneEngine--->"done"
                     self.DoneEngine.BeginStep()
                     self.DoneEngine.Put(self.vDone, np.array([last], dtype=np.int64))
                     self.DoneEngine.EndStep()
                     #@effis-end
+                    """
 
             """
                 if self.StepOpen:
@@ -404,10 +406,11 @@ class KittiePlotter(object):
     def StepDone(self):
         self.comm.Barrier()
         if self.on and (self.rank == 0):
+            self.PutStep(self.LastFoundData)
+            """
             #@effis-begin self.DoneEngine--->"done"
             self.DoneEngine.BeginStep()
             self.DoneEngine.Put(self.vDone, self.LastFoundData)
             self.DoneEngine.EndStep()
             #@effis-end
-
-
+            """

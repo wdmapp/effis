@@ -538,12 +538,6 @@ class KittieJob(cheetah.Campaign):
                         self.config[lname] = self.config[self.keywords['dashboard']]
                         uselogin = True
 
-            if '.plotter' in self.codesetup[codename]:
-                if 'data' in self.codesetup[codename]:
-                    self.codesetup[codename]['.open-plotter'] = {'reads': self.codesetup[codename]["data"]}
-                else:
-                    self.codesetup[codename]['.open-plotter'] = {'reads': self.codesetup[codename]['.plotter']["plots"]}
-
 
         for codename in self.codenames:
             StepGroup = codename + "-step"
