@@ -4,11 +4,20 @@ rundir: runs/run-1
 machine:
   name: local
 
+#dashboard:
+#  use: true
+#  shot_name: test-1
+#  run_name:  run-1
+#  http: /Users/eqs/Temp/http/shots
+#  env:
+#    ADIOS: /Users/eqs/Software/spack/opt/spack/darwin-mojave-x86_64/clang-10.0.1-apple/adios2-develop-tk4x7wr5xx3cgphnsx3yoiffj6d53uot/lib/python3.7/site-packages
+
+
 run:
 
   writer:
-    processes: 2
-    processes-per-node: 2
+    processes: 4
+    processes-per-node: 4
     executable_path: writer
     .Jabberwocky:
       output_path: test-file.bp

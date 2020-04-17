@@ -412,6 +412,15 @@ class KittieJob(cheetah.Campaign):
         return name
 
 
+    def SetSSTEngine(self, codename, groupname):
+        self.codesetup[codename][groupname] = {}
+        self.codesetup[codename][groupname][self.keywords['engine']] = 'SST'
+        self.codesetup[codename][groupname][self.keywords['params']] = {}
+        self.codesetup[codename][groupname][self.keywords['params']]["RendezvousReaderCount"] = 0
+        self.codesetup[codename][groupname][self.keywords['params']]["QueueLimit"] = 1
+        self.codesetup[codename][groupname][self.keywords['params']]["QueueFullPolicy"] = "Discard"
+
+
     def init(self, yamlfile):
         """
         init() is what does the Cheetah-related setup.
@@ -538,18 +547,21 @@ class KittieJob(cheetah.Campaign):
                         self.config[lname] = self.config[self.keywords['dashboard']]
                         uselogin = True
 
+            if uselogin:
+                code, group = self.codesetup[codename]['.plotter']['plots'].split('.', 1)
+                dname = '{0}.{1}'.format(code, group)
+                fname = '.done'
+                self.SetSSTEngine(codename, fname)
+                self.codesetup[codename][fname][self.keywords['filename']] = os.path.join(self.mainpath, codename, "{0}-StepsDone.bp".format(dname))
+                self.config[lname][".{0}".format(dname)] = self.codesetup[codename][fname]
+
 
         for codename in self.codenames:
             StepGroup = codename + "-step"
             groupname = "." + StepGroup
             if groupname not in self.codesetup[codename].keys():
                 self.codesetup[codename][groupname] = {}
-                #self.codesetup[codename][groupname][self.keywords['engine']] = 'BP4'
-                self.codesetup[codename][groupname][self.keywords['engine']] = 'SST'
-                self.codesetup[codename][groupname][self.keywords['params']] = {}
-                self.codesetup[codename][groupname][self.keywords['params']]["RendezvousReaderCount"] = 0
-                self.codesetup[codename][groupname][self.keywords['params']]["QueueLimit"] = 1
-                self.codesetup[codename][groupname][self.keywords['params']]["QueueFullPolicy"] = "Discard"
+                self.SetSSTEngine(codename, groupname)
 
 
         self.timingdir = os.path.join(self.config[self.keywords['rundir']], 'effis-timing')
@@ -629,7 +641,6 @@ class KittieJob(cheetah.Campaign):
             self.codesetup[lname][self.keywords['path']] = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "plot", "login.py")
             self.codesetup[lname]['processes'] = 1
             self.codesetup[lname]['processes-per-node'] = 1
-            #self.codesetup[lname]['cpus-per-process'] = 1
             self.codesetup[lname][self.keywords['copy']] = []
             self.codesetup[lname][self.keywords['copycontents']] = []
             self.codesetup[lname][self.keywords['link']] = []
@@ -648,13 +659,10 @@ class KittieJob(cheetah.Campaign):
             self.stepinfo['login']['date'] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S+%f')
             self.stepinfo['login']['machine_name'] = self.config['machine']['name']
 
-            for k, codename in enumerate(self.codenames):
-                for j, groupname in enumerate(self.codesetup[codename]['groups']):
-                    if 'plots' in self.codesetup[codename]['groups'][groupname]:
-                        cname, gname = self.codesetup[codename]['groups'][groupname]['plots'].split('.', 1)
-                        name = "{0}-{1}-StepsDone.bp".format(codename, gname)
-                        name = os.path.join(self.mainpath, codename, name)
-                        self.stepinfo['{0}.{1}'.format(cname, gname)] = name
+            for name in self.config[lname]:
+                if name.startswith('.'):
+                    self.codesetup[lname]['groups'][name[1:]] = self.config[lname][name]
+                    self.stepinfo[name[1:]] = self.config[lname][name][self.keywords['filename']]
 
 
         if "monitors" in self.codenames:

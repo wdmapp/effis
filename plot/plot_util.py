@@ -204,7 +204,6 @@ class KittiePlotter(object):
         if (self.rank == 0) and self.on:
             #@effis-begin "done"->"done"
             self.DoneIO = adios.DeclareIO("done")
-            self.DoneIO.SetEngine('BP4')
             self.vDone = self.DoneIO.DefineVariable("Step",  self.LastFoundSim,  [], [], [])
             name = "{0}-{1}-StepsDone.bp".format(appname, self.group)
             self.DoneEngine = self.DoneIO.Open(name, adios2.Mode.Write, MPI.COMM_SELF)
@@ -319,13 +318,6 @@ class KittiePlotter(object):
         if ReadStatus == adios2.StepStatus.NotReady:
             if self.on and (self.rank == 0) and NewStep and (self.SecondLastFoundSim[0] > self.LastFoundData[0]):
                 self.PutStep(self.SecondLastFoundSim)
-                """
-                #@effis-begin self.DoneEngine--->"done"
-                self.DoneEngine.BeginStep()
-                self.DoneEngine.Put(self.vDone, self.SecondLastFoundSim)
-                self.DoneEngine.EndStep()
-                #@effis-end
-                """
             self.DoPlot = False
 
         elif ReadStatus != adios2.StepStatus.OK:
@@ -338,18 +330,6 @@ class KittiePlotter(object):
                 last = int(text.strip())
                 if NewStep or (last > self.LastFoundData[0]):
                     self.PutStep(np.array([last], dtype=np.int64))
-                    """
-                    #@effis-begin self.DoneEngine--->"done"
-                    self.DoneEngine.BeginStep()
-                    self.DoneEngine.Put(self.vDone, np.array([last], dtype=np.int64))
-                    self.DoneEngine.EndStep()
-                    #@effis-end
-                    """
-
-            """
-                if self.StepOpen:
-                    self.StepEngine.Close()
-            """
 
             self.DoPlot = False
             return False
@@ -407,10 +387,3 @@ class KittiePlotter(object):
         self.comm.Barrier()
         if self.on and (self.rank == 0):
             self.PutStep(self.LastFoundData)
-            """
-            #@effis-begin self.DoneEngine--->"done"
-            self.DoneEngine.BeginStep()
-            self.DoneEngine.Put(self.vDone, self.LastFoundData)
-            self.DoneEngine.EndStep()
-            #@effis-end
-            """

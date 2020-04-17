@@ -72,7 +72,7 @@ if __name__ == "__main__":
     for name in config.keys():
         setup[name] = {}
         setup[name]['io'] = adios.DeclareIO(name)
-        setup[name]['io'].SetEngine('BP4')
+        #setup[name]['io'].SetEngine('BP4')
         setup[name]['opened'] = False
         setup[name]['LastStep'] = np.array([-1], dtype=np.int64)
         setup[name]['done'] = False
@@ -92,9 +92,12 @@ if __name__ == "__main__":
             if setup[name]['done']:
                 continue
 
+            """
             if not os.path.exists(config[name]):
                 continue
             elif not setup[name]['opened']:
+            """
+            if not setup[name]['opened']:
                 setup[name]['engine'] = setup[name]['io'].Open(config[name], adios2.Mode.Read)
                 setup[name]['opened'] = True
 
