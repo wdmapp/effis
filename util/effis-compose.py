@@ -793,6 +793,12 @@ class KittieJob(cheetah.Campaign):
             sweepenv3 = cheetah.parameters.ParamEnvVar(codename, 'setup-file-num',  'KITTIE_NUM', ['{0}'.format(k)])
             sweepargs += [sweepenv1, sweepenv2, sweepenv3]
 
+            # Set other environment variables
+            if self.keywords['env'] in self.codesetup[codename]:
+                envs = self.codesetup[codename][self.keywords['env']]
+                for ename in envs:
+                    sweepargs += [cheetah.parameters.ParamEnvVar(codename, 'env-{0}'.format(ename),  ename, [envs[ename]])]
+
 
         if uselogin and ('env' in self.config[lname]):
             for varname in self.config[lname]['env'].keys():

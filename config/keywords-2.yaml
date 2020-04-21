@@ -31,6 +31,7 @@ login-proc: login-proc
 timed: timed
 node-share: node-share
 share-nodes: share-nodes
+env: env
 
 
 path: executable_path
