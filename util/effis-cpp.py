@@ -105,7 +105,8 @@ def SplitOn(txt, splitkey):
 
 def MatchPattern(pattern, fmt, InnerText):
     for i in range(len(fmt)):
-        for char in ['[', ']']:
+        #for char in ['[', ']']:
+        for char in ['[', ']', '(', ')']:
             fmt[i] = fmt[i].replace(char, '\\' + char)
 
     if len(fmt) > 0:
