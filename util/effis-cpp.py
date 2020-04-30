@@ -6,11 +6,12 @@ import argparse
 import os
 import re
 import subprocess
-import yaml
 import logging
 import sys
 import stat
-import kittie_common
+
+#import kittie_common
+#import yaml
 
 
 def GetVar(between, start, lang="c++"):
@@ -29,6 +30,7 @@ def GetVar(between, start, lang="c++"):
     return between[wordstart:wordend]
 
 
+"""
 def WriteGroupsFile(groups, outdir, name):
     scalars = "ngroupnames = {0}{1}appname = '{2}'".format(len(groups), '\n', name)
     setup = ["setup", scalars]
@@ -50,6 +52,7 @@ def WriteGroupsFile(groups, outdir, name):
     outpath = os.path.join(outdir, ".kittie-setup.yaml")
     with open(outpath, "w") as outfile:
         outfile.write(outstr)
+"""
 
 
 def GetArgumentList(text, end=False):
