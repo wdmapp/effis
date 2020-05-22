@@ -1,6 +1,7 @@
 import os
 import yaml
 import numpy as np
+import re
 
 from mpi4py import MPI
 import adios2
@@ -387,3 +388,71 @@ class KittiePlotter(object):
         self.comm.Barrier()
         if self.on and (self.rank == 0):
             self.PutStep(self.LastFoundData)
+
+
+
+    def ConnectToData(self):
+        #@effis-begin "plotter"->"plotter"
+        self.io = adios.DeclareIO("plotter")
+        self.engine = self.io.Open("", adios2.Mode.Read, self.comm)
+        #@effis-end
+
+
+    def FindPlotData(self, re_pattern, stepname):
+        self.io = kittie.Kittie.adios.AtIO("plotter")
+        found_names = None
+        
+        if self.rank == 0:
+            size = self.comm.Get_size()
+            found_names = [ [] ] * size
+            variables = self.io.AvailableVariables()
+            varnames = variables.keys()
+            if stepname in variables:
+                for i, varname in enumerate(varnames):
+                    index = i % size
+                    pattern = re.compile(re_pattern)
+                    result = pattern.search(varname)
+                    if result is not None:
+                        varid = self.io.InquireVariable(varname)
+                        found_names[index] += [varname]
+
+        AddStep = False
+        found_names = self.comm.scatter(found_names, root=0)
+        if (len(found_names) > 0) and (stepname not in found_names):
+            found_names += [stepname]
+            AddStep = True
+
+        self.data = {}
+        for i, varname in enumerate(found_names):
+            varid = self.io.InquireVariable(varname)
+            dtype = kittie_common.GetType(varid)
+            if (varname == stepname) and AddStep:
+                count = np.ones( 1, dtype=np.int64)
+                start = np.zeros(1, dtype=np.int64)
+            else:
+                count = np.array(varid.Shape(),  dtype=np.int64)
+                start = np.zeros(count.shape[0], dtype=np.int64)
+            self.data[varname] = np.zeros(tuple(count), dtype=dtype)
+            varid.SetSelection([start, count])
+            self.engine.Get(varid, self.data[varname])
+                
+        #@effis-begin self.engine--->"plotter"
+        self.engine.EndStep()
+        #@effis-end
+
+        if stepname in self.data:
+            self.StepNumber = int(self.data[stepname][0])
+
+            if self.rank == 0:
+                self.LastFoundData[0] = self.StepNumber
+                self.outdir = os.path.join("images", "{0}".format(self.StepNumber), self.config['plotter']['plots'])
+                if not os.path.exists(self.outdir):
+                    os.makedirs(self.outdir)
+
+        self.comm.Barrier()
+
+        if len(found_names) == 0:
+            return False
+        else:
+            return True
+            

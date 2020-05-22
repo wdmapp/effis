@@ -414,11 +414,13 @@ class KittieJob(cheetah.Campaign):
 
     def SetSSTEngine(self, codename, groupname):
         self.codesetup[codename][groupname] = {}
-        self.codesetup[codename][groupname][self.keywords['engine']] = 'SST'
+        #self.codesetup[codename][groupname][self.keywords['engine']] = 'SST'
+        self.codesetup[codename][groupname][self.keywords['engine']] = 'BP4'
         self.codesetup[codename][groupname][self.keywords['params']] = {}
         self.codesetup[codename][groupname][self.keywords['params']]["RendezvousReaderCount"] = 0
         self.codesetup[codename][groupname][self.keywords['params']]["QueueLimit"] = 1
         self.codesetup[codename][groupname][self.keywords['params']]["QueueFullPolicy"] = "Discard"
+        self.codesetup[codename][groupname][self.keywords['params']]["OpenTimeoutSecs"] = 3600
 
 
     def init(self, yamlfile):
@@ -547,7 +549,18 @@ class KittieJob(cheetah.Campaign):
                         self.config[lname] = self.config[self.keywords['dashboard']]
                         uselogin = True
 
-            if uselogin:
+            if (codename == "plot-tau"):
+                self.codesetup[codename][self.keywords['path']] = os.path.join(updir, "plot", "plotter-perf.py")
+                if "data" in self.codesetup[codename]:
+                    self.codesetup[codename]['.plotter'] = {'plots': self.codesetup[codename]["data"]}
+
+                if ('use' in self.config[self.keywords['dashboard']]) and (self.config[self.keywords['dashboard']]['use']):
+                    self.codesetup[codename][self.keywords['options']]['use-dashboard'] = 'on'
+                    if not uselogin:
+                        self.config[lname] = self.config[self.keywords['dashboard']]
+                        uselogin = True
+
+            if uselogin and ('.plotter' in self.codesetup[codename]):
                 code, group = self.codesetup[codename]['.plotter']['plots'].split('.', 1)
                 dname = '{0}.{1}'.format(code, group)
                 fname = '.done'
@@ -612,23 +625,32 @@ class KittieJob(cheetah.Campaign):
 
                 if 'reads' in entry:
                     code, group = entry['reads'].split('.', 1)
-                    other = self.codesetup[code]['groups'][group]
+                    if group == "tau":
+                        other = {}
+                        #exe = os.path.basename(self.codesetup[code][self.keywords['path']])
+                        exe = os.path.basename(self.codesetup[code][self.keywords['args']][-2])
+                        other['filename'] = os.path.join(self.mainpath, 'codar.cheetah.tau-{0}'.format(code), 'tauprofile-{0}.bp'.format(exe))
+                        other['engine'] = 'BP4'
+                    else:
+                        other = self.codesetup[code]['groups'][group]
 
                     if ('filename' not in other) and (('fromcode' not in other) or (not other['fromcode'])):
                         raise ValueError("If you're going to read {0}.{1} you need to set it's filename when it writes".format(code, group))
                     elif 'filename' in other:
-                        self.codesetup[codename]['groups'][key]['filename'] = self.codesetup[code]['groups'][group]['filename']
+                        #self.codesetup[codename]['groups'][key]['filename'] = self.codesetup[code]['groups'][group]['filename']
+                        self.codesetup[codename]['groups'][key]['filename'] = other['filename']
 
                     self.codesetup[codename]['groups'][key]['stepfile'] = os.path.join(self.mainpath, code, code + '-step.bp')
 
-                    #self.codesetup[codename]['groups'][key]['filename'] = self.codesetup[code]['groups'][group]['filename']
                     if 'engine' in other:
-                        self.codesetup[codename]['groups'][key]['engine'] = self.codesetup[code]['groups'][group]['engine']
+                        #self.codesetup[codename]['groups'][key]['engine'] = self.codesetup[code]['groups'][group]['engine']
+                        self.codesetup[codename]['groups'][key]['engine'] = other['engine']
                     if 'params' in other:
-                        self.codesetup[codename]['groups'][key]['params'] = self.codesetup[code]['groups'][group]['params']
+                        #self.codesetup[codename]['groups'][key]['params'] = self.codesetup[code]['groups'][group]['params']
+                        self.codesetup[codename]['groups'][key]['params'] = other['params']
 
-                    self.codesetup[code]['groups'][group]['AddStep'] = True
-                    #self.codesetup[codename]['groups'][key]['FromApp'] = code +
+                    if group in self.codesetup[code]['groups']:
+                        self.codesetup[code]['groups'][group]['AddStep'] = True
 
 
         if ('use' in self.config[lname]) and self.config[lname]['use']:
