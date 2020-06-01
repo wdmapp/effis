@@ -1,0 +1,12 @@
+get_filename_component(KITTIE_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+include(CMakeFindDependencyMacro)
+
+list(APPEND CMAKE_MODULE_PATH ${KITTIE_CMAKE_DIR})
+
+list(REMOVE_AT CMAKE_MODULE_PATH -1)
+
+if(NOT TARGET kittie::kittie)
+	include("${KITTIE_CMAKE_DIR}/kittieTargets.cmake")
+endif()
+
+set(kittie_LIBRARIES kittie::kittie)
