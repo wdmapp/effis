@@ -15,7 +15,7 @@ Once the example starts running, you should see 2 windows, one directly above th
 with a sinusoidal perturbation moving from right to left, from the "edge" region to the
 "core" region. Information in the "buffer" region of the edge is sent to the core code
 every 20 time steps using in-memory coupling (the Sustainable Staging Transport SST engine
-in [ADIOS2](https://adios2.readthedocs.io/en/latest/index.html).
+in [ADIOS2](https://adios2.readthedocs.io/en/latest/index.html)).
 
 **effis-cpp.py repo** processes the EFFIS pragmas in all the files found in the
 `wdmapp_coupled_sim` directory and outputs the results to new files that have the
