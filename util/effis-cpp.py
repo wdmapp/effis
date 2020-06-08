@@ -117,8 +117,18 @@ def MatchPattern(pattern, fmt, InnerText):
     else:
         Pattern = pattern
 
-    Comp = re.compile(Pattern)
+    #Comp = re.compile(Pattern)
+    Comp = re.compile(Pattern, re.DOTALL)
+
     match = Comp.search(InnerText)
+
+    if match is not None:
+        left  = match.group().count('(')
+        right = match.group().count(')')
+        if left != right:
+            NewPattern = pattern[:-3] + "\)" + ".*?)\)"
+            match = MatchPattern(NewPattern, fmt, InnerText)
+
     return match
 
 
@@ -801,16 +811,16 @@ class CppBlocks(BlockFiles):
     Header   = '#include "kittie.h"'
 
     #DeclareAdios = '\.DeclareIO'
-    FindDeclareIOPattern = "=\s*.*\.DeclareIO\s*\((\s*{0}\s*)\)"
-    FindOpenPattern = "=\s*{0}.Open\s*\((.*?)\)"
-    FindEndPattern = "{0}.EndStep\s*\((.*?)\)"
-    FindClosePattern = "{0}.Close\s*\((.*?)\)"
+    FindDeclareIOPattern = "=\s*?.*?\.DeclareIO\s*?\((\s*?{0}\s*?)\)"
+    FindOpenPattern = "=\s*?{0}.Open\s*?\((.*?)\)"
+    FindEndPattern = "{0}.EndStep\s*?\((.*?)\)"
+    FindClosePattern = "{0}.Close\s*?\((.*?)\)"
 
-    FindDeclareIOPatternByIO = "{0}\s*=\s*.*\.DeclareIO\s*\((.*?)\)"
-    FindOpenPatternByEngine = "{0}\s*=\s*(.*?).Open\s*\((.*?)\)"
+    FindDeclareIOPatternByIO = "{0}\s*?=\s*?.*?\.DeclareIO\s*?\((.*?)\)"
+    FindOpenPatternByEngine = "{0}\s*?=\s*?(.*?).Open\s*?\((.*?)\)"
 
     def FindBeginPattern(self, engine):
-        return "([=;}{])?(\s*)" + engine + ".BeginStep\s*\((.*?)\)"
+        return "([=;}{])?(\s*?)" + engine + ".BeginStep\s*?\((.*?)\)"
 
     def InitText(self, keydict):
         args = []
@@ -908,16 +918,16 @@ class FortranBlocks(BlockFiles):
     ReComment = "!"
     GrepComment = "\\{0}".format(ReComment)
     slash = "\\\\"
-    spaceslash = '[\s{0}]*'.format(slash)
+    spaceslash = '[\s{0}]*?'.format(slash)
     call = 'call{0}'.format(spaceslash)
 
     HeadExpr = ["use{0}adios2{0}\n".format(spaceslash)]
     Header   = 'use kittie\n'
 
-    FindDeclareIOPattern = call + "adios2_declare_io" + spaceslash + "\((.*{0}.*)\)"
-    FindOpenPattern      = call + "adios2_open"       + spaceslash + "\((.*{0}.*)\)"
-    FindEndPattern       = call + "adios2_end_step"   + spaceslash + "\((.*{0}.*)\)"
-    FindClosePattern     = call + "adios2_close"      + spaceslash + "\((.*{0}.*)\)"
+    FindDeclareIOPattern = call + "adios2_declare_io" + spaceslash + "\((.*?{0}.*?)\)"
+    FindOpenPattern      = call + "adios2_open"       + spaceslash + "\((.*?{0}.*?)\)"
+    FindEndPattern       = call + "adios2_end_step"   + spaceslash + "\((.*?{0}.*?)\)"
+    FindClosePattern     = call + "adios2_close"      + spaceslash + "\((.*?{0}.*?)\)"
 
     FindDeclareIOPatternByIO = FindDeclareIOPattern
     FindOpenPatternByEngine  = FindOpenPattern
@@ -926,7 +936,7 @@ class FortranBlocks(BlockFiles):
     # I'm not using ierr anywhere yet
 
     def FindBeginPattern(self, engine):
-        return self.call + "adios2_begin_step" + self.spaceslash + "\((.*{0}.*)\)".format(engine)
+        return self.call + "adios2_begin_step" + self.spaceslash + "\((.*?{0}.*?)\)".format(engine)
 
     def InitText(self, keydict):
         args = []
@@ -1033,16 +1043,16 @@ class PythonBlocks(BlockFiles):
     Header   = 'import kittie'
 
     #DeclareAdios = '\.DeclareIO'
-    FindDeclareIOPattern = "=\s*.*\.DeclareIO\s*\((\s*{0}\s*)\)"
-    FindOpenPattern = "=\s*{0}.Open\s*\((.*?)\)"
-    FindEndPattern = "{0}.EndStep\s*\((.*?)\)"
-    FindClosePattern = "{0}.Close\s*\((.*?)\)"
+    FindDeclareIOPattern = "=\s*?.*?\.DeclareIO\s*?\((\s*?{0}\s*?)\)"
+    FindOpenPattern = "=\s*?{0}.Open\s*?\((.*?)\)"
+    FindEndPattern = "{0}.EndStep\s*?\((.*?)\)"
+    FindClosePattern = "{0}.Close\s*?\((.*?)\)"
 
-    FindDeclareIOPatternByIO = "{0}\s*=\s*.*\.DeclareIO\s*\((.*?)\)"
-    FindOpenPatternByEngine = "{0}\s*=\s*(.*?).Open\s*\((.*?)\)"
+    FindDeclareIOPatternByIO = "{0}\s*?=\s*?.*?\.DeclareIO\s*?\((.*?)\)"
+    FindOpenPatternByEngine = "{0}\s*?=\s*?(.*?).Open\s*?\((.*?)\)"
 
     def FindBeginPattern(self, engine):
-        return "([=;])?(\s*)" + engine + ".BeginStep\s*\((.*?)\)"
+        return "([=;])?(\s*?)" + engine + ".BeginStep\s*?\((.*?)\)"
 
     def InitText(self, keydict):
         args = {}
