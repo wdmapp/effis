@@ -549,7 +549,7 @@ class KittieJob(cheetah.Campaign):
                         self.config[lname] = self.config[self.keywords['dashboard']]
                         uselogin = True
 
-            if (codename == "plot-tau"):
+            if codename.startswith("plot-tau"):
                 self.codesetup[codename][self.keywords['path']] = os.path.join(updir, "plot", "plotter-perf.py")
                 if "data" in self.codesetup[codename]:
                     self.codesetup[codename]['.plotter'] = {'plots': self.codesetup[codename]["data"]}
