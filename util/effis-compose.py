@@ -555,6 +555,12 @@ class KittieJob(cheetah.Campaign):
                     self.codesetup[codename]['.plotter'] = {'plots': self.codesetup[codename]["data"]}
 
                 if ('use' in self.config[self.keywords['dashboard']]) and (self.config[self.keywords['dashboard']]['use']):
+                    opts = copy.copy(self.codesetup[codename][self.keywords['options']])
+                    self.codesetup[codename][self.keywords['options']] = {}
+                    self.codesetup[codename][self.keywords['options']]['use-dashboard'] = 'on'
+                    for opt in opts:
+                        self.codesetup[codename][self.keywords['options']][opt] = opts[opt]
+
                     self.codesetup[codename][self.keywords['options']]['use-dashboard'] = 'on'
                     if not uselogin:
                         self.config[lname] = self.config[self.keywords['dashboard']]
