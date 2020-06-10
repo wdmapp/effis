@@ -5,8 +5,8 @@ module kittie
 
 
 	type coupling_helper
-		character(len=:), allocatable :: filename
-		character(len=:), allocatable :: groupname
+		character(len=512), allocatable :: filename
+		character(len=512), allocatable :: groupname
 		type(adios2_engine) :: engine
 		type(adios2_io) :: io
 		integer :: mode
@@ -17,10 +17,10 @@ module kittie
 		logical :: alive=.false.
 		logical :: fileopened=.false.
 		logical :: FindStep = .false.
-		character(len=:), allocatable :: engine_type
+		character(len=512), allocatable :: engine_type
 
 		logical :: timed=.false., timeinit=.false.
-		character(len=:), allocatable :: timingfile, timinggroup
+		character(len=512), allocatable :: timingfile, timinggroup
 		real(8), dimension(1) :: starttime, endtime, othertime, totaltime
 		type(adios2_engine) :: timeengine
 		type(adios2_io) :: timingio
@@ -33,7 +33,7 @@ module kittie
 
 	character(len=8), parameter :: writing=".writing"
 	character(len=8), parameter :: reading=".reading"
-	character(len=:), allocatable :: myreading, code_name !, app_name
+	character(len=512), allocatable :: myreading, code_name !, app_name
 	character(len=128), dimension(:), allocatable :: allreading
 	logical, dimension(:), allocatable :: readexists
 
@@ -60,7 +60,7 @@ module kittie
 	type(adios2_io) :: kittie_StepIO
 	type(adios2_engine) :: kittie_StepEngine
 	logical, dimension(:), allocatable :: kittie_addstep, kittie_timed
-	character(len=:), allocatable :: kittie_StepGroupname
+	character(len=512), allocatable :: kittie_StepGroupname
 
 
 	contains
