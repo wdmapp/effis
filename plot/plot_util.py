@@ -325,6 +325,7 @@ class KittiePlotter(object):
             if (self.rank == 0) and self.on:
                 while not os.path.exists(self.LastStepFile):
                     continue
+                time.sleep(1)
                 print("found", self.LastStepFile); sys.stdout.flush()
                 with open(self.LastStepFile, 'r') as infile:
                     text = infile.read()
