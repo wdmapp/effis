@@ -10,7 +10,7 @@ endif()
 set(lib_objects ${CMAKE_CURRENT_SOURCE_DIR}/kittie.cpp)
 add_library(kittie ${lib_objects})
 
-target_link_libraries(kittie PUBLIC adios2::adios2 PRIVATE yaml::cpp)
+target_link_libraries(kittie PUBLIC adios2::adios2 PRIVATE yaml-cpp)
 target_include_directories(kittie 
 	PUBLIC 
 	$<BUILD_INTERFACE:${YAML_INCLUDE_DIRS}>
