@@ -1,0 +1,91 @@
+message(STATUS "Found EFFIS: ${CMAKE_CURRENT_LIST_FILE}")
+get_filename_component(EFFIS_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" DIRECTORY)
+include("${EFFIS_CMAKE_DIR}/effisTargets.cmake")
+
+set(EFFIS_SUFFIX "-effis")
+set(EFFIS_INSTALL_DIR "@CMAKE_INSTALL_PREFIX@")
+
+
+function(EFFIS_CALL_CPP src dest suffix)
+	# Run the preprocessor that replaces the pragmas
+	#	* ${src}    is the source directory we want to recursively check for EFFIS pragmas
+	# 	* ${dest}   is where the output files will go, e.g. we can send them to the CMake build files area
+	#	* ${suffix} is a suffix appended to the name of the processes sourced files
+	execute_process(COMMAND ${EFFIS_INSTALL_DIR}/bin/effis-cpp.py repo ${src} --tree-output=${dest} --suffix=${suffix})
+endfunction()
+
+
+function(EFFIS_FIND_RESULTS dest result)
+	# Find the files the preprocessor wrote
+	# 	* ${dest}   is the directory where to recursively check
+	# 	* ${result} holds the new files
+	file(GLOB_RECURSE effis_f90 ${dest}/*${EFFIS_SUFFIX}.F90)
+	file(GLOB_RECURSE effis_cpp ${dest}/*${EFFIS_SUFFIX}.cpp)
+	set(foundfiles ${effis_f90} ${effis_cpp})
+	set(${result} ${foundfiles} PARENT_SCOPE)
+endfunction()
+
+
+function(EFFIS_PREPROCESS src dest result)
+	# Run the preprocessor and find the files it wrote
+	#	* ${src}    is the source directory we want to recursively check for EFFIS pragmas
+	# 	* ${dest}   is where the output files will go, e.g. we can send them to the CMake build files area
+	# 	* ${result} holds the new files
+	EFFIS_CALL_CPP("${src}" "${dest}" ${EFFIS_SUFFIX})
+	EFFIS_FIND_RESULTS("${dest}" foundfiles)
+	set(${result} ${foundfiles} PARENT_SCOPE)
+endfunction()
+
+
+function(EFFIS_COMPARE_NAME filename ignore suffix result)
+	# Prepare a filename for comparison, when checking for which files to use an EFFIS-preprocessed one
+	#	* ${filename} filename to process
+	#	* ${ignore}   starting portion of filename not to consider for comparison
+	#	* ${suffix}   suffix to append to filename
+	# 	* ${result}   holds the new filename
+	get_filename_component(base ${filename} NAME_WE)
+	get_filename_component(ext  ${filename} EXT)
+	get_filename_component(dir  ${filename} DIRECTORY)
+	string(REGEX REPLACE ^${ignore} "" subdir "${dir}")
+	set(${result} "${subdir}/${base}${suffix}${ext}" PARENT_SCOPE)
+endfunction()
+
+
+function(EFFIS_UPDATE_TO_PREPROCESSED srcs top_srcdir pres top_predir result)
+	# Update list of source files to use EFFIS-preprocessed files
+	#	* ${srcs}       Original source files
+	#	* ${top_srcdir} Top directory for sources to ignore when comparing with EFFIS names
+	#	* ${pres}       Preprocessed files
+	#	* ${top_predir} Top directory for preprocesed to ignore when comparing with source names
+	# 	* ${result}     Holds the new filenames to use
+	set(updated "")
+	foreach(src ${srcs})
+		EFFIS_COMPARE_NAME(${src} "${top_srcdir}/*" "${EFFIS_SUFFIX}" srcname)
+		foreach(pre ${pres})
+			EFFIS_COMPARE_NAME(${pre} "${top_predir}/*" "" effisname)
+			string(COMPARE EQUAL "${srcname}" "${effisname}" found_file)
+			if (found_file)
+				message(STATUS "using ${pre} for ${src}")
+				set(updated ${updated} ${pre})
+				break()
+			endif()
+		endforeach()
+		if (NOT found_file)
+			set(updated ${updated} ${src})
+		endif()
+	endforeach()
+	set(${result} ${updated} PARENT_SCOPE)
+endfunction()
+
+
+function(EFFIS_PREPROCESS_UPDATE top_srcdir top_outdir buildsrcs new_buildsrcs)
+	# Run the EFFIS preproceessor and update list of source files to use EFFIS-preprocessed files
+	#	* ${top_srcdir}      Top directory for sources (to ignore when comparing with EFFIS names)
+	#	* ${top_outdir}      Top directory for preprocesed (to ignore when comparing with source names)
+	#	* ${buildsrcs}       Original source files
+	# 	* ${new_buildsrcs}   Holds the new filenames to use
+	EFFIS_PREPROCESS("${top_srcdir}" "${top_outdir}" foundfiles)
+	EFFIS_UPDATE_TO_PREPROCESSED("${buildsrcs}" "${top_srcdir}" "${foundfiles}" "${top_outdir}" newfiles)
+	set(${new_buildsrcs} ${newfiles} PARENT_SCOPE)
+endfunction()
+

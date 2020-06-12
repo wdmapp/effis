@@ -1,6 +1,6 @@
 # I don't really know what version is actually needed but 3.0 seems sensible -- certainly using CMake-3 syntax
 cmake_minimum_required(VERSION 3.0)
-project(KITTIE VERSION 0.1)
+project(EFFIS VERSION 0.1)
 enable_language(Fortran)
 
 # Custom CMake package modules
@@ -18,7 +18,6 @@ set_property(CACHE PYTHON_PREFIX PROPERTY STRINGS "ON;TRUE;OFF;FALSE")
 
 # Find ADIOS-2
 find_package(ADIOS2 REQUIRED)
-#find_package(Yamlcpp REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
 #find_package(PythonInterp REQUIRED)
@@ -46,4 +45,20 @@ add_subdirectory(util)
 add_subdirectory(plot)
 add_subdirectory(examples)
 
-message(STATUS "prefix: ${CMAKE_INSTALL_PREFIX}")
+install(
+	EXPORT effis-targets
+	FILE effisTargets.cmake
+	NAMESPACE effis::
+	DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/effis
+)
+
+include (CMakePackageConfigHelpers)
+configure_package_config_file(
+	${CMAKE_CURRENT_LIST_DIR}/effisConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/effisConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/effis
+)
+install(
+	FILES ${CMAKE_CURRENT_BINARY_DIR}/effisConfig.cmake
+	DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/effis
+)

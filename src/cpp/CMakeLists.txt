@@ -9,9 +9,10 @@ endif()
 
 set(lib_objects ${CMAKE_CURRENT_SOURCE_DIR}/kittie.cpp)
 add_library(kittie ${lib_objects})
+set_property(TARGET kittie PROPERTY EXPORT_NAME cxx)
 
 target_link_libraries(kittie PUBLIC adios2::adios2 PRIVATE yaml-cpp)
-target_include_directories(kittie 
+target_include_directories(kittie
 	PUBLIC 
 	$<BUILD_INTERFACE:${YAML_INCLUDE_DIRS}>
 	$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src/cpp>
@@ -19,6 +20,11 @@ target_include_directories(kittie
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include>
 )
 
-install(TARGETS kittie DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/kittie.h DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+
+install(
+	TARGETS kittie
+	EXPORT effis-targets
+	DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+)
 
