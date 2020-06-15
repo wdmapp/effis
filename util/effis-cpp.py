@@ -686,7 +686,7 @@ class BlockFiles(object):
         self.files = self.GrepFor(self.include, self.files)
 
 
-    def MakeReplacements(self, outdir, groupnames, ignore=[], only=None, suffix="-kittie"):
+    def MakeReplacements(self, outdir, groupnames, ignore=[], only=None, suffix="-effis"):
         """ Go through the identified files, and replace ADIOS-2 statements with slightly updated ones to support Effis """
 
         InitExpr  = "{0}{1}".format(self.ReComment, self.init)
@@ -1160,7 +1160,7 @@ if __name__ == "__main__":
     RepoParser = subparsers.add_parser("repo", help="Process code repository to determine its KITTIE-dependent files and group names")
     RepoParser.add_argument("directory", help="Code repository to look through for KITTIE markups")
     RepoParser.add_argument("-t", "--tree-output", help="Write replacment files into directories mimic the source directories", type=str, default=None)
-    RepoParser.add_argument("-s", "--suffix", help="String to append to file names when replaced", type=str, default="-kittie")
+    RepoParser.add_argument("-s", "--suffix", help="String to append to file names when replaced", type=str, default="-effis")
     RepoParser.add_argument("-k", "--skip", help="Groups to skip", type=str, default="")
     RepoParser.add_argument("-o", "--only", help="Groups to keep", type=str, default="")
     RepoParser.add_argument("-a", "--tar", help="Tar source", action="store_true", default=False)
