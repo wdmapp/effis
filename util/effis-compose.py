@@ -637,7 +637,8 @@ class KittieJob(cheetah.Campaign):
                         other = {}
                         #exe = os.path.basename(self.codesetup[code][self.keywords['path']])
                         exe = os.path.basename(self.codesetup[code][self.keywords['args']][-2])
-                        other['filename'] = os.path.join(self.mainpath, 'codar.cheetah.tau-{0}'.format(code), 'tauprofile-{0}.bp'.format(exe))
+                        #other['filename'] = os.path.join(self.mainpath, 'codar.cheetah.tau-{0}'.format(code), 'tauprofile-{0}.bp'.format(exe))
+                        other['filename'] = os.path.join(self.mainpath, format(code), 'tauprofile-{0}.bp'.format(exe))
                         other['engine'] = 'BP4'
                     else:
                         other = self.codesetup[code]['groups'][group]
