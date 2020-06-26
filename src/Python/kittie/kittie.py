@@ -66,7 +66,8 @@ class Coupler(object):
         if self.metafile:
             while not os.path.exists(os.path.join(self.filename, 'md.idx')):
                 continue
-
+            while not os.path.exists(os.path.join(self.filename, 'md.0')):
+                continue
 
 
     def AcquireLock(self):

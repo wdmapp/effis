@@ -263,6 +263,7 @@ module kittie
 				rfile = trim(helper%filename) // myreading
 				if ((trim(helper%engine_type) == "BP4") .and. (helper%mode == adios2_mode_read)) then
 					call wait_data_existence(helper, suffix="/md.idx")
+					call wait_data_existence(helper, suffix="/md.0")
 				else
 					call wait_data_existence(helper)
 				endif
@@ -546,6 +547,7 @@ module kittie
 #			ifdef USE_MPI
 				if ((trim(helper%engine_type) == "BP4") .and. (helper%mode == adios2_mode_read)) then
 					call wait_data_existence(helper, suffix="/md.idx")
+					call wait_data_existence(helper, suffix="/md.0")
 				end if
 				call adios2_open(helper%engine, helper%io, helper%filename, helper%mode, helper%comm, ierr)
 #			else

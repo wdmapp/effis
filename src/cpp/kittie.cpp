@@ -549,6 +549,10 @@ void kittie::Coupler::WaitDataExistence()
 		{
 			continue;
 		}
+		while (! kittie::Exists(filename + "/md.0"))
+		{
+			continue;
+		}
 	}
 }
 
