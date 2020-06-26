@@ -410,7 +410,7 @@ class Kittie(object):
     def write_step(cls, physical, number, comm=None):
         if cls.rank == 0:
             cls.StepPhysical = np.array([physical], dtype=np.float64)
-            cls.StepNumber = np.array([number], dtype=np.int64)
+            cls.StepNumber = np.array([number], dtype=np.int32)
             if not cls.StepInit:
                 cls.StepIO = cls.declare_io(cls.StepGroupname)
                 cls.Couplers[cls.StepGroupname].mode = None

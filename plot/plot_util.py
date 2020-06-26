@@ -161,7 +161,7 @@ class KittiePlotter(object):
 
         self.data = {}
         self.data['_StepPhysical'] = np.zeros(1, dtype=np.float64)
-        self.data['_StepNumber'] = np.zeros(1, dtype=np.int64)
+        self.data['_StepNumber'] = np.zeros(1, dtype=np.int32)
         if not explicit:
             for name, dtype in zip(self.uMatches, self.uTypes):
                 self.data[name] = np.zeros(tuple(self.DimInfo['counts']), dtype=dtype)
@@ -198,9 +198,9 @@ class KittiePlotter(object):
                 self.StepOpen = False
             #@effis-end
 
-        self.LastFoundData = np.array([-1], dtype=np.int64)
-        self.LastFoundSim  = np.array([-1], dtype=np.int64)
-        self.SecondLastFoundSim  = np.array([-1], dtype=np.int64)
+        self.LastFoundData = np.array([-1], dtype=np.int32)
+        self.LastFoundSim  = np.array([-1], dtype=np.int32)
+        self.SecondLastFoundSim  = np.array([-1], dtype=np.int32)
 
         if (self.rank == 0) and self.on:
             #@effis-begin "done"->"done"
@@ -318,6 +318,7 @@ class KittiePlotter(object):
 
         if ReadStatus == adios2.StepStatus.NotReady:
             if self.on and (self.rank == 0) and NewStep and (self.SecondLastFoundSim[0] > self.LastFoundData[0]):
+                print("Time step {0} has no data for this plotter".format(self.SecondLastFoundSim[0])); sys.stdout.flush()
                 self.PutStep(self.SecondLastFoundSim)
             self.DoPlot = False
 
@@ -326,12 +327,12 @@ class KittiePlotter(object):
                 while not os.path.exists(self.LastStepFile):
                     continue
                 time.sleep(1)
-                print("found", self.LastStepFile); sys.stdout.flush()
+                print("Found finish in {0}".format(self.LastStepFile)); sys.stdout.flush()
                 with open(self.LastStepFile, 'r') as infile:
                     text = infile.read()
                 last = int(text.strip())
                 if NewStep or (last > self.LastFoundData[0]):
-                    self.PutStep(np.array([last], dtype=np.int64))
+                    self.PutStep(np.array([last], dtype=np.int32))
 
             self.DoPlot = False
             return False
