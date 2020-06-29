@@ -37,6 +37,7 @@
 				adios2::IO* io;
 				adios2::Engine engine;
 				adios2::Mode mode;
+				bool WriteMode;
 				MPI_Comm comm;
 				int rank;
 				int CurrentStep;

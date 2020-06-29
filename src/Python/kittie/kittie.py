@@ -25,6 +25,7 @@ class Coupler(object):
         self.groupname = groupname
         self.lockfile = False
         self.metafile = False
+        self.WriteMode = False
 
 
     def UntilNonexistentRead(self, verify=3):
@@ -56,7 +57,7 @@ class Coupler(object):
             self.comm.Barrier()
 
         if self.rank == 0:
-            if self.mode == adios2.Mode.Write:
+            if self.WriteMode:
                 os.remove(self.writing)
             elif self.mode == adios2.Mode.Read:
                 os.remove(self.reading)
@@ -72,7 +73,7 @@ class Coupler(object):
 
     def AcquireLock(self):
         if self.rank == 0:
-            if self.mode == adios2.Mode.Write:
+            if self.WriteMode:
                 self.UntilNonexistentWrite()
             elif self.mode == adios2.Mode.Read:
                 #while not os.path.exists(self.filename):
@@ -104,6 +105,8 @@ class Coupler(object):
 
         if not self.BegunStepping:
             self.mode = mode
+            if (self.mode == adios2.Mode.Write) or (self.mode == adios2.Mode.Append):
+                self.WriteMode = True
             self.CurrentStep = -1
             self.comm = comm
 
@@ -174,7 +177,7 @@ class Coupler(object):
     def begin_step(self, step=None, timeout=-1):
         found = False
 
-        if self.mode == adios2.Mode.Write:
+        if self.WriteMode:
             if not self.opened:
                 self.CoupleOpen()
             self.engine.BeginStep(adios2.StepMode.Append, timeout)
@@ -204,11 +207,11 @@ class Coupler(object):
     def AddStep(self):
         if (not self.FindStep) and ((self.groupname in Kittie.StepGroups) or Kittie.AllStep):
             self.FindStep = True
-            if (self.mode == adios2.Mode.Write) and (self.rank == 0):
+            if self.WriteMode and (self.rank == 0):
                 self.io.DefineVariable("_StepNumber", Kittie.StepNumber, [], [], [])
                 self.io.DefineVariable("_StepPhysical", Kittie.StepPhysical, [], [], [])
 
-        if self.FindStep and (self.mode == adios2.Mode.Write) and (self.rank == 0):
+        if self.FindStep and self.WriteMode and (self.rank == 0):
             vNumber = self.io.InquireVariable("_StepNumber")
             vPhysical = self.io.InquireVariable("_StepPhysical")
             self.engine.Put(vNumber, Kittie.StepNumber)
@@ -231,11 +234,11 @@ class Coupler(object):
 
     def close(self):
         if self.opened:
-            if (self.mode == adios2.Mode.Write) and self.lockfile:
+            if self.WriteMode and self.lockfile:
                 self.AcquireLock()
             self.engine.Close()
             self.opened = False
-            if (self.mode == adios2.Mode.Write) and self.lockfile:
+            if self.WriteMode and self.lockfile:
                 self.ReleaseLock()
 
 
@@ -366,7 +369,7 @@ class Kittie(object):
     def Finalize(cls):
         for name in cls.Couplers.keys():
             cls.Couplers[name].close()
-            if (cls.rank == 0) and (cls.Couplers[name].mode == adios2.Mode.Write):
+            if (cls.rank == 0) and cls.Couplers[name].WriteMode:
                 filename = cls.Couplers[name].filename + ".done"
                 filename = cls.Touch(filename)
 

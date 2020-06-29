@@ -10,6 +10,7 @@ module kittie
 		type(adios2_engine) :: engine
 		type(adios2_io) :: io
 		integer :: mode
+		logical :: WriteMode=.false.
 		integer :: comm
 		integer :: rank
 		integer :: CurrentStep
@@ -256,7 +257,7 @@ module kittie
 
 			wfile = trim(helper%filename) // writing
 
-			if (helper%mode == adios2_mode_write) then
+			if (helper%WriteMode) then
 				call wlock(wfile)
 				call nothing_reading(helper)
 			else
@@ -295,7 +296,7 @@ module kittie
 			if (yes) then
 				call until_nonexistent(helper)
 			else
-				if (helper%mode == adios2_mode_write) then
+				if (helper%WriteMode) then
 					call delete_existing(helper%filename//writing)
 				else if (helper%mode == adios2_mode_read) then
 					call delete_existing(helper%filename//myreading)
@@ -379,7 +380,7 @@ module kittie
 
 				if (find) then
 					helper%FindStep = .true.
-					if ((helper%mode == adios2_mode_write) .and. (helper%rank == 0)) then
+					if (helper%WriteMode .and. (helper%rank == 0)) then
 						call adios2_define_variable(varid, helper%io, "_StepNumber",   adios2_type_integer4, ierr)
 						call adios2_define_variable(varid, helper%io, "_StepPhysical", adios2_type_dp,       ierr)
 					end if
@@ -387,7 +388,7 @@ module kittie
 
 			end if
 
-			if (helper%FindStep .and. (helper%mode == adios2_mode_write) .and. (helper%rank == 0)) then
+			if (helper%FindStep .and. helper%WriteMode .and. (helper%rank == 0)) then
 				call adios2_put(helper%engine, "_StepNumber", kittie_StepNumber, ierr)
 				call adios2_put(helper%engine, "_StepPhysical", kittie_StepPhysical, ierr)
 			end if
@@ -589,7 +590,7 @@ module kittie
 
 				end if
 
-				if ((helpers(i)%rank == 0) .and. (helpers(i)%mode == adios2_mode_write)) then
+				if ((helpers(i)%rank == 0) .and. helpers(i)%WriteMode) then
 					call touch_file(trim(helpers(i)%filename)//'.done')
 				end if
 			end do
@@ -750,6 +751,9 @@ module kittie
 				helper%engine_type = which_engine(io)
 				helper%usesfile = uses_files(helper%engine_type)
 				helper%mode = mode
+				if ((helper%mode == adios2_mode_write) .or. (helper%mode == adios2_mode_append)) then
+					helper%WriteMode = .true.
+				end if
 				helper%CurrentStep = -1
 			end if
 
@@ -849,7 +853,7 @@ module kittie
 			end if
 
 
-			if (helper%mode == adios2_mode_write) then
+			if (helper%WriteMode) then
 				if (.not.helper%fileopened) then
 					call kittie_couple_open(helper)
 				end if

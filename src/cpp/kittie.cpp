@@ -250,9 +250,8 @@ void kittie::finalize()
 
 	for(std::map<std::string, kittie::Coupler*>::iterator it=kittie::Couplers.begin(); it!=kittie::Couplers.end(); ++it)
 	{
-		if (it->second->mode == adios2::Mode::Write)
+		if (it->second->WriteMode)
 		{
-
 			std::string fname = it->second->filename + ".done";
 			it->second->close();
 			if (kittie::rank == 0)
@@ -341,14 +340,14 @@ void kittie::Coupler::AddStep()
 	if (!FindStep && (std::find(kittie::StepGroups.begin(), kittie::StepGroups.end(), groupname) != kittie::StepGroups.end() || kittie::AllStep))
 	{
 		FindStep = true;
-		if ((mode == adios2::Mode::Write) && (kittie::rank == 0))
+		if (WriteMode && (kittie::rank == 0))
 		{
 			adios2::Variable<int> VarNumber  = io->DefineVariable<int>("_StepNumber");
 			adios2::Variable<double> VarStep = io->DefineVariable<double>("_StepPhysical");
 		}
 	}
 
-	if (FindStep && (mode == adios2::Mode::Write) && (kittie::rank == 0))
+	if (FindStep && WriteMode && (kittie::rank == 0))
 	{
 		engine.Put<int>("_StepNumber", kittie::_StepNumber);
 		engine.Put<double>("_StepPhysical", kittie::_StepPhysical);
@@ -385,6 +384,10 @@ void kittie::Coupler::_open(MPI_Comm incomm, const std::string infilename, const
 	if (!init)
 	{
 		mode = inmode;
+		if ((mode == adios2::Mode::Write) || (mode == adios2::Mode::Append))
+		{
+			WriteMode = true;
+		}
 		CurrentStep = -1;
 		MPI_Comm_dup(incomm, &comm);
 		int err = MPI_Comm_rank(comm, &rank);
@@ -422,6 +425,7 @@ kittie::Coupler::Coupler(const std::string ingroupname)
 	init = false;
 	opened = false;
 	groupname = ingroupname;
+	WriteMode = false;
 }
 
 
@@ -483,7 +487,7 @@ void kittie::Coupler::AcquireLock()
 			//}
 			Until_Nonexistent_Read();
 		}
-		else if (mode == adios2::Mode::Write)
+		else if (WriteMode)
 		{
 			Until_Nonexistent_Write();
 		}
@@ -499,7 +503,7 @@ void kittie::Coupler::ReleaseLock()
 	int err = MPI_Barrier(comm);
 	if (rank == 0)
 	{
-		if (mode == adios2::Mode::Write)
+		if (WriteMode)
 		{
 			std::remove(cwriting.c_str());
 		}
@@ -642,7 +646,7 @@ adios2::StepStatus kittie::Coupler::begin_step(const double timeout)
 {
 	adios2::StepStatus status;
 
-	if (mode == adios2::Mode::Write)
+	if (WriteMode)
 	{
 		begin_write();
 		status = adios2::StepStatus::OK;
@@ -667,7 +671,7 @@ adios2::StepStatus kittie::Coupler::begin_step(const int step, const double time
 	bool found = false;
 	adios2::StepStatus status;
 
-	if (mode == adios2::Mode::Write)
+	if (WriteMode)
 	{
 		begin_write();
 		status = adios2::StepStatus::OK;
@@ -738,13 +742,13 @@ void kittie::Coupler::close()
 {
 	if (opened) 
 	{
-		if ((mode == adios2::Mode::Write) && LockFile)
+		if (WriteMode && LockFile)
 		{
 			AcquireLock();
 		}
 		engine.Close();
 		opened = false;
-		if ((mode == adios2::Mode::Write) && LockFile)
+		if (WriteMode && LockFile)
 		{
 			ReleaseLock();
 		}
