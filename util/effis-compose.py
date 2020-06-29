@@ -343,10 +343,12 @@ class KittieJob(cheetah.Campaign):
     def _DoCommands(self, path, dictionary):
         keyword = self.keywords['pre-sub-cmds']
         if keyword in dictionary.keys():
+            pwd = os.getcwd()
             os.chdir(path)
             for cmd in dictionary[keyword]:
                 args = cmd.split()
                 subprocess.call(args)
+            os.chdir(pwd)
 
 
     ###################################################################################################################################################
@@ -1064,8 +1066,8 @@ class KittieJob(cheetah.Campaign):
         super(KittieJob, self).__init__(self.machine, "")
         self.make_experiment_run_dir(self.output_dir)
 
-        self.Copy()
         self.PreSubmitCommands()
+        self.Copy()
         self.Link()
 
         self.WriteCodesFile()
