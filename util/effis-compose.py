@@ -306,7 +306,8 @@ class KittieJob(cheetah.Campaign):
 
         for name in copydict[self.keywords['copy']]:
             if type(name) == list:
-                newpath = os.path.join(outdir, os.path.basename(name[1]))
+                #newpath = os.path.join(outdir, os.path.basename(name[1]))
+                newpath = os.path.join(outdir, name[1])
                 KeepLinksCopy(name[0], newpath)
             else:
                 newpath = os.path.join(outdir, os.path.basename(name))
