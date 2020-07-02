@@ -719,6 +719,9 @@ class KittieJob(cheetah.Campaign):
             if codename in [lname, "monitors"]:
                 codedict['runner_override'] = True
 
+            if ('runner_override' in self.codesetup[codename]) and self.codesetup[codename]['runner_override']:
+                codedict['runner_override'] = True
+
             self.codes.append((codename, codedict))
             self.codesetup[codename]['setup-file'] = os.path.join(os.path.dirname(self.codesetup[codename][self.keywords['path']]), ".kittie-setup.nml")
 
