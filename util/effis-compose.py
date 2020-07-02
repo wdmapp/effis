@@ -452,7 +452,7 @@ class KittieJob(cheetah.Campaign):
                 pass
         for filename in self.config[self.keywords['include']]:
             with open(filename, 'r') as ystream:
-                self.config.update(yaml.load(ystream), Loader=self.OrderedLoader)
+                self.config.update(yaml.load(ystream, Loader=self.OrderedLoader))
 
 
         # Make value replacements -- this when the user does things like processes-per-node: ${run.xgc.processes}
