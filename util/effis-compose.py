@@ -872,7 +872,6 @@ class KittieJob(cheetah.Campaign):
             self._Copy(self.codesetup[codename], codepath)
 
 
-
     def PreSubmitCommands(self):
         """
         PreSubmitCommands issues the commands that user asks for in the config file.
@@ -885,7 +884,6 @@ class KittieJob(cheetah.Campaign):
             self._DoCommands(path, self.config['run'][codename])
 
 
-
     def Link(self):
         """
         Link() takes care of presenting the user with correct Cheetah directory and files according to where the user wanted the output.
@@ -894,6 +892,7 @@ class KittieJob(cheetah.Campaign):
         Link() uses symbolic links but it has nothing to do with the `link` keyword in the Kittie config file.
         """
 
+        pwd = os.getcwd()
         os.chdir(self.mainpath)
         mainlist = os.listdir(self.mainpath)
         os.makedirs(self.timingdir)
@@ -904,7 +903,7 @@ class KittieJob(cheetah.Campaign):
             linksrc = os.path.join(self.cheetahdir, self.cheetahsub, name)
             linkpath = os.path.join(self.config[self.keywords['rundir']], name)
             os.symlink(linksrc, linkpath)
-
+        os.chdir(pwd)
 
 
     def MoveLog(self):
