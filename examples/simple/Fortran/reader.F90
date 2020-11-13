@@ -34,7 +34,8 @@ program reader
 		end if
 
 		call adios2_current_step(current_step, engine, ierr)
-        write (*, "('Read step: ', i0)") current_step
+        write (6, "('Read step: ', i0)") current_step
+		call flush(6)
 		call adios2_end_step(engine, ierr)
 
 	end do

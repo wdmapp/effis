@@ -332,13 +332,16 @@ module kittie
 			logical :: doclose
 			integer :: ierr
 
-			if (present(closed) .and. closed) then
+			if (.not. present(closed)) then
+				doclose = .true.
+			else if (closed) then
 				doclose = .false.
 			else
 				doclose = .true.
 			end if
 
 			if (helper%fileopened) then
+
 				if (helper%usesfile) then
 					call lock_state(helper, .true.)
 				end if
@@ -347,14 +350,17 @@ module kittie
 					call adios2_close(helper%engine, ierr)
 				end if
 				helper%fileopened = .false.
+
 				if (helper%usesfile) then
 					call lock_state(helper, .false.)
 				end if
+
 			end if
 
 			if (present(iierr)) then
 				iierr = ierr
 			end if
+
 		end subroutine kittie_close
 
 

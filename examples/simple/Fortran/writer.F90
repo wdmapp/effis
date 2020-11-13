@@ -47,7 +47,8 @@ program writer
 		call adios2_put(engine, "RandomReals", RandomReals, ierr)
 		call adios2_put(engine, "RandomReals2", RandomReals2, ierr)
 		call adios2_end_step(engine, ierr)
-        write (*, "('Write step: ', i0)") i
+        write (6, "('Write step: ', i0)") i
+		call flush(6)
 	end do
 
 	call adios2_close(engine, ierr)
