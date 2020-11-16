@@ -148,6 +148,7 @@ class BlockFiles(object):
         self.final = "@effis-finalize"
         self.step  = "@effis-timestep"
         self.include  = "@effis-include"
+        self.execute = "@effis-exec"
 
         self.timer = "@effis-timer"
 
@@ -584,6 +585,18 @@ class BlockFiles(object):
         return OutText
 
 
+    def AddExecute(self, ExecuteComp, FileText):
+        ExecuteMatch = ExecuteComp.search(FileText)
+        OutText = FileText
+
+        if ExecuteMatch is not None:
+            InnerText = FileText[ExecuteMatch.end():]
+            EndIndex = InnerText.find("\n")
+            line = InnerText[:EndIndex].strip()
+            OutText = FileText[:ExecuteMatch.start()] + line + FileText[(ExecuteMatch.end()+EndIndex):]
+        return OutText
+
+
     def AddTimer(self, TimerComp, FileText):
         matched = False
         while True:
@@ -684,6 +697,7 @@ class BlockFiles(object):
         self.files = self.GrepFor(self.final, self.files)
         self.files = self.GrepFor(self.step,  self.files)
         self.files = self.GrepFor(self.include, self.files)
+        self.files = self.GrepFor(self.execute, self.files)
 
 
     def MakeReplacements(self, outdir, groupnames, ignore=[], only=None, suffix="-effis"):
@@ -693,6 +707,7 @@ class BlockFiles(object):
         FinalExpr = "{0}{1}".format(self.ReComment, self.final)
         StepExpr  = "{0}{1}".format(self.ReComment, self.step)
         IncludeExpr  = "{0}{1}".format(self.ReComment, self.include)
+        ExecuteExpr  = "{0}{1}".format(self.ReComment, self.execute)
         StartExpr = "{0}{1}".format(self.ReComment, self.begin)
         EndExpr   = "{0}{1}".format(self.ReComment, self.end)
         TimerExpr = "{0}{1}".format(self.ReComment, self.timer)
@@ -700,7 +715,8 @@ class BlockFiles(object):
         InitComp  = re.compile(InitExpr,  re.MULTILINE)
         FinalComp = re.compile(FinalExpr, re.MULTILINE)
         StepComp  = re.compile(StepExpr,  re.MULTILINE)
-        IncludeComp  = re.compile(IncludeExpr,  re.MULTILINE)
+        IncludeComp  = re.compile(IncludeExpr, re.MULTILINE)
+        ExecuteComp  = re.compile(ExecuteExpr, re.MULTILINE)
         StartComp = re.compile(StartExpr, re.MULTILINE)
         EndComp   = re.compile(EndExpr,   re.MULTILINE)
         TimerComp = re.compile(TimerExpr, re.MULTILINE)
@@ -731,6 +747,9 @@ class BlockFiles(object):
 
             # Look for include
             FileText = self.AddInclude(IncludeComp, FileText)
+
+            # Look for exec
+            FileText = self.AddExecute(ExecuteComp, FileText)
 
             # Look for timer
             FileText, FoundTimer = self.AddTimer(TimerComp, FileText)
