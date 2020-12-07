@@ -20,7 +20,7 @@ function(EFFIS_FIND_RESULTS dest result)
 	# 	* ${dest}   is the directory where to recursively check
 	# 	* ${result} holds the new files
 	file(GLOB_RECURSE effis_f90 ${dest}/*${EFFIS_SUFFIX}.F90)
-	file(GLOB_RECURSE effis_cpp ${dest}/*${EFFIS_SUFFIX}.cpp)
+	file(GLOB_RECURSE effis_cpp ${dest}/*${EFFIS_SUFFIX}.cpp ${dest}/*${EFFIS_SUFFIX}.cxx ${dest}/*${EFFIS_SUFFIX}.c++)
 	set(foundfiles ${effis_f90} ${effis_cpp})
 	set(${result} ${foundfiles} PARENT_SCOPE)
 endfunction()
