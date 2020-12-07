@@ -798,38 +798,44 @@ void kittie::start_timer(std::string name)
 #	ifndef USE_MPI
 		std::cerr << "Need MPI to use EFFIS timers from C++" << std::endl;
 		return;
-#	endif
+#	else
 		kittie::start_timer(name, kittie::comm);
+#	endif
 }
 
 
 void kittie::stop_timer(std::string name)
 {
-	double diff[1];
-	bool found = (kittie::Timers.find(name) != kittie::Timers.end());
-	if (found)
-	{
-		if (kittie::Timers[name]->start > kittie::Timers[name]->stop)
+#	ifndef USE_MPI
+		std::cerr << "Need MPI to use EFFIS timers from C++" << std::endl;
+		return;
+#	else
+		double diff[1];
+		bool found = (kittie::Timers.find(name) != kittie::Timers.end());
+		if (found)
 		{
-			kittie::Timers[name]->stop = MPI_Wtime();
-			diff[0] = kittie::Timers[name]->stop - kittie::Timers[name]->start;
-			adios2::Variable<double> varid = kittie::Timers[name]->io.InquireVariable<double>("time");
-			kittie::Timers[name]->engine.BeginStep();
-			kittie::Timers[name]->engine.Put(varid, diff);
-			kittie::Timers[name]->engine.EndStep();
-			kittie::Timers[name]->start = kittie::Timers[name]->stop;
+			if (kittie::Timers[name]->start > kittie::Timers[name]->stop)
+			{
+				kittie::Timers[name]->stop = MPI_Wtime();
+				diff[0] = kittie::Timers[name]->stop - kittie::Timers[name]->start;
+				adios2::Variable<double> varid = kittie::Timers[name]->io.InquireVariable<double>("time");
+				kittie::Timers[name]->engine.BeginStep();
+				kittie::Timers[name]->engine.Put(varid, diff);
+				kittie::Timers[name]->engine.EndStep();
+				kittie::Timers[name]->start = kittie::Timers[name]->stop;
+			}
+			else
+			{
+				std::cerr << "Found stop without matching start for timer " + name << std::endl;
+			}
+
 		}
+
 		else
 		{
 			std::cerr << "Found stop without matching start for timer " + name << std::endl;
 		}
-
-	}
-
-	else
-	{
-		std::cerr << "Found stop without matching start for timer " + name << std::endl;
-	}
+#	endif
 }
 	
 
