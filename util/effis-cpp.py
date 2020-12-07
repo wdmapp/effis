@@ -515,7 +515,7 @@ class BlockFiles(object):
         return InternalText
 
 
-    def AddInit(self, InitComp, FileText):
+    def AddInit(self, InitComp, FileText, ReturnFound=True):
         InitMatch = InitComp.search(FileText)
         OutText = FileText
         found = False
@@ -532,9 +532,14 @@ class BlockFiles(object):
                     self.Raise("Unknown key found in file {0} beginning at position {1} in the {2} statement".format(self.TmpFilename, InitMatch.start(), self.init), key)
                 dictionary[key] = val
 
-            OutText = FileText[:InitMatch.start()] + self.InitText(dictionary) + FileText[(InitMatch.end()+EndIndex):]
+            #OutText = FileText[:InitMatch.start()] + self.InitText(dictionary) + FileText[(InitMatch.end()+EndIndex):]
+            OutText = FileText[:InitMatch.start()] + self.InitText(dictionary) + self.AddInit(InitComp, FileText[(InitMatch.end()+EndIndex):], ReturnFound=False)
             found = True
-        return OutText, found
+
+        if ReturnFound:
+            return OutText, found
+        else:
+            return OutText
 
 
     def AddFinal(self, FinalComp, FileText):
