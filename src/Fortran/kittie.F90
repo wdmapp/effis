@@ -964,7 +964,7 @@ module kittie
 			integer(8), dimension(1) :: tdims, toffs, tlocs
 
 #			ifndef USE_MPI
-				write(0, "Need MPI to use EFFIS timers from Fortan")
+				write(0, "('Need MPI to use EFFIS timers from Fortan')")
 
 #			else
 				found = .false.
@@ -1015,7 +1015,7 @@ module kittie
 			logical :: found
 
 #			ifndef USE_MPI
-				write(0, "Need MPI to use EFFIS timers from Fortan")
+				write(0, "('Need MPI to use EFFIS timers from Fortan')")
 
 #			else
 				found = .false.
