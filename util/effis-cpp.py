@@ -559,7 +559,8 @@ class BlockFiles(object):
             else:
                 closed = None
 
-            OutText = FileText[:FinalMatch.start()] + self.FinalText(closed=closed) + FileText[(FinalMatch.end()+EndIndex):]
+            #OutText = FileText[:FinalMatch.start()] + self.FinalText(closed=closed) + FileText[(FinalMatch.end()+EndIndex):]
+            OutText = FileText[:FinalMatch.start()] + self.FinalText(closed=closed) + self.AddFinal(FinalComp, FileText[(FinalMatch.end()+EndIndex):])
         return OutText
 
 
@@ -571,7 +572,8 @@ class BlockFiles(object):
             InnerText = FileText[StepMatch.end():]
             EndIndex = InnerText.find("\n")
             line = InnerText[:EndIndex].strip()
-            OutText = FileText[:StepMatch.start()] + self.StepText(line) + FileText[(StepMatch.end()+EndIndex):]
+            #OutText = FileText[:StepMatch.start()] + self.StepText(line) + FileText[(StepMatch.end()+EndIndex):]
+            OutText = FileText[:StepMatch.start()] + self.StepText(line) + self.AddStep(StepComp, FileText[(StepMatch.end()+EndIndex):])
         return OutText
 
 
@@ -586,7 +588,8 @@ class BlockFiles(object):
             InnerText = FileText[IncludeMatch.end():]
             EndIndex = InnerText.find("\n")
             line = InnerText[:EndIndex].strip()
-            OutText = FileText[:IncludeMatch.start()] + self.IncludeText() + FileText[(IncludeMatch.end()+EndIndex):]
+            #OutText = FileText[:IncludeMatch.start()] + self.IncludeText() + FileText[(IncludeMatch.end()+EndIndex):]
+            OutText = FileText[:IncludeMatch.start()] + self.IncludeText() + self.AddInclude(IncludeComp, FileText[(IncludeMatch.end()+EndIndex):])
         return OutText
 
 
@@ -598,7 +601,8 @@ class BlockFiles(object):
             InnerText = FileText[ExecuteMatch.end():]
             EndIndex = InnerText.find("\n")
             line = InnerText[:EndIndex].strip()
-            OutText = FileText[:ExecuteMatch.start()] + line + FileText[(ExecuteMatch.end()+EndIndex):]
+            #OutText = FileText[:ExecuteMatch.start()] + line + FileText[(ExecuteMatch.end()+EndIndex):]
+            OutText = FileText[:ExecuteMatch.start()] + line + self.AddExecute(ExecuteComp, FileText[(ExecuteMatch.end()+EndIndex):])
         return OutText
 
 
