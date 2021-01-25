@@ -839,7 +839,7 @@ class CppBlocks(BlockFiles):
     Header   = '#include "kittie.h"'
 
     #DeclareAdios = '\.DeclareIO'
-    FindDeclareIOPattern = "=\s*?\S*?\.DeclareIO\s*?\((\s*?{0}\s*?)\)"
+    FindDeclareIOPattern = "=\s*?\S*?(?:\.|->)DeclareIO\s*?\((\s*?{0}\s*?)\)"
     FindOpenPattern = "=\s*?{0}.Open\s*?\((.*?)\)"
     FindEndPattern = "{0}.EndStep\s*?\((.*?)\)"
     FindClosePattern = "{0}.Close\s*?\((.*?)\)"
