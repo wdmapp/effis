@@ -26,6 +26,7 @@ class Coupler(object):
         self.lockfile = False
         self.metafile = False
         self.WriteMode = False
+        self.SimStep = np.empty(1, dtype=np.int32)
 
 
     def UntilNonexistentRead(self, verify=3):
@@ -205,17 +206,24 @@ class Coupler(object):
 
 
     def AddStep(self):
-        if (not self.FindStep) and ((self.groupname in Kittie.StepGroups) or Kittie.AllStep):
+        if (not self.FindStep) and (self.rank == 0) and (self.groupname in Kittie.StepGroups):
             self.FindStep = True
-            if self.WriteMode and (self.rank == 0):
+            if self.WriteMode:
                 self.io.DefineVariable("_StepNumber", Kittie.StepNumber, [], [], [])
                 self.io.DefineVariable("_StepPhysical", Kittie.StepPhysical, [], [], [])
 
-        if self.FindStep and self.WriteMode and (self.rank == 0):
-            vNumber = self.io.InquireVariable("_StepNumber")
-            vPhysical = self.io.InquireVariable("_StepPhysical")
-            self.engine.Put(vNumber, Kittie.StepNumber)
-            self.engine.Put(vPhysical, Kittie.StepPhysical)
+        if self.FindStep:
+            if self.WriteMode:
+                vNumber = self.io.InquireVariable("_StepNumber")
+                vPhysical = self.io.InquireVariable("_StepPhysical")
+                self.engine.Put(vNumber, Kittie.StepNumber)
+                self.engine.Put(vPhysical, Kittie.StepPhysical)
+            else:
+                ReadNumber = self.io.InquireVariable("_StepNumber")
+                if ReadNumber is not None:
+                    self.engine.Get(ReadNumber, self.SimStep)
+                else:
+                    self.FindStep = False
 
 
     def end_step(self):
@@ -485,6 +493,27 @@ class Kittie(object):
 
         else:
             warnings.warn("Found stop without matching start for timer {0}".format(name), RuntimeWarning)
+
+    @classmethod
+    def PlotMap(cls, plotname, groupname, directory):
+        if cls.Couplers[groupname].FindStep:
+            ioname = plotname + ".done"
+            if ioname not in cls.Couplers:
+                io = cls.declare_io(ioname)
+                VarNumber = io.DefineVariable("Step", cls.Couplers[groupname].SimStep, [], [], [])
+                if cls.comm is not None:
+                    engine = cls.open(ioname, ioname + ".bp", adios2.Mode.Write, cls.comm_self)
+                else:
+                    engine = cls.open(ioname, ioname + ".bp", adios2.Mode.Write)
+                
+            tmp = os.path.join("{0}-images".format(plotname), "{0}".format(cls.Couplers[groupname].SimStep[0]))
+            os.makedirs(tmp)
+            tmp = os.path.join(tmp, "{0}-{1}".format(cls.Codename, plotname))
+            os.symlink(os.path.abspath(directory), os.path.abspath(tmp))
+            cls.Couplers[ioname].begin_step()
+            var = cls.Couplers[ioname].io.InquireVariable("Step")
+            cls.Couplers[ioname].engine.Put(var, cls.Couplers[groupname].SimStep)
+            cls.Couplers[ioname].end_step();
 
 
 def TimingRead(filename, comm=None):

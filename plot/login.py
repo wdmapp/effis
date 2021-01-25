@@ -8,6 +8,7 @@ import subprocess
 import os
 import sys
 import json
+import re
 
 if 'ADIOS' in os.environ:
     sys.path.insert(0, os.environ['ADIOS'])
@@ -142,9 +143,17 @@ if __name__ == "__main__":
                 allgroups = []
                 for name in config.keys():
                     topdir = os.path.dirname(config[name])
-                    #subdir = os.path.join(topdir, "images", "{0}-{1}".format(name, i))
-                    middir = os.path.join(topdir, "images", str(i))
+
+                    code, label = name.split('.', 1)
+                    name = label[:-5]
+                    middir = os.path.join(topdir, "{0}-images".format(name), str(i))
+                    name = "{0}-{1}".format(code, name)
                     subdir = os.path.join(middir, name)
+                    print(subdir)
+
+                    #middir = os.path.join(topdir, "images", str(i))
+                    #subdir = os.path.join(middir, name)
+
                     if os.path.exists(subdir):
                         files = os.listdir(subdir)
                         #tarargs += ["-C", subdir] + files
@@ -156,13 +165,21 @@ if __name__ == "__main__":
                 for filename, groupname in zip(allfiles, allgroups):
                     fname = os.path.basename(filename)
                     name, ext = os.path.splitext(fname)
+
                     # I should make this a double underscore or something
-                    yname, xname = name.split('_vs_')
+                    try:
+                        yname, xname = name.split('_vs_')
+                    except:
+                        pattern = "([a-zA-Z0-9]*).*"
+                        comp = re.compile(pattern)
+                        match = comp.search(name)
+                        yname = match.group(1)
+
                     vardict += [{'variable_name': yname, 'image_name': filename, 'group_name': groupname}]
 
                 tarfile = os.path.join(vardir, "images.tar.gz".format(i))
                 if len(tarargs) > 0:
-                    subprocess.call(['tar', 'cfz', tarfile] + tarargs)
+                    subprocess.call(['tar', 'cfzh', tarfile] + tarargs)
                 else:
                     if not os.path.exists("images"):
                         os.makedirs("images")

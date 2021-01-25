@@ -149,6 +149,7 @@ class BlockFiles(object):
         self.step  = "@effis-timestep"
         self.include  = "@effis-include"
         self.execute = "@effis-exec"
+        self.plot = "@effis-plot"
 
         self.timer = "@effis-timer"
 
@@ -168,7 +169,7 @@ class BlockFiles(object):
         """ There needs to be a way to tell the different types of objects aparts.
             - I've chosen to use different map symbols indicative of the "number of ADIOS statements" away they are from the I/O name
             - This could be done with different keys (i.e. [io: IOobj->"Name"] vs. [name: "old"->"Name"]) """
-        patterns = ["--->", "-->", "->", "="]
+        patterns = ["=", "--->", "-->", "->"]
 
         self.TmpMap = []
         EndIndex = InnerText.find("\n")
@@ -527,12 +528,15 @@ class BlockFiles(object):
 
             dictionary = {}
             for kv in SplitOn(line, ','):
-                key, val = SplitOn(kv, '=')
+                try:
+                    key, val = SplitOn(kv, '=')
+                except:
+                    self.Raise("Unknown entry found in file {0} beginning at position {1} in the {2} statement".format(self.TmpFilename, InitMatch.start(), self.init), kv)
+
                 if key not in self.initallowed:
                     self.Raise("Unknown key found in file {0} beginning at position {1} in the {2} statement".format(self.TmpFilename, InitMatch.start(), self.init), key)
                 dictionary[key] = val
 
-            #OutText = FileText[:InitMatch.start()] + self.InitText(dictionary) + FileText[(InitMatch.end()+EndIndex):]
             OutText = FileText[:InitMatch.start()] + self.InitText(dictionary) + self.AddInit(InitComp, FileText[(InitMatch.end()+EndIndex):], ReturnFound=False)
             found = True
 
@@ -559,7 +563,6 @@ class BlockFiles(object):
             else:
                 closed = None
 
-            #OutText = FileText[:FinalMatch.start()] + self.FinalText(closed=closed) + FileText[(FinalMatch.end()+EndIndex):]
             OutText = FileText[:FinalMatch.start()] + self.FinalText(closed=closed) + self.AddFinal(FinalComp, FileText[(FinalMatch.end()+EndIndex):])
         return OutText
 
@@ -572,7 +575,6 @@ class BlockFiles(object):
             InnerText = FileText[StepMatch.end():]
             EndIndex = InnerText.find("\n")
             line = InnerText[:EndIndex].strip()
-            #OutText = FileText[:StepMatch.start()] + self.StepText(line) + FileText[(StepMatch.end()+EndIndex):]
             OutText = FileText[:StepMatch.start()] + self.StepText(line) + self.AddStep(StepComp, FileText[(StepMatch.end()+EndIndex):])
         return OutText
 
@@ -588,7 +590,6 @@ class BlockFiles(object):
             InnerText = FileText[IncludeMatch.end():]
             EndIndex = InnerText.find("\n")
             line = InnerText[:EndIndex].strip()
-            #OutText = FileText[:IncludeMatch.start()] + self.IncludeText() + FileText[(IncludeMatch.end()+EndIndex):]
             OutText = FileText[:IncludeMatch.start()] + self.IncludeText() + self.AddInclude(IncludeComp, FileText[(IncludeMatch.end()+EndIndex):])
         return OutText
 
@@ -601,8 +602,19 @@ class BlockFiles(object):
             InnerText = FileText[ExecuteMatch.end():]
             EndIndex = InnerText.find("\n")
             line = InnerText[:EndIndex].strip()
-            #OutText = FileText[:ExecuteMatch.start()] + line + FileText[(ExecuteMatch.end()+EndIndex):]
             OutText = FileText[:ExecuteMatch.start()] + line + self.AddExecute(ExecuteComp, FileText[(ExecuteMatch.end()+EndIndex):])
+        return OutText
+
+
+    def AddPlot(self, PlotComp, FileText):
+        PlotMatch = PlotComp.search(FileText)
+        OutText = FileText
+
+        if PlotMatch is not None:
+            InnerText = FileText[PlotMatch.end():]
+            EndIndex = InnerText.find("\n")
+            line = InnerText[:EndIndex].strip()
+            OutText = FileText[:PlotMatch.start()] + self.PlotText(line) + self.AddPlot(PlotComp, FileText[(PlotMatch.end()+EndIndex):])
         return OutText
 
 
@@ -680,55 +692,49 @@ class BlockFiles(object):
 
     ### These are the functions that get called by __main__ ###
 
-    def GrepFor(self, find, filesarr):
+    def GrepFor(self, find):
         try:
             cmdout = subprocess.check_output(["grep", "-r", "{0}{1}".format(self.GrepComment, find), self.TopDir, "--files-with-matches"])
         except:
-            return filesarr
+            return
 
         files = cmdout.strip().split()
         for filename in files:
             # Needing the decode has something to do with getting the text from the commandline
             filename = filename.decode("utf-8")
             for ext in self.extensions:
-                if (filename.endswith(ext)) and (filename not in filesarr):
-                    filesarr += [filename]
+                if (filename.endswith(ext)) and (filename not in self.files):
+                    self.files += [filename]
                     break
-        return filesarr
+        return
 
 
     def FindFiles(self, directory):
         """ Use grep to first pick out the relevant files. (Using grep is simpler than manually opening everyting in Python) """
 
         self.TopDir = directory
-        self.files = self.GrepFor(self.begin, self.files)
-        self.files = self.GrepFor(self.init,  self.files)
-        self.files = self.GrepFor(self.final, self.files)
-        self.files = self.GrepFor(self.step,  self.files)
-        self.files = self.GrepFor(self.include, self.files)
-        self.files = self.GrepFor(self.execute, self.files)
+        for expr in [self.init, self.final, self.include, self.step, self.execute, self.plot, self.begin, self.end, self.timer]:
+            self.GrepFor(expr)
+
+
+    def GetComp(self, expr):
+        e = "{0}{1}".format(self.ReComment, expr)
+        comp = re.compile(e, re.MULTILINE)
+        return comp
 
 
     def MakeReplacements(self, outdir, groupnames, ignore=[], only=None, suffix="-effis"):
         """ Go through the identified files, and replace ADIOS-2 statements with slightly updated ones to support Effis """
 
-        InitExpr  = "{0}{1}".format(self.ReComment, self.init)
-        FinalExpr = "{0}{1}".format(self.ReComment, self.final)
-        StepExpr  = "{0}{1}".format(self.ReComment, self.step)
-        IncludeExpr  = "{0}{1}".format(self.ReComment, self.include)
-        ExecuteExpr  = "{0}{1}".format(self.ReComment, self.execute)
-        StartExpr = "{0}{1}".format(self.ReComment, self.begin)
-        EndExpr   = "{0}{1}".format(self.ReComment, self.end)
-        TimerExpr = "{0}{1}".format(self.ReComment, self.timer)
-
-        InitComp  = re.compile(InitExpr,  re.MULTILINE)
-        FinalComp = re.compile(FinalExpr, re.MULTILINE)
-        StepComp  = re.compile(StepExpr,  re.MULTILINE)
-        IncludeComp  = re.compile(IncludeExpr, re.MULTILINE)
-        ExecuteComp  = re.compile(ExecuteExpr, re.MULTILINE)
-        StartComp = re.compile(StartExpr, re.MULTILINE)
-        EndComp   = re.compile(EndExpr,   re.MULTILINE)
-        TimerComp = re.compile(TimerExpr, re.MULTILINE)
+        InitComp     = self.GetComp(self.init)
+        FinalComp    = self.GetComp(self.final)
+        IncludeComp  = self.GetComp(self.include)
+        StepComp     = self.GetComp(self.step)
+        ExecuteComp  = self.GetComp(self.execute)
+        PlotComp     = self.GetComp(self.plot)
+        StartComp    = self.GetComp(self.begin)
+        EndComp      = self.GetComp(self.end)
+        TimerComp    = self.GetComp(self.timer)
 
         InitFiles = []
         self.groupnames = []
@@ -759,6 +765,9 @@ class BlockFiles(object):
 
             # Look for exec
             FileText = self.AddExecute(ExecuteComp, FileText)
+
+            # Look for plot
+            FileText = self.AddPlot(PlotComp, FileText)
 
             # Look for timer
             FileText, FoundTimer = self.AddTimer(TimerComp, FileText)
@@ -875,6 +884,23 @@ class CppBlocks(BlockFiles):
         if 'physical' not in kv:
             self.Raise("In file {0}, 'physical' is needed in {1}".format(self.TmpFilename, self.step), line)
         return "kittie::write_step({0}, {1});".format(kv['physical'], kv['number'])
+
+    def PlotText(self, line):
+        entries = SplitOn(line, ',')
+        kv = {}
+        for entry in entries:
+            key, val = SplitOn(entry, "=")
+            if key in ["name", "steps", "directory"]:
+                kv[key] = val
+            else:
+                self.Raise("Something unrecognized happened in file {0}".format(self.TmpFilename), line)
+        if 'name' not in kv:
+            self.Raise("In file {0}, 'name' is needed in {1}".format(self.TmpFilename, self.step), line)
+        if 'steps' not in kv:
+            self.Raise("In file {0}, 'steps' is needed in {1}".format(self.TmpFilename, self.step), line)
+        if 'directory' not in kv:
+            self.Raise("In file {0}, 'directory' is needed in {1}".format(self.TmpFilename, self.step), line)
+        return "kittie::PlotMap({0}, {1}, {2});".format(kv['name'], kv['steps'], kv['directory'])
 
     def TimerStartText(self, name, CommText):
         if CommText is not None:
@@ -1107,6 +1133,23 @@ class PythonBlocks(BlockFiles):
         if 'physical' not in kv:
             self.Raise("In file {0}, 'physical' is needed in {1}".format(self.TmpFilename, self.step), line)
         return "kittie.Kittie.write_step({0}, {1})".format(kv['physical'], kv['number'])
+
+    def PlotText(self, line):
+        entries = SplitOn(line, ',')
+        kv = {}
+        for entry in entries:
+            key, val = SplitOn(entry, "=")
+            if key in ["name", "steps", "directory"]:
+                kv[key] = val
+            else:
+                self.Raise("Something unrecognized happened in file {0}".format(self.TmpFilename), line)
+        if 'name' not in kv:
+            self.Raise("In file {0}, 'name' is needed in {1}".format(self.TmpFilename, self.step), line)
+        if 'steps' not in kv:
+            self.Raise("In file {0}, 'steps' is needed in {1}".format(self.TmpFilename, self.step), line)
+        if 'directory' not in kv:
+            self.Raise("In file {0}, 'directory' is needed in {1}".format(self.TmpFilename, self.step), line)
+        return "kittie.Kittie.PlotMap({0}, {1}, {2});".format(kv['name'], kv['steps'], kv['directory'])
 
     def TimerStartText(self, name, CommText):
         if CommText is not None:

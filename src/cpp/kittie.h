@@ -10,6 +10,8 @@
 #	include <iostream>
 #	include <fstream>
 #	include <cstdio>
+#	include <unistd.h>
+#	include <sys/stat.h>
 #	include <adios2.h>
 
 
@@ -41,6 +43,7 @@
 				MPI_Comm comm;
 				int rank;
 				int CurrentStep;
+				int SimStep;
 				bool init;
 				bool opened;
 				bool LockFile;
@@ -145,6 +148,7 @@
 
 
 		// "Public"
+		void PlotMap(std::string plotname, std::string groupname, std::string directory);
 		adios2::IO declare_io(const std::string groupname);
 		void finalize();
 		adios2::Engine open(const std::string groupname, const std::string filename, const adios2::Mode mode);

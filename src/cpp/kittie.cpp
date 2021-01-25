@@ -337,20 +337,35 @@ adios2::IO kittie::declare_io(const std::string groupname)
 // @effis-timestep -- Can't DefineVariables in DeclareIO b/c don't know read/write mode
 void kittie::Coupler::AddStep()
 {
-	if (!FindStep && (std::find(kittie::StepGroups.begin(), kittie::StepGroups.end(), groupname) != kittie::StepGroups.end() || kittie::AllStep))
+	if (!FindStep && (kittie::rank == 0) && (std::find(kittie::StepGroups.begin(), kittie::StepGroups.end(), groupname) != kittie::StepGroups.end()))
 	{
 		FindStep = true;
-		if (WriteMode && (kittie::rank == 0))
+		if (WriteMode)
 		{
 			adios2::Variable<int> VarNumber  = io->DefineVariable<int>("_StepNumber");
 			adios2::Variable<double> VarStep = io->DefineVariable<double>("_StepPhysical");
 		}
 	}
 
-	if (FindStep && WriteMode && (kittie::rank == 0))
+	if (FindStep)
 	{
-		engine.Put<int>("_StepNumber", kittie::_StepNumber);
-		engine.Put<double>("_StepPhysical", kittie::_StepPhysical);
+		if (WriteMode)
+		{
+			engine.Put<int>("_StepNumber", kittie::_StepNumber);
+			engine.Put<double>("_StepPhysical", kittie::_StepPhysical);
+		}
+		else
+		{
+			adios2::Variable<int> ReadNumber = io->InquireVariable<int>("_StepNumber");
+			if (ReadNumber)
+			{
+				engine.Get<int>(ReadNumber, &SimStep);
+			}
+			else
+			{
+				FindStep = false;
+			}
+		}
 	}
 }
 
@@ -837,5 +852,42 @@ void kittie::stop_timer(std::string name)
 		}
 #	endif
 }
-	
 
+
+void kittie::PlotMap(std::string plotname, std::string groupname, std::string directory)
+{
+	if (kittie::Couplers[groupname]->FindStep)
+	{
+		std::string ioname = plotname + ".done";
+		std::string tmp = plotname + "-images";
+		
+		if (kittie::Couplers.find(ioname) == kittie::Couplers.end())
+		{
+			adios2::IO io = kittie::declare_io(ioname);
+			adios2::Variable<int> VarNumber = io.DefineVariable<int>("Step");
+#			ifdef USE_MPI
+				adios2::Engine engine = kittie::open(ioname, ioname + ".bp", adios2::Mode::Write, MPI_COMM_SELF);
+#			else
+				adios2::Engine engine = kittie::open(ioname, ioname + ".bp", adios2::Mode::Write);
+#			endif
+			mkdir(tmp.c_str(), 0755);
+		}
+
+		tmp = tmp + "/" + std::to_string(kittie::Couplers[groupname]->SimStep);
+		mkdir(tmp.c_str(), 0755);
+		tmp = tmp + "/" + kittie::Codename + "-" + plotname;
+
+		if (directory[0] != '/')
+		{
+			char pwd[FILENAME_MAX];
+			getcwd(pwd, FILENAME_MAX);
+			std::string WorkingDir(pwd);
+			directory = WorkingDir + "/" + directory;
+		}
+		symlink(directory.c_str(), tmp.c_str());
+
+		kittie::Couplers[ioname]->begin_step();
+		kittie::Couplers[ioname]->engine.Put<int>("Step", kittie::Couplers[groupname]->SimStep);
+		kittie::Couplers[ioname]->end_step();
+	}
+}

@@ -501,6 +501,8 @@ class KittieJob(cheetah.Campaign):
         lname = self.keywords['login-proc']
         uselogin = False
 
+        self.timingdir = os.path.join(self.config[self.keywords['rundir']], 'effis-timing')
+        
         # Insert ADIOS-based names Scott wants
         for k, codename in enumerate(self.codenames):
             thisdir = os.path.dirname(os.path.realpath(__file__))
@@ -573,11 +575,23 @@ class KittieJob(cheetah.Campaign):
 
             if uselogin and ('.plotter' in self.codesetup[codename]):
                 code, group = self.codesetup[codename]['.plotter']['plots'].split('.', 1)
-                dname = '{0}.{1}'.format(code, group)
-                fname = '.done'
+                dname = '{0}.done'.format(group)
                 self.SetSSTEngine(codename, fname)
                 self.codesetup[codename][fname][self.keywords['filename']] = os.path.join(self.mainpath, codename, "{0}-StepsDone.bp".format(dname))
                 self.config[lname][".{0}".format(dname)] = self.codesetup[codename][fname]
+
+
+        if ('use' in self.config[self.keywords['dashboard']]) and (self.config[self.keywords['dashboard']]['use']) and ('groups' in self.config[self.keywords['dashboard']]):
+            dentry = self.config[self.keywords['dashboard']]
+            for group in dentry['groups']:
+                if not uselogin:
+                    self.config[lname] = self.config[self.keywords['dashboard']]
+                    uselogin = True
+                codename, plotname = group.split('.', 1)
+                fname = '.{0}.done'.format(plotname)
+                self.SetSSTEngine(codename, fname)
+                self.codesetup[codename][fname][self.keywords['filename']] = os.path.join(self.mainpath, codename, "{0}.bp".format(fname[1:]))
+                self.config[lname][".{0}.{1}".format(codename, fname[1:])] = self.codesetup[codename][fname]
 
 
         for codename in self.codenames:
@@ -588,7 +602,6 @@ class KittieJob(cheetah.Campaign):
                 self.SetSSTEngine(codename, groupname)
 
 
-        self.timingdir = os.path.join(self.config[self.keywords['rundir']], 'effis-timing')
         for k, codename in enumerate(self.codenames):
             self.codesetup[codename]['groups'] = {}
             for key in self.codesetup[codename]:
@@ -663,6 +676,9 @@ class KittieJob(cheetah.Campaign):
 
                     if group in self.codesetup[code]['groups']:
                         self.codesetup[code]['groups'][group]['AddStep'] = True
+
+                    if ('ReadStep' not in entry) or entry['ReadStep']:
+                        self.codesetup[codename]['groups'][key]['AddStep'] = True
 
 
         if ('use' in self.config[lname]) and self.config[lname]['use']:
