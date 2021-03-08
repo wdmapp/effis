@@ -62,9 +62,7 @@ def Namelist(*args):
     return outstr
 
 
-def NMLFile(name, mainpath, outstr, codename=None, appname=None):
-    outdir = os.path.join(mainpath, codename)
-
+def NMLFile(name, outdir, outstr, appname=None):
     if appname is None:
         outname = os.path.join(outdir, ".{0}.nml".format(name))
     else:
