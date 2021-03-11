@@ -680,11 +680,10 @@ class KittieJob(cheetah.Campaign):
                     if 'params' in other:
                         self.codesetup[codename]['groups'][key]['params'] = other['params']
 
-                    if group in self.codesetup[code]['groups']:
-                        self.codesetup[code]['groups'][group]['AddStep'] = True
-
                     if ('ReadStep' not in entry) or entry['ReadStep']:
-                        self.codesetup[codename]['groups'][key]['AddStep'] = True
+                        if group in self.codesetup[code]['groups']:
+                            self.codesetup[code]['groups'][group]['AddStep'] = True
+                            self.codesetup[codename]['groups'][key]['AddStep'] = True
 
 
         if ('use' in self.config[lname]) and self.config[lname]['use']:
