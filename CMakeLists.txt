@@ -1,5 +1,5 @@
 # I don't really know what version is actually needed but 3.0 seems sensible -- certainly using CMake-3 syntax
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.12.0)
 project(EFFIS VERSION 0.1)
 enable_language(Fortran)
 
@@ -14,16 +14,9 @@ set(FINE_TIME OFF CACHE STRING "Finer timing")
 set_property(CACHE USE_MPI PROPERTY STRINGS "ON;TRUE;OFF;FALSE")
 set_property(CACHE FINE_TIME PROPERTY STRINGS "ON;TRUE;OFF;FALSE")
 
-# Find ADIOS-2
 find_package(ADIOS2 REQUIRED)
 find_package(yaml-cpp REQUIRED)
-
-#find_package(PythonInterp REQUIRED)
-if(${CMAKE_VERSION} VERSION_LESS "3.12.0")
-	find_package(PythonInterp REQUIRED)
-else()
-	find_package(Python REQUIRED)
-endif()
+find_package(Python REQUIRED)
 
 
 # Test Fortran compiler
@@ -35,6 +28,9 @@ if(exists_gnu)
 #	set(fortran_free_flag "
 endif()
 
+function(preprocess)
+	execute_process(COMMAND ${Python_EXECUTABLE} ${PROJECT_SOURCE_DIR}/util/effis-cpp.py repo ${CMAKE_CURRENT_SOURCE_DIR} --tree-output=${CMAKE_CURRENT_BINARY_DIR})
+endfunction()
 
 # Add all the build files
 add_subdirectory(src)

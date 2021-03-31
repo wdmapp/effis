@@ -1,4 +1,4 @@
-execute_process(COMMAND ${PROJECT_SOURCE_DIR}/util/effis-cpp.py repo ${CMAKE_CURRENT_SOURCE_DIR} --tree-output=${CMAKE_CURRENT_BINARY_DIR})
+preprocess()
 set(CMAKE_CXX_STANDARD 11)
 
 add_executable(writer-complex ${CMAKE_CURRENT_BINARY_DIR}/writer-effis.cpp)

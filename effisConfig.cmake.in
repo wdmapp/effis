@@ -5,13 +5,17 @@ include("${EFFIS_CMAKE_DIR}/effisTargets.cmake")
 set(EFFIS_SUFFIX "-effis")
 set(EFFIS_INSTALL_DIR "@CMAKE_INSTALL_PREFIX@")
 
+if (NOT Python_FOUND)
+	find_package(Python REQUIRED)
+endif()
+
 
 function(EFFIS_CALL_CPP src dest suffix)
 	# Run the preprocessor that replaces the pragmas
 	#	* ${src}    is the source directory we want to recursively check for EFFIS pragmas
 	# 	* ${dest}   is where the output files will go, e.g. we can send them to the CMake build files area
 	#	* ${suffix} is a suffix appended to the name of the processes sourced files
-	execute_process(COMMAND ${EFFIS_INSTALL_DIR}/bin/effis-cpp.py repo ${src} --tree-output=${dest} --suffix=${suffix})
+	execute_process(COMMAND ${Python_EXECUTABLE} ${EFFIS_INSTALL_DIR}/bin/effis-cpp.py repo ${src} --tree-output=${dest} --suffix=${suffix})
 endfunction()
 
 

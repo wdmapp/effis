@@ -1,4 +1,4 @@
-execute_process(COMMAND ${PROJECT_SOURCE_DIR}/util/effis-cpp.py repo ${CMAKE_CURRENT_SOURCE_DIR} --tree-output=${CMAKE_CURRENT_BINARY_DIR})
+preprocess()
 add_definitions(${fotran_free_flag})
 
 add_executable(writer ${CMAKE_CURRENT_BINARY_DIR}/writer-effis.F90)
