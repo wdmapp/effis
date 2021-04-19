@@ -45,3 +45,4 @@ processes-per-node: processes-per-node
 
 use-dashboard: use-dashboard
 dashboard: dashboard
+backup: backup

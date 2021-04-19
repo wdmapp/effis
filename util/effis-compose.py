@@ -23,6 +23,7 @@ import subprocess
 import sys
 import getpass
 import yaml
+import stat
 
 import collections
 from collections import OrderedDict
@@ -116,18 +117,6 @@ class KittieJob(cheetah.Campaign):
 
         # Some things that'll be given to Cheetah
         self.cheetahdir = '.cheetah'
-        self.groupname = "kittie-run"
-
-        """
-        # Even older name
-        self.cheetahsub = os.path.join(getpass.getuser(), self.groupname, 'run-{0:03d}'.format(0))
-
-        # Older dev version of name
-        self.cheetahsub = os.path.join(getpass.getuser(), self.groupname, 'run-0.0'.format(0))
-        """
-
-        # node-layout branch version of the name
-        self.cheetahsub = os.path.join(getpass.getuser(), self.groupname, 'run-0.iteration-0'.format(0))
 
 
         # Do something (possible warn or exit) if certain things aren't found
@@ -473,6 +462,8 @@ class KittieJob(cheetah.Campaign):
         # Global Cheetah keywords
         self.output_dir = os.path.join(self.config[self.keywords['rundir']], self.cheetahdir)
         self.name = self.config[self.keywords['jobname']]
+        self.groupname = self.name
+        self.cheetahsub = os.path.join(getpass.getuser(), self.groupname, 'run-0.iteration-0'.format(0))
 
 
         # These are my own things, not Cheetah things per se, but are convenient to work with the Cheetah output
@@ -1073,9 +1064,41 @@ class KittieJob(cheetah.Campaign):
                 outfile.write(outstr)
 
 
+    def BackupInput(self):
+        outdir = os.path.join(self.config[self.keywords['rundir']], '.effis-input')
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+            
+        if self.keywords['backup'] in self.config:
+            backup = self.config[self.keywords['backup']]
+            if 'endpoints' in backup:
+                if ('local-id' not in backup) and ('local-name' not in backup):
+                    raise KeyError("'local-id' or 'local-name' field is needed in 'backup' to identify host machine in Globus")
+                for key in backup['endpoints']:
+                    if ('id' not in backup['endpoints'][key]) and ('name' not in backup['endpoints'][key]):
+                        raise KeyError("'id' or 'name' field is needed in backup['{0}'] to identify endpoint in Globus").format(key)
+
+                outstr = yaml.dump(backup, default_flow_style=False, Dumper=self.OrderedDumper)
+                outname = os.path.join(outdir, "effis-backup.yaml")
+                with open(outname, "w") as outfile:
+                    outfile.write(outstr)
+
+                touchname = os.path.join(os.path.dirname(outdir), ".backup.ready")
+                outname = os.path.join(outdir, "effis-ready.sh")
+                self.run_post_process_script = outname
+                with open(outname, "w") as outfile:
+                    outfile.write("#!/bin/bash\n")
+                    outfile.write("touch {0}".format(touchname))
+                os.chmod(outname,
+                        stat.S_IRUSR | stat.S_IXUSR | stat.S_IWUSR |
+                        stat.S_IRGRP | stat.S_IXGRP |
+                        stat.S_IROTH | stat.S_IXOTH)
+        
+
     def CopyInput(self, yamlfile):
-        outdir = os.path.join(self.config[self.keywords['rundir']], '.kittie-input')
-        os.makedirs(outdir)
+        outdir = os.path.join(self.config[self.keywords['rundir']], '.effis-input')
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
 
         for filename in self.config[self.keywords['include']]:
             shutil.copy(filename, os.path.join(outdir, os.path.basename(filename)))
@@ -1097,6 +1120,7 @@ class KittieJob(cheetah.Campaign):
         YamlFile = os.path.realpath(yamlfile)
         self.LoggerSetup()
         self.init(yamlfile)
+        self.BackupInput()
         super(KittieJob, self).__init__(self.machine, "")
         self.make_experiment_run_dir(self.output_dir)
 
