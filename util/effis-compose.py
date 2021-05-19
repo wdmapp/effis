@@ -483,6 +483,8 @@ class KittieJob(cheetah.Campaign):
             self.scheduler_options[self.machine]['queue'] = self.config['machine']['queue']
         if 'reservation' in machinekeys:
             self.scheduler_options[self.machine]['reservation'] = self.config['machine']['reservation']
+        if 'custom' in machinekeys:
+            self.scheduler_options[self.machine]['custom'] = self.config['machine']['custom']
 
 
         # Cheetah options that Setup the codes that will lanuch
