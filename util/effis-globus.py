@@ -122,10 +122,9 @@ def FindCopies(endpoint, directory, copypaths=[], searchadd=None, keeplinks=Fals
             continue
         elif (match is None) and os.path.isdir(fullpath):
             if searchadd is None:
-                searchadd = path
+                copypaths = FindCopies(endpoint, fullpath, copypaths=copypaths, searchadd=path, keeplinks=keeplinks)
             else:
-                searchadd = os.path.join(searchadd, path)
-            copypaths = FindCopies(endpoint, fullpath, copypaths=copypaths, searchadd=searchadd, keeplinks=keeplinks)
+                copypaths = FindCopies(endpoint, fullpath, copypaths=copypaths, searchadd=os.path.join(searchadd, path), keeplinks=keeplinks)
         elif match is not None:
             copypaths += [fullpath]
 

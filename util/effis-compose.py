@@ -610,8 +610,9 @@ class KittieJob(cheetah.Campaign):
                     name = key[1:]
                     entry = self.codesetup[codename][key]
                     self.codesetup[codename]['groups'][name] = self.codesetup[codename][key]
-                    self.codesetup[codename]['groups'][name]['AddStep'] = False
                     self.codesetup[codename]['groups'][name]['timingdir'] = self.timingdir
+                    if 'AddStep' not in self.codesetup[codename][key]:
+                        self.codesetup[codename]['groups'][name]['AddStep'] = False
 
 
         # Insert ADIOS-based names Scott wants
@@ -1065,45 +1066,53 @@ class KittieJob(cheetah.Campaign):
 
 
     def BackupInput(self):
-        outdir = os.path.join(self.config[self.keywords['rundir']], '.effis-input')
-        if not os.path.exists(outdir):
-            os.makedirs(outdir)
             
         if self.keywords['backup'] in self.config:
             backup = self.config[self.keywords['backup']]
             if 'endpoints' in backup:
                 if ('local-id' not in backup) and ('local-name' not in backup):
+
                     raise KeyError("'local-id' or 'local-name' field is needed in 'backup' to identify host machine in Globus")
                 for key in backup['endpoints']:
                     if ('id' not in backup['endpoints'][key]) and ('name' not in backup['endpoints'][key]):
                         raise KeyError("'id' or 'name' field is needed in backup['{0}'] to identify endpoint in Globus").format(key)
 
                 outstr = yaml.dump(backup, default_flow_style=False, Dumper=self.OrderedDumper)
-                outname = os.path.join(outdir, "effis-backup.yaml")
+                outname = os.path.join(self.effis_input_dir, "effis-backup.yaml")
                 with open(outname, "w") as outfile:
                     outfile.write(outstr)
 
-                touchname = os.path.join(os.path.dirname(outdir), ".backup.ready")
-                outname = os.path.join(outdir, "effis-ready.sh")
-                self.run_post_process_script = outname
-                with open(outname, "w") as outfile:
-                    outfile.write("#!/bin/bash\n")
-                    outfile.write("touch {0}".format(touchname))
-                os.chmod(outname,
-                        stat.S_IRUSR | stat.S_IXUSR | stat.S_IWUSR |
-                        stat.S_IRGRP | stat.S_IXGRP |
-                        stat.S_IROTH | stat.S_IXOTH)
+                touchname = os.path.join(os.path.dirname(self.effis_input_dir), ".backup.ready")
+                with open(self.postname, "a+") as outfile:
+                    outfile.write("touch {0}\n".format(touchname))
+
+
+    def MovieGeneration(self):
+        progname = os.path.join(os.path.dirname(os.path.realpath(__file__)), "effis-movie.py")
+        with open(self.postname, "a+") as outfile:
+            outfile.write("{0} {1}\n".format(progname, self.config[self.keywords['rundir']]))
+
+
+    def PostSetup(self):
+        self.effis_input_dir = os.path.join(self.config[self.keywords['rundir']], '.effis-input')
+        if not os.path.exists(self.effis_input_dir):
+            os.makedirs(self.effis_input_dir)
+        self.postname = os.path.join(self.effis_input_dir, "effis-post.sh")
+        self.run_post_process_script = self.postname
+        with open(self.postname, "w") as outfile:
+            outfile.write("#!/bin/bash\n")
+        os.chmod(self.postname,
+                stat.S_IRUSR | stat.S_IXUSR | stat.S_IWUSR |
+                stat.S_IRGRP | stat.S_IXGRP |
+                stat.S_IROTH | stat.S_IXOTH)
         
 
     def CopyInput(self, yamlfile):
-        outdir = os.path.join(self.config[self.keywords['rundir']], '.effis-input')
-        if not os.path.exists(outdir):
-            os.makedirs(outdir)
 
         for filename in self.config[self.keywords['include']]:
-            shutil.copy(filename, os.path.join(outdir, os.path.basename(filename)))
+            shutil.copy(filename, os.path.join(self.effis_input_dir, os.path.basename(filename)))
 
-        shutil.copy(yamlfile, os.path.join(outdir, os.path.basename(yamlfile)))
+        shutil.copy(yamlfile, os.path.join(self.effis_input_dir, os.path.basename(yamlfile)))
 
         for k, codename in enumerate(self.codenames):
             try:
@@ -1113,14 +1122,19 @@ class KittieJob(cheetah.Campaign):
 
             if (filename is not None) and os.path.exists(filename):
                 basename = ".{0}".format(codename) + os.path.basename(filename)
-                shutil.copy(filename, os.path.join(outdir, basename))
+                shutil.copy(filename, os.path.join(self.effis_input_dir, basename))
 
 
     def __init__(self, yamlfile):
         YamlFile = os.path.realpath(yamlfile)
         self.LoggerSetup()
         self.init(yamlfile)
+
+        # Post-processing related
+        self.PostSetup()
+        self.MovieGeneration()
         self.BackupInput()
+
         super(KittieJob, self).__init__(self.machine, "")
         self.make_experiment_run_dir(self.output_dir)
 

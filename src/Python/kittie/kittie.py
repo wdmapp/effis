@@ -539,3 +539,16 @@ def TimingRead(filename, comm=None):
     TmpEngine.Close()
     return data
 
+
+class MovieGenerator(object):
+
+    def __init__(self, name):
+        self.name = name
+        self.txtfile = ".{0}.movie.txt".format(name)
+        self.txt = open(self.txtfile, "w")
+
+
+    def AddFrame(self, imagepath):
+        #self.txt.write("file '{0}'\n".format(imagepath))
+        self.txt.write("{0}\n".format(imagepath))
+
