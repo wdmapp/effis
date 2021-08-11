@@ -29,9 +29,9 @@ Ordering of the keywords throughout the file does not matter.
 Most of the keywords in the example above are recongized by EFFIS as reserved names with a specific meaning.
 Users can also define their own variables and dereference them, but let's return to that later.
 
-The example runs an executable at `/path/to/exe` with 48 MPI ranks on Summit, 6 ranks per node, charged to account *fus123*.
-The job output writes to `/dir/to/job/output`, with a subdirectory for each code's content. Here *xgc* is the only code,
-so the job has a single execution subdirectory `/dir/to/job/output/xgc`. *xgc* is just a label from the EFFIS perspective;
+The example runs an executable at *"/path/to/exe"* with 48 MPI ranks on Summit, 6 ranks per node, charged to account *fus123*.
+The job output writes to *"/dir/to/job/output"*, with a subdirectory for each code's content. Here *xgc* is the only code,
+so the job has a single execution subdirectory *"/dir/to/job/output/xgc"*. *xgc* is just a label from the EFFIS perspective;
 it could be renamed to anything, and the subdirectory would take on the new name. *run* is the EFFIS-reserved keyword to demarcate
 the section listing the different codes. Similarly, *machine* marks a scope for site-specific submission settings.
 
@@ -95,6 +95,10 @@ walltime: ${twohr}
 
 ## Adding to the example
 
+The first example above was fairly basic, and in particular, did not make use of any of the keywords
+that help setup a job's input and environment. Here, directories are created, several copies made,
+an input file edited, an environment variable defined, etc. The machine setup also demonstrates more.
+
 ```yaml
 jobname: xgc-DIIID
 walltime: 7200
@@ -119,13 +123,13 @@ run:
     processes-per-node: 6
     cpus-per-process: 7
     executable_path: /path/to/xgc
-    use-gpus: True                # Each MPI process assigned a GPU
 
     env:
       OMP_NUM_THREADS: 14         # xgc runs with this enviromnent variable defined
     pre-submit-commands:
       - "mkdir restart_dir"       # Creates /dir/to/job/output/xgc/restart_dir
       - "mkdir timing"            # Creates /dir/to/job/output/xgc/timing
+      
     copy-contents:
       - /path/to/input/files      # Everything in /path/to/input/files is copied to /dir/to/job/output/xgc
     copy:
@@ -133,9 +137,108 @@ run:
     link:
       - - ${prev}/restart_dir/xgc.restart.${prev-steps}.bp      #  Links /restart/from/here/restart_dir/xgc.restart.01000.bp
         - restart_dir/xgc.restart.${prev-steps}.bp              # to /dir/to/job/output/xgc/restart_dir/xgc.restart.01000.bp
+        
     file-edit:
       input:
         - ['^\s*sml_restart\s*=.*$’, 'sml_restart=.true.']      # Regex edit file /dir/to/job/output/xgc/input
 ```
 
 
+## Adding another process
+
+To this point, the examples have only run a single application in the job.
+Adding a second amounts to including another under the *run* section.
+Here, *xgc* and *vtkm* run concurrently during the same job.
+
+```yaml
+rundir: /dir/to/job/output
+setup: /input/files
+
+run:
+  xgc:
+    processes: 48
+    processes-per-node: 6
+    cpus-per-process: 7
+    executable_path: ./xgc-es
+    copy-contents:
+      - /${setup}/xgc-DIIID-input/
+    pre-submit-commands:
+      - "mkdir restart_dir"
+      - "mkdir timing"
+      
+  vtkm:
+    processes: 1
+    cpus-per-process: 21
+    executable_path: ./AvocadoVTKm
+    pre-submit-commands: ["mkdir output"]
+    copy:
+      - ${setup}/xgc-DIIID-input/dave.xml
+    env:
+      OMP_NUM_THREADS: 21
+      
+    # Will ultimately call: ./AvocadoVTKm --openmp --geom D3D --imageDir output
+    commandline_options:  # options add --key value
+      geom: D3D
+      imageDir: output
+    commandline_args:     # args add whatever is explicitly listed
+      - --openmp
+```
+
+
+## Connecting producers and consumers (coupling)
+
+While it is not required between multiple applications, there is also EFFIS-aware coupling.
+
+```yaml
+rundir: /dir/to/job/output
+setup: /input/files
+
+run:
+  xgc:
+    processes: 48
+    processes-per-node: 6
+    cpus-per-process: 7
+    executable_path: ./xgc-es
+    copy-contents:
+      - /${setup}/xgc-DIIID-input/
+    pre-submit-commands:
+      - "mkdir restart_dir"
+      - "mkdir timing"
+      
+    .field3D:
+      output_path: xgc.3d.bp
+      adios_engine: BP4
+      adios_engine_params:
+        OpenTimeSecs: 3000
+    .diagnosis.mesh:
+      output_path: xgc.mesh.bp
+    .diagnosis.1d:
+      output_path: xgc.oneddiag.bp
+      adios_engine: SST
+
+      
+  vtkm:
+    processes: 1
+    cpus-per-process: 21
+    executable_path: ./AvocadoVTKm
+    pre-submit-commands: ["mkdir output"]
+    copy:
+      - ${setup}/xgc-DIIID-input/dave.xml
+    env:
+      OMP_NUM_THREADS: 21
+      
+    # Will ultimately call: ./AvocadoVTKm --openmp --geom D3D --imageDir output
+    commandline_options:  # options add --key value
+      geom: D3D
+      imageDir: output
+    commandline_args:     # args add whatever is explicitly listed
+      - --openmp
+      
+     .3d:
+      reads: xgc.field3D
+    .mesh:
+      reads: xgc.diagnosis.mesh
+    .oneddiag:
+      reads: xgc.diagnosis.1d
+
+```
