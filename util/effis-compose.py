@@ -744,6 +744,12 @@ class KittieJob(cheetah.Campaign):
                 cpp = entry['cpus-per-process']
 
             if self.machine == 'summit':
+                
+                if ('gpu:rank' in entry):
+                    nums = entry['gpu:rank'].split(':')
+                    gpunum = int(nums[0])
+                    ranknum = int(nums[1])
+                    gpugroups = entry['processes-per-node'] // ranknum
 
                 #if ns not in entry:
                 if len(self.config[sn]) == 0:
@@ -751,6 +757,7 @@ class KittieJob(cheetah.Campaign):
                     added += [codename]
                     index = -1
                     CPUstart = 0
+                    GPUstart = 0
 
                 else:
                     found = False
@@ -764,48 +771,40 @@ class KittieJob(cheetah.Campaign):
                             if name == cname:
                                 index = i
                                 break
-                        CPUstart = SharedNodes[cname]
+                        CPUstart = SharedNodes[cname]['cpu']
+                        GPUstart = SharedNodes[cname]['gpu']
                     else:
                         cname = codename
                         index = -1
                         added += [codename]
                         CPUstart = 0
+                        GPUstart = 0
                         self.node_layout[self.machine] += [SummitNode()]
-                    SharedNodes[cname] = CPUstart + entry['processes-per-node'] * cpp
-
-
-                    """
-                    for cname in entry[ns]:
-                        print("codename: {0},  cname: {1},  SharedNodes: {2}".format(codename, cname, SharedNodes))
-                        if cname in SharedNodes:
-                            found = True
-                            break
-
-                    if found:
-                        for i, name in enumerate(added):
-                            if name == cname:
-                                index = i
-                                break
-                        CPUstart = SharedNodes[cname]
-
-                    else:
-                        cname = codename
-                        index = -1
-                        added += [codename]
-                        CPUstart = 0
-                        self.node_layout[self.machine] += [SummitNode()]
-
-                    SharedNodes[cname] = CPUstart + entry['processes-per-node'] * cpp
-                    """
+                        
+                    SharedNodes[cname]['cpu'] = CPUstart + entry['processes-per-node'] * cpp
+                    if ('gpu:rank' in entry):
+                        SharedNodes[cname]['gpu'] = GPUstart + gpugroups * gpunum
 
 
                 for i in range(entry['processes-per-node']):
                     for j in range(cpp):
                         self.node_layout[self.machine][index].cpu[CPUstart + i*cpp + j] = "{0}:{1}".format(codename, i)
-
+                    
+                    """
                     # This isn't exactly right yet
                     if ('use-gpus' in entry) and entry['use-gpus']:
                         self.node_layout[self.machine][index].gpu[i] = ["{0}:{1}".format(codename, i)]
+                    """
+
+                # s.gpu[0] = [“gtc:0”, “gtc:1”]
+                if ('gpu:rank' in entry):
+                    for i in range(gpugroups):
+                        for j in range(gpunum):
+                            self.node_layout[self.machine][index].gpu[GPUstart + j + i*gpunum] = []
+                            for k in range(ranknum):
+                                self.node_layout[self.machine][index].gpu[GPUstart + j + i*gpunum] += ["{0}:{1}".format(codename, k + i*ranknum)]
+                            print("index: {0}, gpu-layout: {1}".format(index, self.node_layout[self.machine][index].gpu[GPUstart + j + i*gpunum]))
+
 
             else:
                 self.node_layout[self.machine] += [{codename: entry['processes-per-node']}]
