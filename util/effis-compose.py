@@ -803,7 +803,7 @@ class KittieJob(cheetah.Campaign):
                             self.node_layout[self.machine][index].gpu[GPUstart + j + i*gpunum] = []
                             for k in range(ranknum):
                                 self.node_layout[self.machine][index].gpu[GPUstart + j + i*gpunum] += ["{0}:{1}".format(codename, k + i*ranknum)]
-                            print("index: {0}, gpu-layout: {1}".format(index, self.node_layout[self.machine][index].gpu[GPUstart + j + i*gpunum]))
+                            print("index: {0}, gpu {2}: {1}".format(index, self.node_layout[self.machine][index].gpu[GPUstart + j + i*gpunum], GPUstart + j + i*gpunum))
 
 
             else:
