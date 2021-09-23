@@ -6,6 +6,7 @@ import argparse
 import os
 import sys
 import contextlib
+import subprocess
 
 
 @contextlib.contextmanager
@@ -22,7 +23,13 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("directory", help="Directory to job to run")
+    parser.add_argument("-e", "--explicit", help="Explicitly submit a job", type=str, default=None)
+
     args = parser.parse_args()
+
+    if args.explicit == "summit":
+        subprocess.Popen(["bsub", args.directory])
+        sys.exit(0)
 
     backupfile = os.path.join(args.directory, ".effis-input", "effis-backup.yaml")
     if os.path.exists(backupfile):
