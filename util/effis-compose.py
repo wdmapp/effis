@@ -7,7 +7,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # Cheetah is from CODAR. It's the interface through which you use CODAR's Savanna, which composes workflows
 import codar.cheetah as cheetah
-from codar.savanna.machines import SummitNode
+from codar.savanna.machines import SummitNode, SpockNode
 
 
 # Other imports
@@ -743,7 +743,13 @@ class KittieJob(cheetah.Campaign):
             if 'cpus-per-process' in entry:
                 cpp = entry['cpus-per-process']
 
+
             if self.machine == 'summit':
+                NodeType = SummitNode()
+            elif self.machine == 'spock':
+                NodeType = SpockNode()
+
+            if self.machine in ['summit', 'spock']:
                 
                 if ('gpu:rank' in entry):
                     nums = entry['gpu:rank'].split(':')
@@ -753,7 +759,7 @@ class KittieJob(cheetah.Campaign):
 
                 #if ns not in entry:
                 if len(self.config[sn]) == 0:
-                    self.node_layout[self.machine] += [SummitNode()]
+                    self.node_layout[self.machine] += [NodeType]
                     added += [codename]
                     index = -1
                     CPUstart = 0
@@ -779,7 +785,7 @@ class KittieJob(cheetah.Campaign):
                         added += [codename]
                         CPUstart = 0
                         GPUstart = 0
-                        self.node_layout[self.machine] += [SummitNode()]
+                        self.node_layout[self.machine] += [NodeType]
                         
                     SharedNodes[cname]['cpu'] = CPUstart + entry['processes-per-node'] * cpp
                     if ('gpu:rank' in entry):
@@ -790,11 +796,6 @@ class KittieJob(cheetah.Campaign):
                     for j in range(cpp):
                         self.node_layout[self.machine][index].cpu[CPUstart + i*cpp + j] = "{0}:{1}".format(codename, i)
                     
-                    """
-                    # This isn't exactly right yet
-                    if ('use-gpus' in entry) and entry['use-gpus']:
-                        self.node_layout[self.machine][index].gpu[i] = ["{0}:{1}".format(codename, i)]
-                    """
 
                 # s.gpu[0] = [“gtc:0”, “gtc:1”]
                 if ('gpu:rank' in entry):
