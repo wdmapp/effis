@@ -830,6 +830,7 @@ class KittieJob(cheetah.Campaign):
                 sweepargs += [cheetah.parameters.ParamSchedulerArgs(codename, [dict(self.codesetup[codename][self.keywords['scheduler_args']])])]
 
             codedict = {}
+            codedict['env'] = None
             codedict['exe'] = self.codesetup[codename][self.keywords['path']]
             if codename in [lname, "monitors"]:
                 codedict['runner_override'] = True
