@@ -11,6 +11,8 @@ job_setup: job_setup    # Setup that runs in the job script before the main run
 submit_setup: submit_setup    # Setup that runs in the job script before the main run
 scheduler_args: scheduler_args
 
+setup_file: setup_file  # File to source per code for setup
+
 
 # Copying type parameters
 copy: copy                      # Hard copying -- Directories copy as a single entity into the target

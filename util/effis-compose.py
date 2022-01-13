@@ -163,6 +163,7 @@ class KittieJob(cheetah.Campaign):
             self._SetIfNotFound(self.codesetup[codename], 'scheduler_args', value=None, level=logging.INFO)
             self._SetIfNotFound(self.codesetup[codename], 'processes', value=1, level=logging.INFO)
             self._SetIfNotFound(self.codesetup[codename], 'processes-per-node', value=1, level=logging.INFO)
+            self._SetIfNotFound(self.codesetup[codename], 'setup_file', value=None, level=logging.INFO)
 
 
     def _Unmatched(self, match):
@@ -834,6 +835,9 @@ class KittieJob(cheetah.Campaign):
                 codedict['runner_override'] = True
             if ('runner_override' in self.codesetup[codename]) and self.codesetup[codename]['runner_override']:
                 codedict['runner_override'] = True
+
+            if self.codesetup[codename][self.keywords['setup_file']] is not None:
+                codedict['env_file'] = self.codesetup[codename][self.keywords['setup_file']]
 
             if self.launchmode == "default":
                 sweepenv = cheetah.parameters.ParamEnvVar(codename, 'setup-file-num',  'KITTIE_NUM', ['{0}'.format(k)])
