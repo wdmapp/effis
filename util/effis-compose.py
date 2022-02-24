@@ -7,7 +7,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # Cheetah is from CODAR. It's the interface through which you use CODAR's Savanna, which composes workflows
 import codar.cheetah as cheetah
-from codar.savanna.machines import SummitNode, SpockNode
+from codar.savanna.machines import SummitNode, SpockNode, CrusherNode
 
 
 # Other imports
@@ -749,8 +749,10 @@ class KittieJob(cheetah.Campaign):
                 NodeType = SummitNode()
             elif self.machine == 'spock':
                 NodeType = SpockNode()
+            elif self.machine == 'crusher':
+                NodeType = CrusherNode()
 
-            if self.machine in ['summit', 'spock']:
+            if self.machine in ['summit', 'spock', 'crusher']:
                 
                 if ('gpu:rank' in entry):
                     nums = entry['gpu:rank'].split(':')
