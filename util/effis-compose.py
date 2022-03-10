@@ -695,6 +695,7 @@ class KittieJob(cheetah.Campaign):
             self.codesetup[lname][self.keywords['copycontents']] = []
             self.codesetup[lname][self.keywords['link']] = []
             self.codesetup[lname][self.keywords['file-edit']] = {}
+            self.codesetup[lname][self.keywords['setup_file']] = None
             self.codesetup[lname]['groups'] = {}
 
             self.stepinfo['login'] = {}

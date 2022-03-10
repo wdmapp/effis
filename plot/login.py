@@ -158,9 +158,14 @@ if __name__ == "__main__":
                         files = os.listdir(subdir)
                         #tarargs += ["-C", subdir] + files
                         tarargs += ["-C", middir, name]
-                        allfiles += files
-                        for j in range(len(files)):
-                            allgroups += [name]
+
+                        if "plots.json" in files:
+                            with open(os.path.join(subdir, "plots.json")) as jfile:
+                                vardict += json.loads(jfile.read())
+                        else:
+                            allfiles += files
+                            for j in range(len(files)):
+                                allgroups += [name]
 
                 for filename, groupname in zip(allfiles, allgroups):
                     fname = os.path.basename(filename)
