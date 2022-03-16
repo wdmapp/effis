@@ -782,7 +782,8 @@ class KittieJob(cheetah.Campaign):
                                 index = i
                                 break
                         CPUstart = SharedNodes[cname]['cpu']
-                        GPUstart = SharedNodes[cname]['gpu']
+                        if ('gpu:rank' in entry):
+                            GPUstart = SharedNodes[cname]['gpu']
                     else:
                         cname = codename
                         index = -1
@@ -790,6 +791,9 @@ class KittieJob(cheetah.Campaign):
                         CPUstart = 0
                         GPUstart = 0
                         self.node_layout[self.machine] += [NodeType]
+                       
+                    if cname not in SharedNodes:
+                        SharedNodes[cname] = {}
                         
                     SharedNodes[cname]['cpu'] = CPUstart + entry['processes-per-node'] * cpp
                     if ('gpu:rank' in entry):
