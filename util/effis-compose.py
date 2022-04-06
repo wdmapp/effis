@@ -250,6 +250,7 @@ class KittieJob(cheetah.Campaign):
 
                     subsearch = re.compile(subpattern)
                     if type(value) is collections.OrderedDict:
+                        value = self.OrderedRecurse(value)
                         searchstr = subsearch.sub(str(dict(value)), searchstr, count=1)
                     else:
                         searchstr = subsearch.sub(str(value), searchstr, count=1)
@@ -268,6 +269,14 @@ class KittieJob(cheetah.Campaign):
                 return searchstr
         else:
             return searchstr
+
+
+    def OrderedRecurse(self, value):
+        for name in value:
+            if type(value[name]) is collections.OrderedDict:
+                value[name] = self.OrderedRecurse(value[name])
+        value = dict(value)
+        return value
 
 
     def _Copy(self, copydict, outdir):
