@@ -783,7 +783,10 @@ class KittieJob(cheetah.Campaign):
                                 break
                         CPUstart = SharedNodes[cname]['cpu']
                         if ('gpu:rank' in entry):
-                            GPUstart = SharedNodes[cname]['gpu']
+                            if 'gpu' in SharedNodes[cname]:
+                                GPUstart = SharedNodes[cname]['gpu']
+                            else:
+                                GPUstart = 0
                     else:
                         cname = codename
                         index = -1
