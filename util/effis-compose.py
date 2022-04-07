@@ -149,6 +149,10 @@ class KittieJob(cheetah.Campaign):
         self._BlankInit(allscopes_dict, self.config, {})
         self._BlankInit(allscopes_list, self.config, [])
 
+        for name in self.config['run']:
+            if self.config['run'] is None:
+                del self.config['run'][name]
+
         self.codesetup = dict(self.config['run'])
         self.codenames = list(self.codesetup.keys())
 
