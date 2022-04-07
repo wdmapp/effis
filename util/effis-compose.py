@@ -754,7 +754,7 @@ class KittieJob(cheetah.Campaign):
 
 
             # Set the number of processes
-            sweepargs += [cheetah.parameters.ParamRunner(codename, "nprocs", [self.codesetup[codename]['processes']])]
+            sweepargs += [cheetah.parameters.ParamRunner(codename, "nprocs", [int(self.codesetup[codename]['processes'])])]
 
 
             # Set the node layout -- namely, it's different on summit
