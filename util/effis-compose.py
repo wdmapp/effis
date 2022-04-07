@@ -31,11 +31,13 @@ from collections import OrderedDict
 import kittie_common
 
 
+"""
 def dict_representer(dumper, data):
     return dumper.represent_dict(data.items())
 
 def dict_constructor(loader, node):
     return collections.OrderedDict(loader.construct_pairs(node))
+"""
 
 class OrderedLoader(yaml.Loader):
     pass
@@ -399,10 +401,15 @@ class KittieJob(cheetah.Campaign):
 
 
     def YAMLSetup(self):
+        """
         self.OrderedLoader = OrderedLoader
         self.OrderedLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, dict_constructor)
         self.OrderedDumper = OrderedDumper
         self.OrderedDumper.add_representer(collections.OrderedDict, dict_representer)
+        """
+        self.OrderedLoader = OrderedLoader
+        self.OrderedDumper = OrderedDumper
+
 
 
     def GetAppName(self, setupfile):
