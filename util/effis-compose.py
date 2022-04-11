@@ -792,11 +792,14 @@ class KittieJob(cheetah.Campaign):
 
                 else:
                     found = False
+                    ingroup = None
                     for group in self.config[sn]:
                         cname = group[0]
-                        if (codename in group) and (cname in SharedNodes):
-                            found = True
-                            break
+                        if (codename in group):
+                            ingroup = cname
+                            if (cname in SharedNodes):
+                                found = True
+                                break
                     if found:
                         for i, name in enumerate(added):
                             if name == cname:
@@ -809,7 +812,10 @@ class KittieJob(cheetah.Campaign):
                             else:
                                 GPUstart = 0
                     else:
-                        cname = codename
+                        if ingroup is not None:
+                            cname = ingroup
+                        else:
+                            cname = codename
                         index = -1
                         added += [codename]
                         CPUstart = 0
@@ -886,6 +892,14 @@ class KittieJob(cheetah.Campaign):
                     
             self.codes.append((codename, codedict))
 
+        if self.machine in ['summit', 'spock', 'crusher']:
+            for i, node in enumerate(self.node_layout[self.machine]):
+                print("node: {0}{1}CPUs:".format(i, "\n\t"))
+                for j, cpu in enumerate(self.node_layout[self.machine][i].cpu):
+                    print("\t\t{0:02d}:".format(j), cpu)
+                print("{1}GPUs:".format(i, "\t"))
+                for j, gpu in enumerate(self.node_layout[self.machine][i].gpu):
+                    print("\t\t{0:02d}:".format(j), gpu)
 
         if uselogin and ('env' in self.config[lname]):
             for varname in self.config[lname]['env'].keys():
