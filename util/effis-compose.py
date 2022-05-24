@@ -829,13 +829,19 @@ class KittieJob(cheetah.Campaign):
                     if ('gpu:rank' in entry):
                         SharedNodes[cname]['gpu'] = GPUstart + gpugroups * gpunum
 
+                if 'cpumap' in entry:
+                    start, total = entry['cpumap'].split(':')
+                    CPUstart =  int(start)
+                    total = int(total)
+                else:
+                    total = cpp
 
                 for i in range(entry['processes-per-node']):
                     for j in range(cpp):
-                        self.node_layout[self.machine][index].cpu[CPUstart + i*cpp + j] = "{0}:{1}".format(codename, i)
+                        ind = CPUstart + i*total + j
+                        #self.node_layout[self.machine][index].cpu[CPUstart + i*cpp + j] = "{0}:{1}".format(codename, i)
+                        self.node_layout[self.machine][index].cpu[ind] = "{0}:{1}".format(codename, i)
                     
-
-                # s.gpu[0] = [“gtc:0”, “gtc:1”]
                 if ('gpu:rank' in entry):
                     for i in range(gpugroups):
                         for j in range(gpunum):
