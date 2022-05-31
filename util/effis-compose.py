@@ -438,10 +438,13 @@ class KittieJob(cheetah.Campaign):
 
 
     def CodePath(self, codename):
+        """
         if self.launchmode == "MPMD":
             return self.mainpath
         elif self.launchmode == "default":
             return os.path.join(self.mainpath, codename)
+        """
+        return os.path.join(self.mainpath, codename)
 
 
     def init(self, yamlfile):
@@ -514,10 +517,11 @@ class KittieJob(cheetah.Campaign):
 
         if self.config[self.keywords['mpmd']]:
             self.launchmode = 'MPMD'
-            subdirs = False
+            #subdirs = False
         else:
             self.launchmode = 'default'
-            subdirs = True
+            #subdirs = True
+        subdirs = True
 
         
         self.stepinfo = {}
@@ -881,20 +885,27 @@ class KittieJob(cheetah.Campaign):
             if self.codesetup[codename][self.keywords['setup_file']] is not None:
                 codedict['env_file'] = self.codesetup[codename][self.keywords['setup_file']]
 
+            sweepenv = cheetah.parameters.ParamEnvVar(codename, 'setup-file-num',  'KITTIE_NUM', ['{0}'.format(k)])
+            sweepargs += [sweepenv]
+            """
             if self.launchmode == "default":
                 sweepenv = cheetah.parameters.ParamEnvVar(codename, 'setup-file-num',  'KITTIE_NUM', ['{0}'.format(k)])
                 sweepargs += [sweepenv]
             elif self.launchmode == "MPMD":
                 codedict['exe'] = "KITTIE_NUM={0} {1}".format(k, codedict['exe'])
+            """
 
             # Set other environment variables
             if self.keywords['env'] in self.codesetup[codename]:
                 envs = self.codesetup[codename][self.keywords['env']]
                 for ename in envs:
+                    sweepargs += [cheetah.parameters.ParamEnvVar(codename, 'env-{0}'.format(ename),  ename, [envs[ename]])]
+                    """
                     if self.launchmode == "default":
                         sweepargs += [cheetah.parameters.ParamEnvVar(codename, 'env-{0}'.format(ename),  ename, [envs[ename]])]
                     elif self.launchmode == "MPMD":
                         codedict['exe'] = "{0}={1} {2}".format(ename, envs[ename], codedict['exe'])
+                    """
                     
             self.codes.append((codename, codedict))
 
@@ -972,6 +983,13 @@ class KittieJob(cheetah.Campaign):
         mainlist = os.listdir(self.mainpath)
         os.makedirs(self.timingdir)
 
+        for name in mainlist:
+            if name.startswith('codar.cheetah.') or name.startswith('.codar.cheetah.') or  (name == "tau.conf"):
+                continue
+            linksrc = os.path.join(self.cheetahdir, self.cheetahsub, name)
+            linkpath = os.path.join(self.config[self.keywords['rundir']], name)
+            os.symlink(linksrc, linkpath)
+        """
         if self.launchmode == "default":
             for name in mainlist:
                 if name.startswith('codar.cheetah.') or name.startswith('.codar.cheetah.') or  (name == "tau.conf"):
@@ -983,6 +1001,7 @@ class KittieJob(cheetah.Campaign):
             linksrc = os.path.join(self.cheetahdir, self.cheetahsub)
             linkpath = os.path.join(self.config[self.keywords['rundir']], "run")
             os.symlink(linksrc, linkpath)
+        """
             
         os.chdir(pwd)
 
