@@ -881,20 +881,27 @@ class KittieJob(cheetah.Campaign):
             if self.codesetup[codename][self.keywords['setup_file']] is not None:
                 codedict['env_file'] = self.codesetup[codename][self.keywords['setup_file']]
 
+            sweepenv = cheetah.parameters.ParamEnvVar(codename, 'setup-file-num',  'KITTIE_NUM', ['{0}'.format(k)])
+            sweepargs += [sweepenv]
+            """
             if self.launchmode == "default":
                 sweepenv = cheetah.parameters.ParamEnvVar(codename, 'setup-file-num',  'KITTIE_NUM', ['{0}'.format(k)])
                 sweepargs += [sweepenv]
             elif self.launchmode == "MPMD":
                 codedict['exe'] = "KITTIE_NUM={0} {1}".format(k, codedict['exe'])
+            """
 
             # Set other environment variables
             if self.keywords['env'] in self.codesetup[codename]:
                 envs = self.codesetup[codename][self.keywords['env']]
                 for ename in envs:
+                    sweepargs += [cheetah.parameters.ParamEnvVar(codename, 'env-{0}'.format(ename),  ename, [envs[ename]])]
+                    """
                     if self.launchmode == "default":
                         sweepargs += [cheetah.parameters.ParamEnvVar(codename, 'env-{0}'.format(ename),  ename, [envs[ename]])]
                     elif self.launchmode == "MPMD":
                         codedict['exe'] = "{0}={1} {2}".format(ename, envs[ename], codedict['exe'])
+                    """
                     
             self.codes.append((codename, codedict))
 
