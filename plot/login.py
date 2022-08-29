@@ -120,7 +120,7 @@ if __name__ == "__main__":
         check = 0
         minfound = None
         for name in config.keys():
-            if setup[name]['LastStep'][0] <= setup['LastStep']:
+            if (setup[name]['LastStep'][0] <= setup['LastStep']) and (not setup[name]['done']):
                 break
             if (minfound is None) or (setup[name]['LastStep'][0] < minfound):
                 minfound = setup[name]['LastStep'][0]
