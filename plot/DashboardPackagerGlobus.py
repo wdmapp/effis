@@ -67,9 +67,9 @@ class HostRemote:
             transfer.add_item(jfile, filename)
 
         if submit:
-            result = tc.submit_transfer(transfer)
+            result = self.tc.submit_transfer(transfer)
             if wait:
-                while not tc.task_wait(result["task_id"], timeout=60, polling_interval=2):
+                while not self.tc.task_wait(result["task_id"], timeout=60, polling_interval=2):
                     pass
             return result["task_id"]
         else:
@@ -91,13 +91,18 @@ class HostRemote:
             outdict[name] = config['login'][name]
         outdict['date'] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S+%f')
 
-        if 'globus-period' in config:
-            self.period = config['globus-period']
+        if 'globus-period' in config['login']:
+            self.period = config['login']['globus-period']
         else:
             self.period = 20
 
+        if 'finishonly' in config['login']:
+            self.finishonly = True
+        else:
+            self.finishonly = False
+
         #httpdir = config['login']['http']
-        indexfile = os.path.join(self.httpdir, 'index.json')
+        self.indexfile = os.path.join(self.httpdir, 'index.json')
         shotdir = os.path.join(self.httpdir, outdict['shot_name'])
         rundir = os.path.join(shotdir, outdict['run_name'])
         self.timefile = os.path.join(rundir, "time.json")
@@ -110,27 +115,38 @@ class HostRemote:
         if not self.exists(self.timefile):
             self.WriteTimeFile(timedict)
 
-        ifile = os.path.join(self.tmpdir, os.path.basename(indexfile))
-        if not self.exists(indexfile):
+        self.ifile = os.path.join(self.tmpdir, os.path.basename(self.indexfile))
+        if not self.exists(self.indexfile):
             outlist = []
         else:
             transfer = globus_sdk.TransferData(self.tc, self.destid, self.hostid, label="Index file", notify_on_succeeded=False)
-            transfer.add_item(indexfile, ifile)
-            result = tc.submit_transfer(transfer)
-            while not tc.task_wait(result["task_id"], timeout=60, polling_interval=2):
+            transfer.add_item(self.indexfile, self.ifile)
+            result = self.tc.submit_transfer(transfer)
+            while not self.tc.task_wait(result["task_id"], timeout=60, polling_interval=2):
                 pass
-            with open(ifile, 'r') as ystream:
+            with open(self.ifile, 'r') as ystream:
                 outlist = yaml.load(ystream, Loader=yaml.FullLoader)
         outlist += [outdict]
-        with open(ifile, 'w') as outfile:
+        with open(self.ifile, 'w') as outfile:
             json.dump(outlist, outfile, indent=self.indent)
-        transfer = globus_sdk.TransferData(self.tc, self.hostid, self.destid, label="Top time file", notify_on_succeeded=False)
-        transfer.add_item(ifile, indexfile)
-        result = tc.submit_transfer(transfer)
-        while not tc.task_wait(result["task_id"], timeout=60, polling_interval=2):
-            pass
+
+        if not self.finishonly:
+            transfer = globus_sdk.TransferData(self.tc, self.hostid, self.destid, label="Top index file", notify_on_succeeded=False)
+            transfer.add_item(self.ifile, self.indexfile)
+            result = self.tc.submit_transfer(transfer)
+            while not self.tc.task_wait(result["task_id"], timeout=60, polling_interval=2):
+                pass
 
         return timedict
+
+
+    def FinishOnly(self):
+        if self.finishonly:
+            transfer = globus_sdk.TransferData(self.tc, self.hostid, self.destid, label="Top index file", notify_on_succeeded=False)
+            transfer.add_item(self.ifile, self.indexfile)
+            result = self.tc.submit_transfer(transfer)
+            while not self.tc.task_wait(result["task_id"], timeout=60, polling_interval=2):
+                pass
 
 
 
@@ -205,7 +221,7 @@ if __name__ == "__main__":
         setup[name]['io'].SetParameter('OpenTimeoutSecs', '3600')
 
         setup[name]['opened'] = False
-        setup[name]['LastStep'] = np.array([-1], dtype=np.int32)
+        setup[name]['LastStep'] = np.array([-1], dtype=np.int64)
         setup[name]['done'] = False
 
 
@@ -223,6 +239,7 @@ if __name__ == "__main__":
             t2 = datetime.datetime.now()
             finishtime = (t2 - t1).total_seconds()
             print("Finish step time: {0:.2f} s".format(finishtime))
+            connection.FinishOnly()
             shutil.rmtree(connection.tmpdir)
             break
 
