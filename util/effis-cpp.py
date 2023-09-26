@@ -864,7 +864,6 @@ class CppBlocks(BlockFiles):
         for key in self.initallowed:
             if key in keydict:
                 args += [keydict[key]]
-        args += ['adios2::DebugON']
         return "kittie::initialize({0});".format(', '.join(args))
 
     def FinalText(self, closed=None):

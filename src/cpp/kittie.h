@@ -155,11 +155,11 @@
 
 #	ifdef USE_MPI
 			adios2::Engine open(const std::string groupname, const std::string filename, const adios2::Mode mode, MPI_Comm comm);
-			void initialize(const std::string &filename="", MPI_Comm comm=MPI_COMM_SELF, const bool DebugMode=true);
-			void initialize(MPI_Comm comm, const bool DebugMode=true);
+			void initialize(const std::string &filename="", MPI_Comm comm=MPI_COMM_SELF);
+			void initialize(MPI_Comm comm);
 #	else
-			void initialize(const std::string &filename="", const bool DebugMode=true);
-			void initialize(const bool DebugMode=true);
+			void initialize(const std::string &filename="");
+			void initialize();
 #	endif
 		
 	}

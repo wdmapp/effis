@@ -359,7 +359,6 @@ class Kittie(object):
             args += [xml]
         if cls.comm is not None:
             args += [cls.comm]
-        args += [adios2.DebugON]
         cls.adios = adios2.ADIOS(*args)
 
         cls.AllStep = False
@@ -518,9 +517,9 @@ class Kittie(object):
 
 def TimingRead(filename, comm=None):
     if comm is not None:
-        adios = adios2.ADIOS(comm, adios2.DebugON)
+        adios = adios2.ADIOS(comm)
     else:
-        adios = adios2.ADIOS(adios2.DebugON)
+        adios = adios2.ADIOS()
 
     TmpIO = adios.DeclareIO("tmp-{0}".format(filename))
     TmpEngine = TmpIO.Open(filename, adios2.Mode.Read)

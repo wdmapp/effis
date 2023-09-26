@@ -3,10 +3,6 @@ cmake_minimum_required(VERSION 3.12.0)
 project(EFFIS VERSION 0.1)
 enable_language(Fortran)
 
-# Custom CMake package modules
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake_modules)
-
-
 # Let the user tell us if they want MPI. MPI is ON by default.
 # Installation will fail if you don't give the MPI compiler wrappers and try to use MPI
 set(USE_MPI ON CACHE STRING "Use MPI")
