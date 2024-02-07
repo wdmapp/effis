@@ -205,38 +205,38 @@ void kittie::_yaml_setup()
 
 
 #ifdef USE_MPI
-	void kittie::initialize(const std::string &filename, MPI_Comm comm, const bool DebugMode)
+	void kittie::initialize(const std::string &filename, MPI_Comm comm)
 	{
-		kittie::adios = new adios2::ADIOS(filename, comm, DebugMode);
+		kittie::adios = new adios2::ADIOS(filename, comm);
 		kittie::mpi = true;
 		int err = MPI_Comm_dup(comm, &kittie::comm);
 		err = MPI_Comm_rank(kittie::comm, &kittie::rank);
 		kittie::_yaml_setup();
 	}
 	
-	void kittie::initialize(MPI_Comm comm, const bool DebugMode)
+	void kittie::initialize(MPI_Comm comm)
 	{
-		kittie::adios = new adios2::ADIOS(comm, DebugMode);
+		kittie::adios = new adios2::ADIOS(comm);
 		kittie::mpi = true;
 		int err = MPI_Comm_dup(comm, &kittie::comm);
 		err = MPI_Comm_rank(kittie::comm, &kittie::rank);
 		kittie::_yaml_setup();
 	}
 #else
-	void kittie::initialize(const std::string &filename, const bool DebugMode)
+	void kittie::initialize(const std::string &filename)
 	{
 		MPI_Comm dummy;
-		kittie::adios = new adios2::ADIOS(filename, DebugMode);
+		kittie::adios = new adios2::ADIOS(filename);
 		kittie::mpi = false;
 		int err = MPI_Comm_dup(dummy, &kittie::comm);
 		err = MPI_Comm_rank(kittie::comm, &kittie::rank);
 		kittie::_yaml_setup();
 	}
 	
-	void kittie::initialize(const bool DebugMode)
+	void kittie::initialize()
 	{
 		MPI_Comm dummy;
-		kittie::adios = new adios2::ADIOS(DebugMode);
+		kittie::adios = new adios2::ADIOS();
 		kittie::mpi = false;
 		int err = MPI_Comm_dup(dummy, &kittie::comm);
 		err = MPI_Comm_rank(kittie::comm, &kittie::rank);

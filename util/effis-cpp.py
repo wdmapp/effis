@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
@@ -864,7 +864,6 @@ class CppBlocks(BlockFiles):
         for key in self.initallowed:
             if key in keydict:
                 args += [keydict[key]]
-        args += ['adios2::DebugON']
         return "kittie::initialize({0});".format(', '.join(args))
 
     def FinalText(self, closed=None):

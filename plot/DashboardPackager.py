@@ -9,17 +9,17 @@ import os
 import sys
 import json
 import re
-
-if 'ADIOS' in os.environ:
-    sys.path.insert(0, os.environ['ADIOS'])
+import datetime
 
 import adios2
 
 
 def IndexJSON(config, indent=4):
     outdict = {}
-    for name in ['shot_name', 'run_name', 'username', 'machine_name', 'date']:
+    #for name in ['shot_name', 'run_name', 'username', 'machine_name', 'date']:
+    for name in ['shot_name', 'run_name', 'username', 'machine_name']:
         outdict[name] = config['login'][name]
+    outdict['date'] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S+%f')
     outstr = json.dumps([outdict], indent=indent)
 
     httpdir = config['login']['http']
@@ -59,12 +59,7 @@ if __name__ == "__main__":
     timefile, timedict = IndexJSON(config, indent=indent)
     del config['login']
 
-
-    #@effis-init comm=None
     adios = adios2.ADIOS()
-
-
-    #@effis-begin name->name; "done"->"done"
 
     setup = {}
     setup['done'] = 0
@@ -74,6 +69,8 @@ if __name__ == "__main__":
         setup[name] = {}
         setup[name]['io'] = adios.DeclareIO(name)
         #setup[name]['io'].SetEngine('BP4')
+        setup[name]['io'].SetParameter('OpenTimeoutSecs', '3600')
+
         setup[name]['opened'] = False
         setup[name]['LastStep'] = np.array([-1], dtype=np.int32)
         setup[name]['done'] = False
@@ -93,16 +90,12 @@ if __name__ == "__main__":
             if setup[name]['done']:
                 continue
 
-            """
-            if not os.path.exists(config[name]):
-                continue
-            elif not setup[name]['opened']:
-            """
             if not setup[name]['opened']:
+                # Need to have a filename here
                 setup[name]['engine'] = setup[name]['io'].Open(config[name], adios2.Mode.Read)
                 setup[name]['opened'] = True
 
-            ReadStatus = setup[name]['engine'].BeginStep(kittie.Kittie.ReadStepMode, 0.1)
+            ReadStatus = setup[name]['engine'].BeginStep(adios2.StepMode.Read, 0.1)
 
             if ReadStatus == adios2.StepStatus.NotReady:
                 continue
@@ -110,6 +103,7 @@ if __name__ == "__main__":
                 print("Found last in ", name); sys.stdout.flush()
                 setup[name]['done'] = True
                 setup['done'] += 1
+                setup[name]['engine'].Close()
                 continue
 
             varid = setup[name]['io'].InquireVariable("Step")
@@ -145,8 +139,9 @@ if __name__ == "__main__":
                     topdir = os.path.dirname(config[name])
 
                     code, label = name.split('.', 1)
-                    name = label[:-5]
-                    middir = os.path.join(topdir, "{0}-images".format(name), str(i))
+                    label = os.path.basename(config[name])[:-8]
+
+                    middir = os.path.join(topdir, "{0}-images".format(label), str(i))
                     name = "{0}-{1}".format(code, name)
                     subdir = os.path.join(middir, name)
                     print(subdir)
@@ -202,5 +197,3 @@ if __name__ == "__main__":
 
             setup['LastStep'] = minfound
 
-    #@effis-end
-    #@effis-finalize

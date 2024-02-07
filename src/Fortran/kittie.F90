@@ -644,9 +644,9 @@ module kittie
 				call mpi_comm_rank(comm, kittie_rank, iierr)
 
 				if (present(xml)) then
-					call adios2_init(kittie_adios, trim(xml), kittie_comm, adios2_debug_mode_on, iierr)
+					call adios2_init(kittie_adios, trim(xml), kittie_comm, iierr)
 				else
-					call adios2_init(kittie_adios, kittie_comm, adios2_debug_mode_on, iierr)
+					call adios2_init(kittie_adios, kittie_comm, iierr)
 				end if
 
 				call get_environment_variable("KITTIE_NUM", num)
@@ -684,9 +684,9 @@ module kittie
 				kittie_rank = 0
 
 				if (present(xml)) then
-					call adios2_init(kittie_adios, trim(xml), adios2_debug_mode_on, iierr)
+					call adios2_init(kittie_adios, trim(xml), iierr)
 				else
-					call adios2_init(kittie_adios, adios2_debug_mode_on, iierr)
+					call adios2_init(kittie_adios, iierr)
 				end if
 
 				call get_environment_variable("KITTIE_NUM", num)
