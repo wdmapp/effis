@@ -78,3 +78,6 @@ The help pages are organized into subtopics linked below.
 * [Using the pre-processor](doc/preprocessor.md)
 * [Job Composition](doc/composition.md)
 
+
+# Python frontend
+There is now a [Python frontend](https://github.com/wdmapp/effis/tree/PythonFrontend) as well.
