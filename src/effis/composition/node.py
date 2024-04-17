@@ -1,6 +1,21 @@
 import codar.savanna
 from effis.composition.log import CompositionLogger
 
+"""
+def GetNodeType(machine, wfnode=None):
+    NodeName = "{0}Node".format(machine.capitalize())
+    if wfnode is not None:
+        NodeType = wfnode
+    elif NodeName in codar.savanna.machines.__dict__:
+        NodeType = codar.savanna.machines.__dict__[NodeName]()
+    elif machine.lower() in effis.composition.node.effisnodes:
+        NodeType = effis.composition.node.effisnodes[machine.lower()]
+    else:
+        CompositionLogger.RaiseError(ValueError, "Could not find a MachineNode for {0}. Please set an effis.composition.Node".format(machine))
+    return NodeType
+"""
+
+
 class Node(codar.savanna.machines.MachineNode):
     
     def __init__(self, cores=None, gpus=0):

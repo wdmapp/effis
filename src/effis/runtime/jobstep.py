@@ -108,5 +108,12 @@ def JobStep(**kwargs):
 class SimpleRunner:
 
     def __init__(self):
-        pass
+        SweepGroupDir = os.path.join("..", "..",)
+        jsonfile = os.path.join(SweepGroupDir, "fobs.json")
+        with open(jsonfile, 'r') as infile:
+            fob = json.load(infile)
+        node_layout = fob[0]["node_layout"]
+        cpus = len(node_layout[0]["cpu"])
+        gpus = len(node_layout[0]["gpu"])
+        #NodeType = effis.Composition.node.GetNodeType()
 
