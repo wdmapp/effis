@@ -72,7 +72,7 @@ if __name__ == "__main__":
         
         package_dir={'': 'src'},
 
-        packages=find_namespace_packages(where='src', include=['effis.composition']),
+        packages=find_namespace_packages(where='src', include=['effis.composition', 'effis.runtime']),
         #packages=find_namespace_packages(where='src', include=['effis.composition', 'effis.cpp']),
         #package_data={'effis.cpp': ["effis.hpp", "libeffis*", "EffisConfig.cmake"]},
         #include_package_data=True,

@@ -90,7 +90,7 @@ class Workflow:
     
     # Use (workflow += application) as an intuitive way to build the workflow with applications
     def __iadd__(self, other):
-        if (type(other) is effis.composition.application.Application) or (type(other) is list):
+        if isinstance(other, effis.composition.application.Application) or (type(other) is list):
             self.__dict__['Applications'] =  self.Applications + other
             return self
         else:
