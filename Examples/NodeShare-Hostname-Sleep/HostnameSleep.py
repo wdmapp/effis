@@ -30,7 +30,7 @@ if __name__ == "__main__":
    
     if args.SleepTime is not None:
         filename = "TestFile01.txt"
-        lock = filelock.Filelock("{0}.lock".format(filename))
+        lock = filelock.FileLock("{0}.lock".format(filename))
         with lock:
             with open(filename, "r") as infile:
                 txt = infile.read()
