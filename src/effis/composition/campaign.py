@@ -3,10 +3,15 @@ import copy
 import getpass
 import shutil
 import sys
+import re
+import json
 
 import codar.cheetah
 import codar.savanna
+
+import effis.composition
 from effis.composition.log import CompositionLogger
+from effis.composition.application import LoginNodeApplication
 
 
 def InputCopy(setup):
@@ -31,6 +36,16 @@ def InputCopy(setup):
                 shutil.copy(item.inpath, outpath)
 
 
+def UpdateJSON(jsonfile, newnodes):
+    with open(jsonfile, 'r') as infile:
+        fob = json.load(infile)
+    if type(fob) is dict:
+        fob["total_nodes"] = newnodes
+    elif type(fob) is list:
+        fob[0]["total_nodes"] = newnodes
+    with open(jsonfile, 'w', encoding='utf-8') as outfile:
+        json.dump(fob, outfile, ensure_ascii=False, indent=4)
+
 
 class Campaign(codar.cheetah.Campaign):
 
@@ -42,6 +57,8 @@ class Campaign(codar.cheetah.Campaign):
             NodeType = workflow.Node
         elif NodeName in codar.savanna.machines.__dict__:
             NodeType = codar.savanna.machines.__dict__[NodeName]()
+        elif self.machine.lower() in effis.composition.node.effisnodes:
+            NodeType = effis.composition.node.effisnodes[self.machine.lower()]
         else:
             CompositionLogger.RaiseError(ValueError, "Could not find a MachineNode for {0}. Please set an effis.composition.Node".format(self.machine))
         return NodeType
@@ -53,6 +70,7 @@ class Campaign(codar.cheetah.Campaign):
         self.node_layout = {self.machine: []}
         NodeType = self.GetNodeType(workflow)
         
+        self.LoginIndex = None
         index = 0
         ShareIndex = {}
         AppIndex = {}
@@ -66,6 +84,21 @@ class Campaign(codar.cheetah.Campaign):
                 index += 1
             elif (app.ShareKey is not None):
                 AppIndex[app.Name] = ShareIndex[app.ShareKey]
+            elif type(app) is LoginNodeApplication:
+                if self.LoginIndex is None:
+                    self.node_layout[self.machine] += [copy.deepcopy(NodeType)]
+                    self.LoginIndex = index
+                    index += 1
+                app.CoresPerRank = 1
+                AppIndex[app.Name] = self.LoginIndex
+                """
+                self.LoginNode += [index]
+                AppIndex[app.Name] = index
+                self.node_layout[self.machine] += [copy.deepcopy(NodeType)]
+                if app.CoresPerRank is None:
+                    app.CoresPerRank = len(self.node_layout[self.machine][index].cpu) // app.RanksPerNode
+                index += 1
+                """
             else:
                 AppIndex[app.Name] = index
                 self.node_layout[self.machine] += [copy.deepcopy(NodeType)]
@@ -78,6 +111,11 @@ class Campaign(codar.cheetah.Campaign):
         
 
         for app in workflow.Applications:
+
+            """
+            if type(app) is LoginNodeApplication:
+                continue
+            """
 
             # Do the node layout
             index = AppIndex[app.Name]
@@ -122,8 +160,12 @@ class Campaign(codar.cheetah.Campaign):
                 elif j == len(self.node_layout[self.machine][i].cpu) - 1:
                     out += ["{0}-{1}: {2}".format(j-count, j+1, self.node_layout[self.machine][i].cpu[j])]
                 count += 1
-            CompositionLogger.Debug("Node {0} cpus --> {1}".format(i, ', '.join(out)))
-            CompositionLogger.Debug("Node {0} gpus --> {1}".format(i, self.node_layout[self.machine][i].gpu))
+
+            if i == self.LoginIndex:
+                CompositionLogger.Debug("Login node (no MPI): {0}".format(', '.join(out)))
+            else:
+                CompositionLogger.Debug("Compute Node {0} cpus --> {1}".format(i, ', '.join(out)))
+                CompositionLogger.Debug("Compute Node {0} gpus --> {1}".format(i, self.node_layout[self.machine][i].gpu))
             
     
     def SchedulerSet(self, wcomp, cname):
@@ -134,12 +176,16 @@ class Campaign(codar.cheetah.Campaign):
     # Return where CPU, GPU have not yet been filled for a node
     def FindNext(self, index):
         NodeLayout = self.node_layout[self.machine][index]
+        
         for i, cpu in enumerate(NodeLayout.cpu):
             if cpu == None:
                 break
+
+        j = None
         for j, gpu in enumerate(NodeLayout.gpu):
             if gpu == None:
                 break
+
         return i, j
         
     
@@ -169,13 +215,24 @@ class Campaign(codar.cheetah.Campaign):
         
         # This is Cheeta's basic object for the Applications running. Each can be associated with sweep entites
         self.codes = []
+
+        # Keep track of login node apps (to fix Cheetah's node number)
+        LoginApps = 0
+        ExtraNodes = 0
+
         for app in workflow.Applications:
             code = {}
             code['exe'] = app.Filepath
             code['env'] = None
-            #code['runner_override'] = True
             if app.SetupFile is not None:
                 code['env_file'] = app.SetupFile
+
+            # Check if there are any login node application (e.g. for launching stuff internally)
+            if type(app) is LoginNodeApplication:
+                code['runner_override'] = True
+                LoginApps += 1
+                ExtraNodes += app.UseNodes
+
             self.codes += [(app.Name, code)]
 
         # Set the things Cheetah considers sweep entities
@@ -223,6 +280,39 @@ class Campaign(codar.cheetah.Campaign):
             if workflow.Subdirs:
                 app.__dict__['Directory'] = os.path.join(app.Directory, app.Name)
 
+        # Copy the input files
         InputCopy(workflow)
         for app in workflow.Applications:
             InputCopy(app)
+
+        # Simplify job name
+        jobname = "CODAR_CHEETAH_CAMPAIGN_NAME"
+        updir = os.path.join(self.output_dir, getpass.getuser(), SweepGroupLabel)
+        envfile = os.path.join(updir, "group-env.sh")
+        with open(envfile, "r") as infile:
+            txt = infile.read()
+        pattern = re.compile('export \s*{0}="(.*)"\s*$'.format(jobname), re.MULTILINE)
+        txt = pattern.sub('export {0}="{1}"'.format(jobname, workflow.Name), txt)
+
+        # Fix job size if using login node apps
+        #if LoginApps > 0:
+        if ExtraNodes > 1:
+            nodesname = "CODAR_CHEETAH_GROUP_NODES"
+            pattern = re.compile('export \s*{0}="(.*)"\s*$'.format(nodesname), re.MULTILINE)
+            match = pattern.search(txt)
+            nodes = int(match.group(1))
+
+            #newnodes = nodes - LoginApps + ExtraNodes
+            #newnodes = max(nodes - 1 + ExtraNodes, nodes)
+            newnodes = nodes - 1 + ExtraNodes
+
+            print("Found {0} nodes in cheetah file. Updating the value to {1}".format(nodes, newnodes))
+            txt = pattern.sub('export {0}="{1}"'.format(nodesname, newnodes), txt)
+
+            UpdateJSON(os.path.join(workflow.Directory, 'codar.cheetah.fob.json'), newnodes)
+            UpdateJSON(os.path.join(updir, "fobs.json"), newnodes)
+
+        # Write the updated file
+        with open(envfile, "w") as outfile:
+            outfile.write(txt)
+

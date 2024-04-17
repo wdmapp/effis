@@ -47,11 +47,13 @@ class Application:
 
     @classmethod
     def CheckApplications(cls, other):
+        #elif type(other) is not type(cls):
         if type(other) is list:
             for i in range(len(other)):
-                if type(other[i]) is not type(cls):
+                #if type(other[i]) is not type(cls):
+                if not isinstance(other[i], type(cls)):
                     CompositionLogger.RaiseError(ValueError, "List elements to add as applications must be of type effis.composition.Application")
-        elif type(other) is not type(cls):
+        elif not isinstance(other, type(cls)):
             CompositionLogger.RaiseError(ValueError, "Can only add applications and/or lists of them with elements of type effis.composition.Application")
         return other
 
@@ -74,23 +76,30 @@ class Application:
 
     def __init__(self, **kwargs):
 
+        if "__class__" in kwargs:
+            kwobj = kwargs["__class__"]
+            del kwargs["__class__"]
+        else:
+            kwobj = self.__class__
+
+
         if ("GPUsPerRank" in kwargs) and ("RanksPerGPU" in kwargs):
             CompositionLogger.RaiseError(AttributeError, "Only set one of GPUsPerRank and RanksPerGPU")
         
         for key in kwargs:
-            if key not in self.__class__.__dict__:
+            if key not in kwobj.__dict__:
                 CompositionLogger.RaiseError(AttributeError, "{0} is not an Application initializer".format(key))
             else:
                 self.__setattr__(key, kwargs[key])
                 
         # Set the rest to the defaults in the class definition
-        for key in self.__class__.__dict__:
+        for key in kwobj.__dict__:
             if key.startswith("__") and key.endswith("__"):
                 continue
-            elif callable(self.__class__.__dict__[key]):
+            elif callable(kwobj.__dict__[key]):
                 continue
             elif key not in self.__dict__:
-                self.__setattr__(key, self.__class__.__dict__[key])
+                self.__setattr__(key, kwobj.__dict__[key])
             
     
     def __setattr__(self, name, value):
@@ -115,12 +124,14 @@ class Application:
     
     def _add_(self, other, reverse=False):
         
-        if type(other) is type(self):
+        #if type(other) is type(self):
+        if isinstance(other, Application):
             left = [self]
             right = [other]
         elif type(other) is list:
             for i in range(len(other)):
-                if type(other[i]) is not type(self):
+                #if type(other[i]) is not type(self):
+                if not isinstance(other[i], Application):
                     CompositionLogger.RaiseError(ValueError, "List elements to add as applications must be of type effis.composition.Application")
             left = [self]
             right = other            
@@ -143,3 +154,21 @@ class Application:
 
 
         
+class LoginNodeApplication(Application):
+
+    def __init__(self, **kwargs):
+
+        self.UseNodes = 0
+
+        for  key in ["Ranks", "RanksPerNode", "CoresPerRank", "GPUsPerRank", "RanksPerGPU", "ShareKey", "MPIRunnerArguments", "__class__"]:
+            if key in kwargs:
+                CompositionLogger.RaiseError(ValueError, "Setting {0} is not allowed with LoginNodeApplication.".format(key))
+        if ("UseNodes" in kwargs) and (type(kwargs["UseNodes"]) is int):
+            self.UseNodes = kwargs["UseNodes"]
+            del kwargs["UseNodes"]
+        elif ("UseNodes" in kwargs):
+            CompositionLogger.RaiseError(ValueError, "UseNodes value must be an integer")
+
+        #Application.__init__(self, **kwargs)
+        super(LoginNodeApplication, self).__init__(__class__=Application, **kwargs)
+

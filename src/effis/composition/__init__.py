@@ -2,6 +2,7 @@ from effis.composition.workflow import Workflow
 from effis.composition.workflow import ExamplesPath
 
 from effis.composition.application import Application
+from effis.composition.application import LoginNodeApplication
 from effis.composition.node import Node
 from effis.composition.input import Input
 
