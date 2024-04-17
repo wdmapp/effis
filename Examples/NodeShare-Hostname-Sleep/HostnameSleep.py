@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import time
 from datetime import datetime
 import socket
@@ -26,16 +27,16 @@ if __name__ == "__main__":
         multiprocessing.cpu_count(),
         os.cpu_count(),
         psutil.Process().cpu_num()
-    )
+    ); sys.stdout.flush()
    
     if args.SleepTime is not None:
         filename = "TestFile01.txt"
-        lock = filelock.FileLock("{0}.lock".format(filename))
+        lock = filelock.SoftFileLock("{0}.lock".format(filename))
         with lock:
             with open(filename, "r") as infile:
                 txt = infile.read()
             time.sleep(args.SleepTime)
-            print(txt)
+            print(txt); sys.stdout.flush()
             
         SleepExample = os.path.join(effis.composition.ExamplesPath, "NodeShare-Hostname-Sleep", "HostnameSleep.py")
         runargs = [SleepExample]
