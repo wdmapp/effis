@@ -49,26 +49,26 @@ def UpdateJSON(jsonfile, newnodes):
 
 class Campaign(codar.cheetah.Campaign):
 
+    NodeInfoFilename = ".effis.nodeinfo.json"
     
     # Find the correct node type
     def GetNodeType(self, workflow):
         NodeName = "{0}Node".format(self.machine.capitalize())
         if workflow.Node is not None:
-            NodeType = workflow.Node
+            self.NodeType = workflow.Node
         elif NodeName in codar.savanna.machines.__dict__:
-            NodeType = codar.savanna.machines.__dict__[NodeName]()
+            self.NodeType = codar.savanna.machines.__dict__[NodeName]()
         elif self.machine.lower() in effis.composition.node.effisnodes:
-            NodeType = effis.composition.node.effisnodes[self.machine.lower()]
+            self.NodeType = effis.composition.node.effisnodes[self.machine.lower()]
         else:
             CompositionLogger.RaiseError(ValueError, "Could not find a MachineNode for {0}. Please set an effis.composition.Node".format(self.machine))
-        return NodeType
 
     
     # Map the .cpu, .gpu lists for the nodes
     def SetNodeLayout(self, workflow):
         
         self.node_layout = {self.machine: []}
-        NodeType = self.GetNodeType(workflow)
+        self.GetNodeType(workflow)
         
         self.LoginIndex = None
         index = 0
@@ -80,13 +80,13 @@ class Campaign(codar.cheetah.Campaign):
             if (app.ShareKey is not None) and (app.ShareKey not in ShareIndex):
                 ShareIndex[app.ShareKey] = index
                 AppIndex[app.Name] = index
-                self.node_layout[self.machine] += [copy.deepcopy(NodeType)]
+                self.node_layout[self.machine] += [copy.deepcopy(self.NodeType)]
                 index += 1
             elif (app.ShareKey is not None):
                 AppIndex[app.Name] = ShareIndex[app.ShareKey]
             elif type(app) is LoginNodeApplication:
                 if self.LoginIndex is None:
-                    self.node_layout[self.machine] += [copy.deepcopy(NodeType)]
+                    self.node_layout[self.machine] += [copy.deepcopy(self.NodeType)]
                     self.LoginIndex = index
                     index += 1
                 app.CoresPerRank = 1
@@ -94,20 +94,20 @@ class Campaign(codar.cheetah.Campaign):
                 """
                 self.LoginNode += [index]
                 AppIndex[app.Name] = index
-                self.node_layout[self.machine] += [copy.deepcopy(NodeType)]
+                self.node_layout[self.machine] += [copy.deepcopy(self.NodeType)]
                 if app.CoresPerRank is None:
                     app.CoresPerRank = len(self.node_layout[self.machine][index].cpu) // app.RanksPerNode
                 index += 1
                 """
             else:
                 AppIndex[app.Name] = index
-                self.node_layout[self.machine] += [copy.deepcopy(NodeType)]
+                self.node_layout[self.machine] += [copy.deepcopy(self.NodeType)]
                 if app.CoresPerRank is None:
                     app.CoresPerRank = len(self.node_layout[self.machine][index].cpu) // app.RanksPerNode
                 index += 1
                 
-            if app.RanksPerNode * app.CoresPerRank > len(NodeType.cpu):
-                CompositionLogger.RaiseError(ValueError, "{0}: RanksPerNode={1}, CoresPerRank={2} doesn't make sense for Node with {3} cores".format(app.Name, app.RanksPerNode, app.CoresPerRank, len(NodeType.cpu)))
+            if app.RanksPerNode * app.CoresPerRank > len(self.NodeType.cpu):
+                CompositionLogger.RaiseError(ValueError, "{0}: RanksPerNode={1}, CoresPerRank={2} doesn't make sense for Node with {3} cores".format(app.Name, app.RanksPerNode, app.CoresPerRank, len(self.NodeType.cpu)))
         
 
         for app in workflow.Applications:
@@ -315,4 +315,18 @@ class Campaign(codar.cheetah.Campaign):
         # Write the updated file
         with open(envfile, "w") as outfile:
             outfile.write(txt)
+
+        # Write number of nodes into a file for SimpleRunner
+        for app in workflow.Applications:
+            if type(app) is LoginNodeApplication:
+
+                fob = {
+                    'UseNodes': app.UseNodes,
+                    'cpus': len(self.NodeType.cpu),
+                    'gpus': len(self.NodeType.gpu),
+                }
+                
+                jsonfile = os.path.join(workflow.Directory, app.Name, self.NodeInfoFilename)
+                with open(jsonfile, 'w', encoding='utf-8') as outfile:
+                    json.dump(fob, outfile, ensure_ascii=False, indent=4)
 

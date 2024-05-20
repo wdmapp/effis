@@ -34,4 +34,5 @@ class Node(codar.savanna.machines.MachineNode):
 effisnodes =  {
     'perlmutter_cpu': Node(cores=128, gpus=0),
     'perlmutter_gpu': Node(cores=64,  gpus=4),
+    'frontier': Node(cores=64, gpus=8)
 }
