@@ -47,10 +47,8 @@ class Application:
 
     @classmethod
     def CheckApplications(cls, other):
-        #elif type(other) is not type(cls):
         if type(other) is list:
             for i in range(len(other)):
-                #if type(other[i]) is not type(cls):
                 if not isinstance(other[i], type(cls)):
                     CompositionLogger.RaiseError(ValueError, "List elements to add as applications must be of type effis.composition.Application")
         elif not isinstance(other, type(cls)):
@@ -58,8 +56,14 @@ class Application:
         return other
 
 
-    # Basic check against Rank settings that don't make sense
+    # Basic check against basic settings that don't make sense
     def CheckSensible(self):
+
+        # Need a filepath for something to run
+        if self.Filepath is None:
+            CompositionLogger.RaiseError(ValueError, "Must set a Filepath for an application")
+
+        # Ranks and RanksPerNode relationship
         if self.Ranks < 1:
             CompositionLogger.RaiseError(ValueError, "For {0}, cannot set Ranks < 1".format(self.Name))
         if (self.Ranks == 1) and (self.RanksPerNode is None):
@@ -70,6 +74,7 @@ class Application:
         if (self.Ranks > 1) and (self.RanksPerNode == None):
             CompositionLogger.RaiseError(AttributeError, "For {0}, with Ranks > 1, please set RanksPerNode".format(self.Name))
 
+        # Have to know balance for sharing nodes
         if (self.CoresPerRank is None) and (self.ShareKey is not None):
             CompositionLogger.RaiseError(ValueError, "With node sharing ('{0}'), please set each application's CoresPerRank – Application '{1}' missing".format(self.ShareKey, self.Name))
     
@@ -124,13 +129,11 @@ class Application:
     
     def _add_(self, other, reverse=False):
         
-        #if type(other) is type(self):
         if isinstance(other, Application):
             left = [self]
             right = [other]
         elif type(other) is list:
             for i in range(len(other)):
-                #if type(other[i]) is not type(self):
                 if not isinstance(other[i], Application):
                     CompositionLogger.RaiseError(ValueError, "List elements to add as applications must be of type effis.composition.Application")
             left = [self]
@@ -152,8 +155,6 @@ class Application:
         return self._add_(other)
 
 
-
-        
 class LoginNodeApplication(Application):
 
     def __init__(self, **kwargs):

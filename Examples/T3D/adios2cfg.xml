@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<adios-config>
+	
+    <io name="Done">
+        <engine type="FileStream">
+            <parameter key="OpenTimeoutSecs" value="7200"/>
+        </engine>
+    </io>
+	
+</adios-config>
