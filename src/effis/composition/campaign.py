@@ -54,21 +54,40 @@ class Campaign(codar.cheetah.Campaign):
     # Find the correct node type
     def GetNodeType(self, workflow):
         NodeName = "{0}Node".format(self.machine.capitalize())
+
         if workflow.Node is not None:
             self.NodeType = workflow.Node
+
         elif NodeName in codar.savanna.machines.__dict__:
             self.NodeType = codar.savanna.machines.__dict__[NodeName]()
+
         elif self.machine.lower() in effis.composition.node.effisnodes:
             self.NodeType = effis.composition.node.effisnodes[self.machine.lower()]
+            if self.machine.lower() == "permutter_gpu":
+                workflow.SchedulerDirectives += "--constraint=gpu"
+            elif self.machine.lower() == "permutter_cpu":
+                workflow.SchedulerDirectives += "--constraint=cpu"
+        elif self.machine.lower() == "perlmutter":
+            args = ' '.join(workflow.SchedulerDirectives.arguments)
+            pattern = re.compile("--constraint(=|\s*)(gpu|cpu)")
+            match = pattern.search(args)
+            if match is not None:
+                self.machine = "{0}_{1}".format(self.machine.lower(), match.group(2))
+                workflow.Machine = self.machine
+                self.NodeType = effis.composition.node.effisnodes[self.machine]
+            else:
+                CompositionLogger.RaiseError(ValueError, "Need a --constraint for gpu or cpu with perlmutter")
         else:
             CompositionLogger.RaiseError(ValueError, "Could not find a MachineNode for {0}. Please set an effis.composition.Node".format(self.machine))
+
+
 
     
     # Map the .cpu, .gpu lists for the nodes
     def SetNodeLayout(self, workflow):
         
-        self.node_layout = {self.machine: []}
         self.GetNodeType(workflow)
+        self.node_layout = {self.machine: []}
         
         self.LoginIndex = None
         index = 0
@@ -194,15 +213,6 @@ class Campaign(codar.cheetah.Campaign):
         self.output_dir = os.path.join(workflow.WorkflowDirectory)  # Top level directory everything writes under
         self.name = workflow.Name                                   # This doesn't affect any directory names; jobname = codar.cheetah.$name-$sweepgroupname
         self.machine = workflow.Machine           # machine itself is not a Cheetah attribute
-        self.supported_machines = [self.machine]  # EFFIS only uses one machine at a time, whereas Cheetah could take multiple
-
-        # Set properties of the cheetah scheduler
-        self.scheduler_options = {self.machine: {}}
-        self.SchedulerSet(workflow.Queue, 'queue')
-        self.SchedulerSet(workflow.Charge, 'project')
-        self.SchedulerSet(workflow.Reservation, 'reservation')
-        if len(workflow.SchedulerDirectives.arguments) > 0:
-            self.SchedulerSet(' '.join(workflow.SchedulerDirectives.arguments), 'custom')  # Scheduler Directives
 
         # Make sure each Application has a name, and 0th level process mapping sanity
         for app in workflow.Applications:
@@ -210,8 +220,19 @@ class Campaign(codar.cheetah.Campaign):
                 app.Name = os.path.basename(app.Filepath)
             app.CheckSensible()  # Basic checks against Rank settings that don't make sense
 
+
         # Find the correct node type; Map the .cpu, .gpu lists for the nodes
         self.SetNodeLayout(workflow)
+
+        # Set properties of the cheetah scheduler
+        self.scheduler_options = {self.machine: {}}
+        self.SchedulerSet(workflow.Queue, 'queue')
+        self.SchedulerSet(workflow.Charge, 'project')
+        self.SchedulerSet(workflow.Reservation, 'reservation')
+        if len(workflow.SchedulerDirectives.arguments) > 0:
+            self.SchedulerSet(' '.join(workflow.SchedulerDirectives.arguments), 'custom')  # Scheduler Directives, could add --constraint in SetNodeLayout
+        self.supported_machines = [self.machine]  # EFFIS only uses one machine at a time, whereas Cheetah could take multiple
+            
         
         # This is Cheeta's basic object for the Applications running. Each can be associated with sweep entites
         self.codes = []

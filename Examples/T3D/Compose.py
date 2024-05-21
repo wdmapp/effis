@@ -11,18 +11,21 @@ effis.composition.log.CompositionLogger.SetLevel(logging.DEBUG)
 thisdir = os.path.dirname(os.path.abspath(__file__))
 plotter = os.path.join(thisdir, "PlotterGX.py")
 
+t3d = os.path.join(os.environ["PYTHONUSERBASE"], "bin", "t3d")
 t3d_template = "test-w7x-gx.in"
+
 gx_template = "gx_template.in"
+krehm = "false"
+fields = "false"
 
 
-where = "summit"
+where = "perlmutter"
 
 if where == "summit":
-    w = effis.composition.Workflow(Name="t3d-analysis-37", Charge="fus161", Machine="summit", TimeIndex=False)
+    w = effis.composition.Workflow(Name="t3d-analysis-37", Charge="fus161", Machine=where, TimeIndex=False)
     w.Walltime = datetime.timedelta(hours=2)
     #w.Queue = "debug"
 
-    t3d = "/ccs/home/esuchyta/.local/summit/bin/t3d"
     setup = os.path.join(thisdir, "setup.sh")
     w.ParentDirectory ="/gpfs/alpine2/world-shared/fus161/esuchyta/effis/T3D"
 
@@ -30,9 +33,19 @@ if where == "summit":
     #gpus_per_gx = 1
     Nodes = 18
     gpus_per_gx = 6
-    krehm = "false"
-    fields = "false"
 
+elif where == "perlmutter":
+    #w = effis.composition.Workflow(Name="t3d-01", Charge="m4564", Machine="{0}_gpu".format(where), TimeIndex=False)
+    w = effis.composition.Workflow(Name="t3d-01", Charge="m4564", Machine=where, TimeIndex=False)
+    w.Walltime = datetime.timedelta(hours=2)
+    w.SchedulerDirectives += "--constraint=gpu"
+    w.SchedulerDirectives += "--qos=regular"
+
+    setup = os.path.join(thisdir, "setup-perlmutter.sh")
+    w.ParentDirectory = "/pscratch/sd/e/esuchyta/cac"
+
+    Nodes = 4
+    gpus_per_gx = 1
 
 
 App1 = effis.composition.LoginNodeApplication(Filepath=t3d, Name="T3D", UseNodes=Nodes)
