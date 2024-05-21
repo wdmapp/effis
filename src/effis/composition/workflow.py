@@ -98,7 +98,7 @@ class Workflow:
 
 
     # Make sure the machine exists in Cheetah
-    def _Machine_(self, mach):
+    def _Machine_(self, mach=None):
 
         known = []
         for name in codar.savanna.machines.__dict__:
@@ -118,7 +118,11 @@ class Workflow:
                 break
 
         if machine not in known:
-            CompositionLogger.RaiseError(ValueError, "Cannot find machine = {0}".format(machine))
+            exceptions = ["perlmutter"]
+            if machine.lower() in exceptions:
+                self.__dict__['Machine'] = machine.lower()
+            else:
+                CompositionLogger.RaiseError(ValueError, "Cannot find machine = {0}".format(machine))
             
     
     def Create(self):

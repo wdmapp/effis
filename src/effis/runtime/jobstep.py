@@ -326,20 +326,27 @@ class EffisJobRunner:
         if self.runner.exe == "srun":
 
             if (gpunum > 1) and (self.ranknum > 1):
-                if self.GPUsPerRank is not None:
-                    raise ValueError("Non-integer GPUsPerRank={0} isn't really supported in usual Slurm formatting".format(self.GPUsPerRank))
-                elif self.RanksPerGPU is not None:
-                    raise ValueError("Non-integer RanksPerGPU={0} isn't really supported in usual Slurm formatting".format(self.RanksPerGPU))
+                if TmpApp.GPUsPerRank is not None:
+                    raise ValueError("Non-integer GPUsPerRank={0} isn't really supported in usual Slurm formatting".format(TmpApp.GPUsPerRank))
+                elif TmpApp.RanksPerGPU is not None:
+                    raise ValueError("Non-integer RanksPerGPU={0} isn't really supported in usual Slurm formatting".format(TmpApp.RanksPerGPU))
             
             runner_args += [self.runner.nprocs_arg, "{0}".format(TmpApp.Ranks)]
 
-            if TmpApp.RanksPerNodes is not None:
+            if TmpApp.RanksPerNode is not None:
                 runner_args += GetArg(self.runner.tasks_per_node_arg, TmpApp.RanksPerNode)  # srun isn't currently using this one
 
             if Nodes is not None:
                 runner_args += GetArg(self.runner.nodes_arg, Nodes)
-            else:
+            elif TmpApp.RanksPerNode is not None:
                 runner_args += GetArg(self.runner.nodes_arg, math.ceil(TmpApp.Ranks/TmpApp.RanksPerNode))
+            else:
+                how = self.ByGpuOrCpu(gpunum, ranknum, TmpApp.CoresPerRank)
+                if how == "gpus":
+                    runner_args += GetArg(self.runner.nodes_arg, math.ceil(TmpApp.Ranks * gpunum / self.gpus))
+                elif how == "cpus":
+                    runner_args += GetArg(self.runner.nodes_arg, math.ceil(TmpApp.Ranks * TmpApp.CoresPerRank / self.cpus))
+
             
             runner_args += [self.runner.cpus_per_task_arg.format(TmpApp.CoresPerRank)]
 
@@ -352,7 +359,7 @@ class EffisJobRunner:
         elif self.runner.exe == "jsrun":
 
             how = self.ByGpuOrCpu(gpunum, ranknum, TmpApp.CoresPerRank)
-            if (how == "gpu"):
+            if (how == "gpus"):
                 gr = gpunum * TmpApp.Ranks
                 if (self.gpus >= gr):
                     UsePerHost = (self.gpus % gr == 0)
