@@ -337,6 +337,18 @@ class Campaign(codar.cheetah.Campaign):
         with open(envfile, "w") as outfile:
             outfile.write(txt)
 
+
+        # t3d-01/esuchyta/EFFIS/submit.sh
+        #--partition=$CODAR_CHEETAH_SCHEDULER_QUEUE \
+        subfile = os.path.join(updir, "submit.sh")
+        with open(subfile, "r") as infile:
+            txt = infile.read()
+        pattern = re.compile('--partition=\$CODAR_CHEETAH_SCHEDULER_QUEUE', re.MULTILINE)
+        txt = pattern.sub('', txt)
+        with open(subfile, "w") as outfile:
+            outfile.write(txt)
+
+
         # Write number of nodes into a file for SimpleRunner
         for app in workflow.Applications:
             if type(app) is LoginNodeApplication:

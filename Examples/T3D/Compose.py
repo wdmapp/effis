@@ -36,7 +36,7 @@ if where == "summit":
 
 elif where == "perlmutter":
     #w = effis.composition.Workflow(Name="t3d-01", Charge="m4564", Machine="{0}_gpu".format(where), TimeIndex=False)
-    w = effis.composition.Workflow(Name="t3d-01", Charge="m4564", Machine=where, TimeIndex=False)
+    w = effis.composition.Workflow(Name="t3d-02", Charge="m4564", Machine=where, TimeIndex=False)
     w.Walltime = datetime.timedelta(hours=2)
     w.SchedulerDirectives += "--constraint=gpu"
     w.SchedulerDirectives += "--qos=regular"
