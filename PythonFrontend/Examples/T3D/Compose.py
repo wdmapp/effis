@@ -36,7 +36,7 @@ if where == "summit":
 
 elif where == "perlmutter":
     #w = effis.composition.Workflow(Name="t3d-01", Charge="m4564", Machine="{0}_gpu".format(where), TimeIndex=False)
-    w = effis.composition.Workflow(Name="t3d-05", Charge="m4564", Machine=where, TimeIndex=False)
+    w = effis.composition.Workflow(Name="t3d-06", Charge="m4564", Machine=where, TimeIndex=False)
     w.Walltime = datetime.timedelta(hours=2)
     w.SchedulerDirectives += "--constraint=gpu"
     w.SchedulerDirectives += "--qos=regular"
@@ -44,8 +44,8 @@ elif where == "perlmutter":
     setup = os.path.join(thisdir, "setup-perlmutter.sh")
     w.ParentDirectory = "/pscratch/sd/e/esuchyta/cac"
 
-    Nodes = 4*4
-    gpus_per_gx = 1*4
+    gpus_per_gx = 1*1
+    Nodes = 4*1
 
 
 App1 = effis.composition.LoginNodeApplication(Filepath=t3d, Name="T3D", UseNodes=Nodes)
