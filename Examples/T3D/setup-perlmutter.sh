@@ -9,7 +9,8 @@ module load cray-netcdf-hdf5parallel
 module load libfabric
 
 export GK_SYSTEM=perlmutter
-export GX_PATH=$HOME/software/build/perlmutter/gx-adios
+export GX_PATH=$HOME/software/build/perlmutter/gx-adios-2
+#export GX_PATH=$HOME/software/build/perlmutter/gx-adios
 #export GX_PATH_PY=/ccs/home/esuchyta/software/src/gx/
 
 ADIOS=/global/homes/e/esuchyta/software/install/perlmutter/adios2-gcc11.2.0
