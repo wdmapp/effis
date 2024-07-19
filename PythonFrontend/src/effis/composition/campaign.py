@@ -72,9 +72,11 @@ class Campaign(codar.cheetah.Campaign):
             pattern = re.compile("--constraint(=|\s*)(gpu|cpu)")
             match = pattern.search(args)
             if match is not None:
+                #self.machine = "{0}_{1}".format(self.machine.lower(), match.group(2))
+                #self.NodeType = effis.composition.node.effisnodes[self.machine]
+
                 self.machine = "{0}_{1}".format(self.machine.lower(), match.group(2))
-                workflow.Machine = self.machine
-                self.NodeType = effis.composition.node.effisnodes[self.machine]
+                self.NodeType = effis.composition.node.effisnodes["{0}_thread".format(self.machine)]
             else:
                 CompositionLogger.RaiseError(ValueError, "Need a --constraint for gpu or cpu with perlmutter")
         else:
