@@ -226,6 +226,12 @@ class Campaign(codar.cheetah.Campaign):
         # Find the correct node type; Map the .cpu, .gpu lists for the nodes
         self.SetNodeLayout(workflow)
 
+        # Local imples mpiexec and doesn't support much; force it back to the Cheetah simple thing
+        if self.machine == "local":
+            self.node_layout[self.machine] = []
+            for app in workflow.Applications:
+                self.node_layout[self.machine] += [{app.Name: app.RanksPerNode}]
+
         # Set properties of the cheetah scheduler
         self.scheduler_options = {self.machine: {}}
         self.SchedulerSet(workflow.Queue, 'queue')
