@@ -14,6 +14,8 @@ import datetime
 import adios2
 
 import globus_sdk
+from globus_sdk.scopes import TransferScopes
+
 import socket
 import time
 import shutil
@@ -150,7 +152,7 @@ class HostRemote:
 
 
 
-def AutoActivate(idhash, label):
+def AutoActivate(tc, idhash, label):
     r = tc.endpoint_autoactivate(idhash, if_expires_in=3600)
     url = "https://app.globus.org/file-manager?origin_id={0}".format(idhash)
     first = True
@@ -164,14 +166,11 @@ def AutoActivate(idhash, label):
 
 
 
-
-if __name__ == "__main__":
-
-	############################################################################################################
+def GetTransferClient(scopes=[TransferScopes.all]):
 
     clientid = "fbe7f352-d1f0-45e5-9fb8-889dec66ec8f"
     client = globus_sdk.NativeAppAuthClient(clientid)
-    client.oauth2_start_flow(refresh_tokens=True)
+    client.oauth2_start_flow(refresh_tokens=True, requested_scopes=scopes)
     authorize_url = client.oauth2_get_authorize_url()
     print('Please go to this URL and login: {0}'.format(authorize_url))
     print('Please enter the code you get after login here: ', end="")
@@ -185,16 +184,49 @@ if __name__ == "__main__":
     authorizer = globus_sdk.RefreshTokenAuthorizer(refresh_token, client, access_token=access_token, expires_at=expires_at)
     tc = globus_sdk.TransferClient(authorizer=authorizer)
 
+    return tc
+
+
+
+
+if __name__ == "__main__":
+
+	############################################################################################################
+
+    scopes = [TransferScopes.all]
+    tc = GetTransferClient(scopes=scopes)
+
+    """
+    clientid = "fbe7f352-d1f0-45e5-9fb8-889dec66ec8f"
+    client = globus_sdk.NativeAppAuthClient(clientid)
+    client.oauth2_start_flow(refresh_tokens=True, requested_scopes=scopes)
+    authorize_url = client.oauth2_get_authorize_url()
+    print('Please go to this URL and login: {0}'.format(authorize_url))
+    print('Please enter the code you get after login here: ', end="")
+    auth_code = input().strip()
+    token_response = client.oauth2_exchange_code_for_tokens(auth_code)
+
+    globus_transfer_data = token_response.by_resource_server['transfer.api.globus.org']
+    access_token = globus_transfer_data['access_token']
+    refresh_token = globus_transfer_data['refresh_token']
+    expires_at = globus_transfer_data['expires_at_seconds']
+    authorizer = globus_sdk.RefreshTokenAuthorizer(refresh_token, client, access_token=access_token, expires_at=expires_at)
+    tc = globus_sdk.TransferClient(authorizer=authorizer)
+    """
+
     nerscdtn = "9d6d994a-6d04-11e5-ba46-22000b92c6ec"
-    host = socket.getfqdn()
-    if host.find("olcf.ornl.gov"):
-        hostid = "ef1a9560-7ca1-11e5-992c-22000b96db58"
+    #host = socket.getfqdn()
+    host = socket.getaddrinfo(socket.gethostname(), 0, flags=socket.AI_CANONNAME)[0][3]
+    if host.find("olcf.ornl.gov") != -1:
+        hostid = "36d521b3-c182-4071-b7d5-91db5d380d42"
+    elif host.find("perlmutter") != -1:
+        hostid = "6bdc7956-fc0f-4ad2-989c-7aa5ee643a79"
     else:
         print('Could not automatically find host endpoint identity. Please enter the id hash to use: ', end="")
         hostid = input().strip()
 
-    AutoActivate(hostid, "Host")
-    AutoActivate(nerscdtn, "Destination")
+    AutoActivate(tc, hostid, "Host")
+    AutoActivate(tc, nerscdtn, "Destination")
     connection = HostRemote(hostid, nerscdtn, tc)
 
 	############################################################################################################
@@ -204,10 +236,14 @@ if __name__ == "__main__":
     with open(yamlfile, 'r') as ystream:
         config = yaml.load(ystream, Loader=yaml.FullLoader)
 
-    timedict = connection.IndexJSON(config, indent=indent)
+    try:
+        timedict = connection.IndexJSON(config, indent=indent)
+    except globus_sdk.TransferAPIError as err:
+        scopes += err.info.consent_required.required_scopes
+        tc = GetTransferClient(scopes=scopes)
     del config['login']
 
-    adios = adios2.ADIOS()
+    adios = adios2.Adios()
 
 
     setup = {}
@@ -216,9 +252,8 @@ if __name__ == "__main__":
     setup['LastStep'] = -1
     for name in config.keys():
         setup[name] = {}
-        setup[name]['io'] = adios.DeclareIO(name)
-        #setup[name]['io'].SetEngine('BP4')
-        setup[name]['io'].SetParameter('OpenTimeoutSecs', '3600')
+        setup[name]['io'] = adios.declare_io(name)
+        setup[name]['io'].set_parameter('OpenTimeoutSecs', '3600')
 
         setup[name]['opened'] = False
         setup[name]['LastStep'] = np.array([-1], dtype=np.int64)
@@ -250,32 +285,32 @@ if __name__ == "__main__":
 
             if not setup[name]['opened']:
                 # Need to have a filename here
-                setup[name]['engine'] = setup[name]['io'].Open(config[name]['stepfile'], adios2.Mode.Read)
+                setup[name]['engine'] = adios2.Stream(setup[name]['io'], config[name]['stepfile'], "r")
                 setup[name]['opened'] = True
 
-            ReadStatus = setup[name]['engine'].BeginStep(adios2.StepMode.Read, 0.1)
+            ReadStatus = setup[name]['engine'].begin_step(timeout=0.1)
 
-            if ReadStatus == adios2.StepStatus.NotReady:
+            if ReadStatus == adios2.bindings.StepStatus.NotReady:
                 continue
-            elif ReadStatus != adios2.StepStatus.OK:
+            elif ReadStatus != adios2.bindings.StepStatus.OK:
                 print("Found last in ", name); sys.stdout.flush()
                 setup[name]['done'] = True
                 setup['done'] += 1
-                setup[name]['engine'].Close()
+                setup[name]['engine'].close()
                 continue
 
-            varid = setup[name]['io'].InquireVariable("Step")
-            setup[name]['engine'].Get(varid, setup[name]['LastStep'])
-            setup[name]['engine'].EndStep()
+            varid = setup[name]['io'].inquire_variable("Step")
+            setup[name]['LastStep'] = setup[name]['engine'].read(varid)
+            setup[name]['engine'].end_step()
 
 
         check = 0
         minfound = None
         for name in config.keys():
-            if (setup[name]['LastStep'][0] <= setup['LastStep']) and (not setup[name]['done']):
+            if (setup[name]['LastStep'] <= setup['LastStep']) and (not setup[name]['done']):
                 break
-            if (minfound is None) or (setup[name]['LastStep'][0] < minfound):
-                minfound = setup[name]['LastStep'][0]
+            if (minfound is None) or (setup[name]['LastStep'] < minfound):
+                minfound = setup[name]['LastStep']
             check += 1
 
 
