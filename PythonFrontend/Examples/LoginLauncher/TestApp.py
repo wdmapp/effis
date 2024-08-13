@@ -85,7 +85,7 @@ if __name__ == "__main__":
     for i in range(5):
         job = effis.runtime.EffisSimpleJobStep(
             Filepath=SleepExample,
-            Ranks=3, RanksPerNode=3, CoresPerRank=7, GPUsPerRank=1, Name="SubTest-{0}".format(i+1),
+            Ranks=3, RanksPerNode=3, CoresPerRank=7, GPUsPerRank=0, Name="SubTest-{0}".format(i+1),
             CommandLineArguments="--SleepTime=60",
         )
         job, log = Runner.JobStep(job)

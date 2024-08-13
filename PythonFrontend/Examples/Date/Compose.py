@@ -3,6 +3,7 @@
 import effis.composition
 import argparse
 import getpass
+import datetime
 import os
 
 parser = argparse.ArgumentParser()
@@ -13,7 +14,9 @@ args = parser.parse_args()
 
 w = effis.composition.Workflow(Name=args.runname, Charge=args.charge, Machine="perlmutter")
 w.SchedulerDirectives += "--constraint=cpu"
-w.SchedulerDirectives += "--time=00:05:00"
+w.SchedulerDirectives += "--qos=debug"
+w.Walltime = datetime.timedelta(minutes=5)
+#w.SchedulerDirectives += "--time=00:05:00"
 w.ParentDirectory = args.outdir
     
 App1 = effis.composition.Application(Filepath="/usr/bin/date", Name="date", Ranks=2, RanksPerNode=2, CoresPerRank=1)

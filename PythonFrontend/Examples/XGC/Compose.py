@@ -31,19 +31,19 @@ if args.where == "perlmutter":
     adioscfg = os.path.join(cfgdir, "adios2cfg.xml")
     petsccfg = os.path.join(cfgdir, "petsc.rc")
 
+    """
     Ranks = 48
     nphi = 8
     steps = 1000
     w.SchedulerDirectives += "--qos=regular"
     w.Walltime = datetime.timedelta(hours=4)
-
     """
+
     Ranks = 12
     nphi = 4
     steps = 100
     w.SchedulerDirectives += "--qos=debug"
     w.Walltime = datetime.timedelta(minutes=30)
-    """
 
 w.ParentDirectory = os.path.dirname(args.rundir)
 xgc = effis.composition.Application(Filepath=args.xgc, Name="XGC", Ranks=Ranks, RanksPerNode=RanksPerNode, CoresPerRank=CoresPerRank, GPUsPerRank=1)
@@ -73,6 +73,8 @@ pattern = re.compile("^\s*sml_nphi_total\s*=\s*\d+", re.MULTILINE)
 intxt = pattern.sub("sml_nphi_total={0}".format(nphi), intxt)
 pattern = re.compile("^\s*sml_mstep\s*=\s*\d+", re.MULTILINE)
 intxt = pattern.sub("sml_mstep={0}".format(steps), intxt)
+pattern = re.compile("^\s*diag_1d_period\s*=\s*\d+", re.MULTILINE)
+intxt = pattern.sub("diag_1d_period={0}".format(1), intxt)
 with open(inputfile, "w") as infile:
     infile.write(intxt)
 
