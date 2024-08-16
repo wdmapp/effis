@@ -21,6 +21,7 @@ class Application:
     RanksPerGPU = None
 
     ShareKey = None
+    DependsOn = None
 
     Input = []
 
@@ -118,11 +119,15 @@ class Application:
             CompositionLogger.RaiseError(AttributeError, "{0} should be set as a string".format(name))
         if (name in ("Environment")) and (type(value) is not dict):
             CompositionLogger.RaiseError(ValueError, "{0} should be set as a dictionary".format(name))
+        if (name == "DependsOn") and (value is not None) and not isinstance(value, type(self)):
+            CompositionLogger.RaiseError(ValueError, "{0} should be set as an Application".format(name))
 
         if name in ["CommandLineArguments", "MPIRunnerArguments"]:
             self.__dict__[name] = effis.composition.arguments.Arguments(value)
         elif name == "Input":
             self.__dict__[name] = effis.composition.input.InputList(value)
+        elif (name == "DependsOn") and (value is not None):
+            self.__dict__[name] = value.Name
         else:
             self.__dict__[name] = value
 

@@ -256,6 +256,7 @@ class Campaign(codar.cheetah.Campaign):
         
         # This is Cheeta's basic object for the Applications running. Each can be associated with sweep entites
         self.codes = []
+        rc_dependency = {}
 
         # Keep track of login node apps (to fix Cheetah's node number)
         LoginApps = 0
@@ -275,6 +276,10 @@ class Campaign(codar.cheetah.Campaign):
                 ExtraNodes += app.UseNodes
 
             self.codes += [(app.Name, code)]
+
+            if app.DependsOn is not None:
+                rc_dependency[app.Name] = app.DependsOn
+
 
         # Set the things Cheetah considers sweep entities
         sweepargs = []      
@@ -297,7 +302,7 @@ class Campaign(codar.cheetah.Campaign):
             launchmode = "MPMD"
 
         SweepGroupLabel = "EFFIS"  # jobname = codar.cheetah.$name-$sweepgroupname
-        sweep = codar.cheetah.parameters.Sweep(sweepargs, node_layout=self.node_layout)  # A job can have multiple cheetah sweeps; Each SweepGroup is a job
+        sweep = codar.cheetah.parameters.Sweep(sweepargs, node_layout=self.node_layout, rc_dependency=rc_dependency)  # A job can have multiple cheetah sweeps; Each SweepGroup is a job
         sweepgroup = codar.cheetah.parameters.SweepGroup(SweepGroupLabel, walltime=walltime, parameter_groups=[sweep], component_subdirs=workflow.Subdirs, launch_mode=launchmode)
         self.sweeps = [sweepgroup]
 
