@@ -2,9 +2,9 @@ import os
 import copy
 import getpass
 import shutil
-import sys
 import re
 import json
+import stat
 
 import codar.cheetah
 import codar.savanna
@@ -47,6 +47,18 @@ def UpdateJSON(jsonfile, newnodes):
         json.dump(fob, outfile, ensure_ascii=False, indent=4)
 
 
+def FixCheetah():
+    fixfile = os.path.join(os.path.dirname(codar.__file__), "savanna", "pipeline.py" )
+    with open(fixfile) as infile:
+        txt = infile.read()
+    fixstr = 'self._get_path'
+    if txt.find(fixstr) != -1:
+        pattern = re.compile(fixstr, re.MULTILINE)
+        txt = pattern.sub('get_path', txt)
+        with open(fixfile, "w") as outfile:
+            outfile.write(txt)
+
+
 class Campaign(codar.cheetah.Campaign):
 
     NodeInfoFilename = ".effis.nodeinfo.json"
@@ -69,7 +81,7 @@ class Campaign(codar.cheetah.Campaign):
                 workflow.SchedulerDirectives += "--constraint=cpu"
         elif self.machine.lower() == "perlmutter":
             args = ' '.join(workflow.SchedulerDirectives.arguments)
-            pattern = re.compile("--constraint(=|\s*)(gpu|cpu)")
+            pattern = re.compile(r"--constraint(=|\s*)(gpu|cpu)")
             match = pattern.search(args)
             if match is not None:
                 #self.machine = "{0}_{1}".format(self.machine.lower(), match.group(2))
@@ -296,14 +308,29 @@ class Campaign(codar.cheetah.Campaign):
         """
         if self.config['machine']['submit_setup'] is not None:
             self.run_dir_setup_script = os.path.realpath(self.config['machine']['submit_setup'])
-        """            
+        """
+
+        FixCheetah()
+        workflow.__dict__["post_script"] = os.path.join(os.path.abspath(workflow.WorkflowDirectory), "post.sh")
+        self.run_post_process_script = workflow.post_script
+        if not os.path.exists(workflow.WorkflowDirectory):
+            os.makedirs(workflow.WorkflowDirectory)
+        with open(self.run_post_process_script, "w") as postfile:
+            postfile.write("#!/bin/bash\n")
+            postfile.write('echo "Running post script"\n')
+        os.chmod(
+            self.run_post_process_script,
+            stat.S_IRUSR | stat.S_IXUSR | stat.S_IWUSR |
+            stat.S_IRGRP | stat.S_IXGRP |
+            stat.S_IROTH | stat.S_IXOTH
+            )
 
         # Second argument is appdir (something like place executables are)
         super(Campaign, self).__init__(self.machine, "./")
         self.make_experiment_run_dir(self.output_dir)
 
         # Set attributes so the user can get the run directories
-        workflow.__dict__['Directory'] = os.path.join(self.output_dir, getpass.getuser(), SweepGroupLabel, 'run-0.iteration-0')
+        workflow.__dict__['Directory'] = os.path.abspath(os.path.join(self.output_dir, getpass.getuser(), SweepGroupLabel, 'run-0.iteration-0'))
         for app in workflow.Applications:
             app.__dict__['Directory'] = workflow.Directory
             if workflow.Subdirs:
@@ -320,14 +347,14 @@ class Campaign(codar.cheetah.Campaign):
         envfile = os.path.join(updir, "group-env.sh")
         with open(envfile, "r") as infile:
             txt = infile.read()
-        pattern = re.compile('export \s*{0}="(.*)"\s*$'.format(jobname), re.MULTILINE)
+        pattern = re.compile(r'export \s*{0}="(.*)"\s*$'.format(jobname), re.MULTILINE)
         txt = pattern.sub('export {0}="{1}"'.format(jobname, workflow.Name), txt)
 
         # Fix job size if using login node apps
         #if LoginApps > 0:
         if ExtraNodes > 1:
             nodesname = "CODAR_CHEETAH_GROUP_NODES"
-            pattern = re.compile('export \s*{0}="(.*)"\s*$'.format(nodesname), re.MULTILINE)
+            pattern = re.compile(r'export \s*{0}="(.*)"\s*$'.format(nodesname), re.MULTILINE)
             match = pattern.search(txt)
             nodes = int(match.group(1))
 
@@ -351,7 +378,7 @@ class Campaign(codar.cheetah.Campaign):
         subfile = os.path.join(updir, "submit.sh")
         with open(subfile, "r") as infile:
             txt = infile.read()
-        pattern = re.compile('--partition=\$CODAR_CHEETAH_SCHEDULER_QUEUE', re.MULTILINE)
+        pattern = re.compile(r'--partition=\$CODAR_CHEETAH_SCHEDULER_QUEUE', re.MULTILINE)
         txt = pattern.sub('', txt)
         with open(subfile, "w") as outfile:
             outfile.write(txt)

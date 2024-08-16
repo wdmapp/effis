@@ -1,6 +1,10 @@
 import socket
 import datetime
 import os
+import getpass
+import subprocess
+import json
+import sys
 
 import codar.savanna
 
@@ -36,6 +40,7 @@ class Workflow:
 
     Applications = []
     Input = []
+    Backup = None
     
 
     def __init__(self, **kwargs):
@@ -58,6 +63,7 @@ class Workflow:
 
     
     def __setattr__(self, name, value):
+
         if name not in self.__class__.__dict__:
             CompositionLogger.Warning("{0} not recognized as Workflow attribute".format(name))
         
@@ -73,7 +79,9 @@ class Workflow:
         if name == "SchedulerDirectives":
             self.__dict__[name] = effis.composition.arguments.Arguments(value)  # Arguments does the type check
         elif name == "Input":
-            self.__dict__[name] = effis.composition.input.InputList(value)           
+            self.__dict__[name] = effis.composition.input.InputList(value)
+        elif name == "Backup":
+            self.__dict__[name] = effis.composition.backup.Backup(value)
         elif name == "Applications":
             self.__dict__[name] = effis.composition.application.Application.CheckApplications(value)  # Also does the type check
         elif (name == "Machine") and (value is not None):
@@ -86,6 +94,10 @@ class Workflow:
             CompositionLogger.Warning("Cannot set subdirs=True because MPMD=True")
         else:
             self.__dict__[name] = value
+            """
+            if (name in ("Name", "ParentDirectory")) and (self.Name is not None) and (self.ParentDirectory is not None):
+                self.__dict__["WorkflowDirectory"] = os.path.join(self.ParentDirectory, self.Name)
+            """
 
     
     # Use (workflow += application) as an intuitive way to build the workflow with applications
@@ -140,8 +152,67 @@ class Workflow:
         self.__dict__["WorkflowDirectory"] = os.path.join(self.ParentDirectory, self.Name)
         if self.TimeIndex:
             self.__dict__["WorkflowDirectory"] = "{0}.{1}".format(self.WorkflowDirectory, datetime.datetime.now().strftime('%Y-%m-%d.%H.%M.%S'))
+        self.__dict__["WorkflowDirectory"] = os.path.abspath(self.__dict__["WorkflowDirectory"])
 
         if os.path.exists(self.WorkflowDirectory):
             CompositionLogger.RaiseError(FileExistsError, "Trying to create to a directory that already exists: {0}".format(self.WorkflowDirectory))
 
         campaign = effis.composition.campaign.Campaign(self)
+        print("Created:", self.WorkflowDirectory)
+
+
+    def Submit(self):
+        if len(self.Backup.destinations) > 0:
+            touchname = os.path.join(os.path.dirname(self.post_script), ".backup.ready")
+            with open(self.post_script, "a+") as outfile:
+                outfile.write("touch {0}\n".format(touchname))
+
+            outdict = {
+                'readyfile': touchname,
+                'source': self.Backup .source,
+                'endpoints': {},
+            }
+            for endpoint in self.Backup.destinations:
+                outdict['endpoints'][endpoint] = {
+                    'id': self.Backup.destinations[endpoint].Endpoint,
+                    'paths': [],
+                }
+                for entry in self.Backup.destinations[endpoint].Input.list:
+                    entrydict = {}
+                    for key in ('inpath', 'outpath', 'link', 'rename'):
+                        entrydict[key] = entry.__dict__[key]
+                        
+                        '''
+                        outdict['endpoints'][endpoint]['paths'] += [{
+                            'inpath': entry.inpath,
+                            'outpath': entry.outpath}]
+                        '''
+
+                    outdict['endpoints'][endpoint]['paths'] += [entrydict]
+
+            jsonname = os.path.join(os.path.dirname(self.post_script), "backup.json")
+            with open(jsonname, "w") as outfile:
+                json.dump(outdict, outfile, ensure_ascii=False, indent=4)
+
+            # Start the globus process here
+            scriptname = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "runtime", "BackupGlobus.py"))
+            #cmd = ["python3", scriptname, jsonname, "--checkdest"]
+            cmd = ["python3", scriptname, jsonname]
+            p = subprocess.Popen(cmd, stderr=subprocess.PIPE, shell=False)
+
+            error = False
+            for line in iter(p.stderr.readline, b''):
+                if line.decode("utf-8").rstrip() == "STATUS=READY":
+                    break
+                elif line.decode("utf-8").rstrip() != "":
+                    print(line.decode("utf-8"), file=sys.stderr, end="")
+                    error = True
+            if error:
+                sys.exit(1)
+
+            p.stderr = sys.stderr
+
+        shpath = os.path.join(self.WorkflowDirectory, getpass.getuser(), "run-all.sh")
+        print("Called: ", shpath)
+        subprocess.call([shpath])
+
