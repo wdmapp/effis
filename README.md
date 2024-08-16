@@ -1,5 +1,9 @@
 # Installation
-From the top directory, install using pip:
+From the top directory of the repository, install using pip:
 ```
 pip install --editable .
+```
+
+# Getting Started
+```{include} Examples/Date/Compose.py
 ```
