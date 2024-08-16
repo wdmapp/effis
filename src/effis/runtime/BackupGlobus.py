@@ -162,8 +162,6 @@ if __name__ == "__main__":
             transfer_result = tc.submit_transfer(transfer)
             logger.info("Transfer result: \n{0}".format(transfer_result))
 
-        failhere()
-
     except Exception as e:
         logger.exception(e)
 
