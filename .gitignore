@@ -1,9 +1,6 @@
-*.log
-*.pyc
-*.egg-info
-runs/
-build/
-install/
-data/
-images/
-.DS_Store
+__pycache__/
+*.egg-info/
+.ipynb_checkpoints/
+Runs/
+*.pdf
+*.bp

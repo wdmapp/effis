@@ -1,0 +1,9 @@
+*.log
+*.pyc
+*.egg-info
+runs/
+build/
+install/
+data/
+images/
+.DS_Store
