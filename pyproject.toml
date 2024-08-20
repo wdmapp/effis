@@ -13,3 +13,5 @@ version = "0.3.0"
 authors = [{name="Eric Suchyta", email="eric.d.suchyta@gmail.com"}]
 #dependencies = ["codar"]
 
+[project.scripts]
+effis-submit = "effis.runtime.EffisSubmit:main"

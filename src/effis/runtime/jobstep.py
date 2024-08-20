@@ -19,7 +19,7 @@ def GetRunner(GetCores=True, base="."):
     with open(envfile, "r") as infile:
         txt = infile.read()
 
-    pattern = re.compile('\s*CODAR_WORKFLOW_RUNNER="(.*)"\s*$', re.MULTILINE)
+    pattern = re.compile(r'\s*CODAR_WORKFLOW_RUNNER="(.*)"\s*$', re.MULTILINE)
     match = pattern.search(txt)
     rstr = match.group(1)
 
@@ -36,7 +36,7 @@ def GetRunner(GetCores=True, base="."):
         envfile = os.path.join(SweepGroupDir, "group-env.sh")
         with open(envfile, "r") as infile:
             txt = infile.read()
-        pattern = re.compile('\s*CODAR_CHEETAH_GROUP_PROCESSES_PER_NODE="(.*)"\s*$', re.MULTILINE)
+        pattern = re.compile(r'\s*CODAR_CHEETAH_GROUP_PROCESSES_PER_NODE="(.*)"\s*$', re.MULTILINE)
         match = pattern.search(txt)
         Cores = int(match.group(1))
         return runner, Cores

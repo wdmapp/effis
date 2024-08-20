@@ -5,6 +5,7 @@ import getpass
 import subprocess
 import json
 import sys
+import dill as pickle
 
 import codar.savanna
 
@@ -160,10 +161,29 @@ class Workflow:
         campaign = effis.composition.campaign.Campaign(self)
         print("Created:", self.WorkflowDirectory)
 
+        # Store data (serialize)
+        with open(os.path.join(self.WorkflowDirectory, 'workflow.pickle'), 'wb') as handle:
+            pickle.dump(self, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    def Submit(self):
+
+    def Submit(self, rerun=False):
+
+        touchname = os.path.join(os.path.dirname(self.post_script), ".backup.ready")
+
+        # If forcing a rerun, remove the .backup.ready file if it's there
+        if rerun:
+            if os.path.exists(touchname):
+                os.remove(touchname)
+            wfile = os.path.join(self.WorkflowDirectory, getpass.getuser(), "EFFIS", "codar.workflow.status.json")
+            if os.path.exists(wfile):
+                with open(wfile) as infile:
+                    config = json.load(infile)
+                if config["run-0.iteration-0"]["state"] != codar.savanna.status.NOT_STARTED:
+                    config["run-0.iteration-0"]["state"] = codar.savanna.status.NOT_STARTED
+                    with open(wfile, "w") as outfile:
+                        json.dump(config, outfile, ensure_ascii=False, indent=4)
+
         if len(self.Backup.destinations) > 0:
-            touchname = os.path.join(os.path.dirname(self.post_script), ".backup.ready")
             with open(self.post_script, "a+") as outfile:
                 outfile.write("touch {0}\n".format(touchname))
 
@@ -181,18 +201,12 @@ class Workflow:
                     entrydict = {}
                     for key in ('inpath', 'outpath', 'link', 'rename'):
                         entrydict[key] = entry.__dict__[key]
-                        
-                        '''
-                        outdict['endpoints'][endpoint]['paths'] += [{
-                            'inpath': entry.inpath,
-                            'outpath': entry.outpath}]
-                        '''
-
                     outdict['endpoints'][endpoint]['paths'] += [entrydict]
 
             jsonname = os.path.join(os.path.dirname(self.post_script), "backup.json")
             with open(jsonname, "w") as outfile:
                 json.dump(outdict, outfile, ensure_ascii=False, indent=4)
+
 
             # Start the globus process here
             scriptname = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "runtime", "BackupGlobus.py"))
