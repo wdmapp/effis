@@ -11,7 +11,11 @@ name = "effis"
 description = "EFFIS workflow manager"
 version = "0.3.0"
 authors = [{name="Eric Suchyta", email="eric.d.suchyta@gmail.com"}]
-#dependencies = ["codar"]
+dependencies = [
+  "dill",
+  "globus_sdk", 
+  "cheetah @ git+ssh://git@github.com/CODARcode/cheetah.git"
+]
 
 [project.scripts]
 effis-submit = "effis.runtime.EffisSubmit:main"
