@@ -1,9 +1,17 @@
+"""
+effis.composition.application
+"""
+
 import effis.composition.arguments
 import effis.composition.input
 from effis.composition.log import CompositionLogger
 
 
 class Application:
+    """
+    An Application is an executable to run.
+    One or more are added to Workflow.
+    """
 
     Name = None
     Filepath = None

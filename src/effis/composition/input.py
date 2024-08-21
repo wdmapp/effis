@@ -37,7 +37,7 @@ class InputList:
     def __iadd__(self, value):
         if isinstance(value, type(self)):
             self.list = self.list + value.list
-        if isinstance(value, Input):
+        elif isinstance(value, Input):
             self.list = self.list + [value]
         elif type(value) is str:
             self.list = self.list + [Input(value)]

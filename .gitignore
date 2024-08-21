@@ -4,3 +4,4 @@ __pycache__/
 Runs/
 *.pdf
 *.bp
+.DS_Store

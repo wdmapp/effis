@@ -301,9 +301,8 @@ class Campaign(codar.cheetah.Campaign):
         if workflow.MPMD:
             launchmode = "MPMD"
 
-        SweepGroupLabel = "EFFIS"  # jobname = codar.cheetah.$name-$sweepgroupname
         sweep = codar.cheetah.parameters.Sweep(sweepargs, node_layout=self.node_layout, rc_dependency=rc_dependency)  # A job can have multiple cheetah sweeps; Each SweepGroup is a job
-        sweepgroup = codar.cheetah.parameters.SweepGroup(SweepGroupLabel, walltime=walltime, parameter_groups=[sweep], component_subdirs=workflow.Subdirs, launch_mode=launchmode)
+        sweepgroup = codar.cheetah.parameters.SweepGroup(workflow.SweepGroupLabel, walltime=walltime, parameter_groups=[sweep], component_subdirs=workflow.Subdirs, launch_mode=launchmode)
         self.sweeps = [sweepgroup]
 
         # Job level setup script
@@ -335,7 +334,7 @@ class Campaign(codar.cheetah.Campaign):
         self.make_experiment_run_dir(self.output_dir)
 
         # Set attributes so the user can get the run directories
-        workflow.__dict__['Directory'] = os.path.abspath(os.path.join(self.output_dir, getpass.getuser(), SweepGroupLabel, 'run-0.iteration-0'))
+        workflow.__dict__['Directory'] = os.path.abspath(os.path.join(self.output_dir, getpass.getuser(), workflow.SweepGroupLabel, workflow.IterationLabel))
         for app in workflow.Applications:
             app.__dict__['Directory'] = workflow.Directory
             if workflow.Subdirs:
@@ -348,7 +347,7 @@ class Campaign(codar.cheetah.Campaign):
 
         # Simplify job name
         jobname = "CODAR_CHEETAH_CAMPAIGN_NAME"
-        updir = os.path.join(self.output_dir, getpass.getuser(), SweepGroupLabel)
+        updir = os.path.join(self.output_dir, getpass.getuser(), workflow.SweepGroupLabel)
         envfile = os.path.join(updir, "group-env.sh")
         with open(envfile, "r") as infile:
             txt = infile.read()

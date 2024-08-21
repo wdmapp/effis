@@ -1,3 +1,7 @@
+"""
+effis.composition.workflow
+"""
+
 import socket
 import datetime
 import os
@@ -5,6 +9,7 @@ import getpass
 import subprocess
 import json
 import sys
+import getpass
 import dill as pickle
 
 import codar.savanna
@@ -20,6 +25,9 @@ ExamplesPath = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 
 
 class Workflow:
+    """
+    Add one or more Applications to a compose a Workflow.
+    """
     
     Name = None
     ParentDirectory = None
@@ -46,6 +54,10 @@ class Workflow:
 
     def __init__(self, **kwargs):
 
+        # Fixed labels
+        self.__dict__['SweepGroupLabel'] = "EFFIS"
+        self.__dict__['IterationLabel'] = 'run-0.iteration-0'
+
         # Set what's given in keyword arguments by user
         for key in kwargs:
             if key not in self.__class__.__dict__:
@@ -61,6 +73,7 @@ class Workflow:
                 continue
             elif key not in self.__dict__:
                 self.__setattr__(key, self.__class__.__dict__[key])
+
 
     
     def __setattr__(self, name, value):
@@ -95,16 +108,24 @@ class Workflow:
             CompositionLogger.Warning("Cannot set subdirs=True because MPMD=True")
         else:
             self.__dict__[name] = value
-            """
             if (name in ("Name", "ParentDirectory")) and (self.Name is not None) and (self.ParentDirectory is not None):
-                self.__dict__["WorkflowDirectory"] = os.path.join(self.ParentDirectory, self.Name)
-            """
+                if "WorkflowDirectory" in self.__dict__:
+                    CompositionLogger.Warning("Changing Name or ParentDirectory after they've both been set can break referencing (Workflow)Directory before Create()")
+                self.SetWorkflowDirectory()
 
     
     # Use (workflow += application) as an intuitive way to build the workflow with applications
     def __iadd__(self, other):
         if isinstance(other, effis.composition.application.Application) or (type(other) is list):
             self.__dict__['Applications'] =  self.Applications + other
+
+            if "WorkflowDirectory" in self.__dict__:
+                if isinstance(other, effis.composition.application.Application):
+                    newother = [other]
+                else:
+                    newother = other
+                self.SetAppDirectories(newother)
+
             return self
         else:
             CompositionLogger.RaiseError(ValueError, "Only effis.composition.Application objects can be added to a Workflow object")
@@ -136,6 +157,21 @@ class Workflow:
                 self.__dict__['Machine'] = machine.lower()
             else:
                 CompositionLogger.RaiseError(ValueError, "Cannot find machine = {0}".format(machine))
+
+
+    def SetWorkflowDirectory(self):
+        self.__dict__["WorkflowDirectory"] = os.path.join(self.ParentDirectory, self.Name)
+        if self.TimeIndex:
+            self.__dict__["WorkflowDirectory"] = "{0}.{1}".format(self.WorkflowDirectory, datetime.datetime.now().strftime('%Y-%m-%d.%H.%M.%S'))
+        self.__dict__["WorkflowDirectory"] = os.path.abspath(self.__dict__["WorkflowDirectory"])
+        self.__dict__['Directory'] = os.path.abspath(os.path.join(self.WorkflowDirectory, getpass.getuser(), self.SweepGroupLabel, self.IterationLabel))
+
+
+    def SetAppDirectories(self, applications):
+        for app in applications:
+            app.__dict__['Directory'] = self.Directory
+            if self.Subdirs:
+                app.__dict__['Directory'] = os.path.join(app.Directory, app.Name)
             
     
     def Create(self):
@@ -149,11 +185,8 @@ class Workflow:
 
         if self.Machine is None:
             self._Machine_()
-        
-        self.__dict__["WorkflowDirectory"] = os.path.join(self.ParentDirectory, self.Name)
-        if self.TimeIndex:
-            self.__dict__["WorkflowDirectory"] = "{0}.{1}".format(self.WorkflowDirectory, datetime.datetime.now().strftime('%Y-%m-%d.%H.%M.%S'))
-        self.__dict__["WorkflowDirectory"] = os.path.abspath(self.__dict__["WorkflowDirectory"])
+
+        self.SetWorkflowDirectory()
 
         if os.path.exists(self.WorkflowDirectory):
             CompositionLogger.RaiseError(FileExistsError, "Trying to create to a directory that already exists: {0}".format(self.WorkflowDirectory))
@@ -164,6 +197,11 @@ class Workflow:
         # Store data (serialize)
         with open(os.path.join(self.WorkflowDirectory, 'workflow.pickle'), 'wb') as handle:
             pickle.dump(self, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        for app in self.Applications:
+            linkpath = os.path.join(self.WorkflowDirectory, os.path.basename(app.Directory))
+            if not os.path.exists(linkpath):
+                os.symlink(app.Directory, linkpath)
 
 
     def Submit(self, rerun=False):
@@ -178,8 +216,8 @@ class Workflow:
             if os.path.exists(wfile):
                 with open(wfile) as infile:
                     config = json.load(infile)
-                if config["run-0.iteration-0"]["state"] != codar.savanna.status.NOT_STARTED:
-                    config["run-0.iteration-0"]["state"] = codar.savanna.status.NOT_STARTED
+                if config[self.IterationLabel]["state"] != codar.savanna.status.NOT_STARTED:
+                    config[self.IterationLabel]["state"] = codar.savanna.status.NOT_STARTED
                     with open(wfile, "w") as outfile:
                         json.dump(config, outfile, ensure_ascii=False, indent=4)
 

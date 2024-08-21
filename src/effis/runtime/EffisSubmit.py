@@ -18,5 +18,4 @@ def main():
     with open(filename, 'rb') as handle:
         workflow = pickle.load(handle)
 
-    print("workflow.Submit")
     workflow.Submit(rerun=args.rerun)
