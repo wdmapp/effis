@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+# Compose.py
 """
 EFFIS workflow composition is done with a Python script.
 – Here we'll use an example Simulation that builds with ADIOS2 (Gray-Scott).

@@ -1,6 +1,6 @@
 # Installation
 
-```console
+```bash
 pip install --editable .
 ```
 
@@ -12,6 +12,7 @@ Here, let’s consider an example simulation (Gray-Scott), with options to
 ```python
 #!/usr/bin/env python3
 
+# Compose.py
 """
 EFFIS workflow composition is done with a Python script.
 – Here we'll use an example Simulation that builds with ADIOS2 (Gray-Scott).
@@ -132,18 +133,18 @@ MyWorkflow.Submit()
 
 Simulation only:
 
-```console
-python3 ../Compose.py --outdir GrayScott-01
+```bash
+python3 Compose.py --outdir GrayScott-01
 ```
 
 With analysis:
 
-```console
-python3 ../Compose.py --outdir GrayScott-02 --analysis
+```bash
+python3 Compose.py --outdir GrayScott-02 --analysis
 ```
 
 With analysis and plotting:
 
-```console
-python3 ../Compose.py --outdir GrayScott-02 --analysis --plot
+```bash
+python3 Compose.py --outdir GrayScott-03 --analysis --plot
 ```
