@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 import globus_sdk
 from globus_sdk.scopes import TransferScopes
+import globus
 
 
 def AutoActivate(tc, idhash, label):
@@ -90,9 +91,36 @@ if __name__ == "__main__":
     """
 
 
+    print("\n" + "Setting up Globus transfer client...")
     with open(args.jsonfile) as infile:
         config = json.load(infile)
 
+
+    endpoints = []
+    for endpoint in config['endpoints']:
+        endpoints += [config['endpoints'][endpoint]['id']]
+    client = globus.AuthorizedTranserClient(config['source'], *endpoints, TokensFile=os.path.join(os.environ["HOME"], ".effis-globustokens"))
+    tc = client.TransferClient
+
+    if args.checkdest:
+        for endpoint in config['endpoints']:
+            for paths in config['endpoints'][endpoint]['paths']:
+                done = False
+                while not done:
+                    try:
+                        results = tc.operation_ls(config['endpoints'][endpoint]['id'], path=paths['outpath'])
+                    except globus_sdk.TransferAPIError as err:
+                        if (err.args[3] == 404):
+                            MakeDirs(config['endpoints'][endpoint]['id'], paths['outpath'])
+                        else:
+                            raise
+                    except:
+                        raise
+                    else:
+                        done = True
+
+
+    """
     scopes = [TransferScopes.all]
     tc = GetTransferClient(scopes=scopes)
 
@@ -119,7 +147,9 @@ if __name__ == "__main__":
                     raise
                 else:
                     done = True
+    """
 
+    print("Got AuthorizedTransferClient\n")
     print("STATUS=READY", file=sys.stderr)
     sys.stderr.flush()
     sys.stdout.flush()

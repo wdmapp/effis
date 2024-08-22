@@ -28,22 +28,30 @@ class Workflow:
     """
     Add one or more Applications to a compose a Workflow.
     """
-    
+
+    #: Set a name for the workflow
     Name = None
+
+    #: The workflow will be crated/run in ParentDirectory/Name
     ParentDirectory = None
-    
+
+    #: The maximum run time. (This is not necessary without a scheduler, but will cause time outs)
     Walltime = datetime.timedelta(hours=1)
+
+    #: A file to source for environment setup, etc.
     SetupFile = None
 
     TimeIndex = False
     Subdirs = True
     MPMD = False
-    
+
+    #: The machine we'll run on
     Machine = None
     Node = None
-    
-    Queue = None
+
+    # Account to charge
     Charge = None
+    Queue = None
     Reservation = None
     SchedulerDirectives = []
 
@@ -175,6 +183,9 @@ class Workflow:
             
     
     def Create(self):
+        """
+        Create the Workflow description and copy associated files to the run directories
+        """
 
         if (self.Name is None) and (self.ParentDiretory is None):
             CompositionLogger.RaiseError(AttributeError, "Must set at least one of Name or ParentDirectory for a Workflow")
@@ -205,6 +216,9 @@ class Workflow:
 
 
     def Submit(self, rerun=False):
+        """
+        Submit the workflow to the queue and/or run it.
+        """
 
         touchname = os.path.join(os.path.dirname(self.post_script), ".backup.ready")
 
