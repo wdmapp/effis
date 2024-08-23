@@ -149,7 +149,8 @@ class Workflow:
 
         # If no machine has been set, try to find it based on the local host name
         if mach is None:
-            machine = socket.gethostname().lower()
+            #machine = socket.gethostname().lower()
+            machine = socket.getaddrinfo(socket.gethostname(), 0, flags=socket.AI_CANONNAME)[0][3]
             CompositionLogger.Info("Found {0} as the local host".format(machine))
         else:
             machine = mach.lower()
@@ -212,7 +213,7 @@ class Workflow:
         for app in self.Applications:
             linkpath = os.path.join(self.WorkflowDirectory, os.path.basename(app.Directory))
             if not os.path.exists(linkpath):
-                os.symlink(app.Directory, linkpath)
+                os.symlink(os.path.relpath(app.Directory, start=self.WorkflowDirectory), os.path.relpath(linkpath))
 
 
     def Submit(self, rerun=False):
@@ -239,9 +240,13 @@ class Workflow:
             with open(self.post_script, "a+") as outfile:
                 outfile.write("touch {0}\n".format(touchname))
 
+            if self.Backup.source is None:
+                self.Backup.SetSourceEndpoint()
+
             outdict = {
                 'readyfile': touchname,
-                'source': self.Backup .source,
+                'source': self.Backup.source,
+                'recursive_symlinks': self.Backup.recursive_symlinks,
                 'endpoints': {},
             }
             for endpoint in self.Backup.destinations:

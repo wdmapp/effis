@@ -164,7 +164,7 @@ if __name__ == "__main__":
 
             label = "host={0}; destination={1}".format(config['source'], config['endpoints'][endpoint]['id'])
             logger.info(label)
-            transfer = globus_sdk.TransferData(tc, config['source'], config['endpoints'][endpoint]['id'], label=label)
+            transfer = globus_sdk.TransferData(tc, config['source'], config['endpoints'][endpoint]['id'], label=label, recursive_symlinks=config["recursive_symlinks"])
 
             for paths in config['endpoints'][endpoint]['paths']:
 

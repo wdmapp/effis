@@ -1,6 +1,7 @@
 from effis.composition.input import InputList
 from effis.composition.input import Input
 from effis.composition.log import CompositionLogger
+import os
 
 
 class Destination:
@@ -28,6 +29,24 @@ class Backup:
 
     destinations = {}
     source = None
+    recursive_symlinks = "ignore"
+
+
+    def SetSourceEndpoint(self, filename=None):
+        if filename is None:
+            filename = os.path.join(os.environ["HOME"], ".effis-source-endpoint")
+        if not os.path.exists(filename):
+            print(
+                "The Globus endpoint ID for the current source host has not been set in EFFIS." + "\n",
+                "(UUIDs can be search at https://app.globus.org/collections)" + "\n"
+                "Please enter it here: ",
+                end=""
+            )
+            endpoint = input().strip()
+            with open(filename, "w") as outfile:
+                outfile.write(endpoint)
+        with open(filename, "r") as infile:
+            self.source = infile.read().strip()
 
 
     def __getitem__(self, key):
