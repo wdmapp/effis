@@ -24,6 +24,33 @@ from effis.composition.log import CompositionLogger
 ExamplesPath = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "Examples"))
 
 
+def FixCheetah():
+    fixfile = os.path.join(os.path.dirname(codar.__file__), "savanna", "pipeline.py" )
+    with open(fixfile) as infile:
+        txt = infile.read()
+    fixstr = 'self._get_path'
+    if txt.find(fixstr) != -1:
+        pattern = re.compile(fixstr, re.MULTILINE)
+        txt = pattern.sub('get_path', txt)
+        with open(fixfile, "w") as outfile:
+            outfile.write(txt)
+
+    newname = "slurm_cluster"
+    if newname not in codar.savanna.machines.__dict__:
+
+        fixfile = os.path.join(os.path.dirname(codar.__file__), "savanna", "machines.py")
+        fixstr = (
+            "Machine('{0}', ".format(newname) +
+            "'slurm', 'srun', MachineNode, processes_per_node=128, node_exclusive=True, " +
+            "scheduler_options=dict(project='', queue='regular', reservation='', custom=''))"
+        )
+        with open(fixfile, "a") as outfile:
+            outfile.write("\n" + "{0} = {1}".format(newname, fixstr))
+
+        estr ='codar.savanna.machines.__dict__["{0}"] = codar.savanna.machines.{1}'.format(newname, fixstr).replace("MachineNode", "codar.savanna.machines.MachineNode")
+        exec(estr)
+
+
 class Workflow:
     """
     Add one or more Applications to a compose a Workflow.
@@ -195,6 +222,7 @@ class Workflow:
         """
         Create the Workflow description and copy associated files to the run directories
         """
+        FixCheetah()
 
         if (self.Name is None) and (self.ParentDiretory is None):
             CompositionLogger.RaiseError(AttributeError, "Must set at least one of Name or ParentDirectory for a Workflow")

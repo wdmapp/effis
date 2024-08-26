@@ -247,6 +247,7 @@ class Campaign(codar.cheetah.Campaign):
         
     
     def __init__(self, workflow):
+        #FixCheetah()
         
         self.output_dir = os.path.join(workflow.WorkflowDirectory)  # Top level directory everything writes under
         self.name = workflow.Name                                   # This doesn't affect any directory names; jobname = codar.cheetah.$name-$sweepgroupname
@@ -338,7 +339,6 @@ class Campaign(codar.cheetah.Campaign):
             self.run_dir_setup_script = os.path.realpath(self.config['machine']['submit_setup'])
         """
 
-        FixCheetah()
         workflow.__dict__["post_script"] = os.path.join(os.path.abspath(workflow.WorkflowDirectory), "post.sh")
         self.run_post_process_script = workflow.post_script
         if not os.path.exists(workflow.WorkflowDirectory):
