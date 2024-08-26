@@ -170,7 +170,10 @@ class Workflow:
             if machine in exceptions:
                 self.__dict__['Machine'] = machine
             else:
-                CompositionLogger.RaiseError(ValueError, "Cannot find machine = {0}".format(machine))
+                #CompositionLogger.RaiseError(ValueError, "Cannot find machine = {0}".format(machine))
+
+                CompositionLogger.Warning("Cannot find known machine = {0}. Using 'local'".format(machine))
+                self.__dict__['Machine'] = 'local'
 
 
     def SetWorkflowDirectory(self):

@@ -5,6 +5,7 @@ import shutil
 import re
 import json
 import stat
+import multiprocessing
 
 import codar.cheetah
 import codar.savanna
@@ -108,6 +109,11 @@ class Campaign(codar.cheetah.Campaign):
                         "Did not specifically ask for CPU or GPU partition. " +
                         "Using CPU since no GPUs were requested with Application settings."
                     )
+
+        elif self.machine == "local":
+            cpu_count = multiprocessing.cpu_count()
+            self.NodeType = effis.composition.Node(cores=cpu_count, gpus=0)
+            CompositionLogger.Warning("Cannot find known Node. Using 'local' detection: cores={0} (without GPU detection)".format(cpu_count))
 
         else:
             CompositionLogger.RaiseError(ValueError, "Could not find a MachineNode for {0}. Please set an effis.composition.Node".format(self.machine))

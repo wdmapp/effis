@@ -39,7 +39,8 @@ import effis.composition
 MyWorkflow = effis.composition.Workflow(                    
     ParentDirectory=os.path.dirname(args.outdir),   # - ParentDirctory: The directory to create new workflows into
     Name=os.path.basename(args.outdir.rstrip("/")), # - Name: The workflow will run and create its output in <ParentDirectory/Name>
-    Machine=args.machine,                           # - Machine: "local" means use mpiexec without a queue
+    Machine=args.machine,                           # - Machine: EFFIS will try to set automatically if nothing is set (falling back to local otherwise)
+                                                    #            "local" means use mpiexec without a queue.
 )
 # End 02
 # Start 03
@@ -47,14 +48,15 @@ MyWorkflow = effis.composition.Workflow(
 Attributes can be set in the constuctor (like Name, Machine, and Node above)
 or as assignments after (like ParentDirectory and Walltime below)
 '''
-MyWorkflow.Walltime = datetime.timedelta(minutes=5)         # - Walltime: Set walltime (not necessary for local, but will timeout after that time if set)
+MyWorkflow.Walltime = datetime.timedelta(minutes=5)     # - Walltime: Set walltime (not necessary for local, but will timeout after that time if set)
 
 if args.machine == "local":
     MyWorkflow.Node = effis.composition.Node(cores=8, gpus=0)   # - Node: Won't be necessary for machines like Frontier, Perlmutter (which are already known by setting Machine).
-# End 03
+                                                                #         If not set for "local", will detect the CPU count on the current node (no GPUs)
 
 if args.charge is not None:
-    MyWorkflow.Charge = args.charge
+    MyWorkflow.Charge = args.charge     # Account to charge
+# End 03
 
 
 # Start 04
