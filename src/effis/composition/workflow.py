@@ -150,20 +150,25 @@ class Workflow:
         # If no machine has been set, try to find it based on the local host name
         if mach is None:
             #machine = socket.gethostname().lower()
-            machine = socket.getaddrinfo(socket.gethostname(), 0, flags=socket.AI_CANONNAME)[0][3]
+            machine = socket.getaddrinfo(socket.gethostname(), 0, flags=socket.AI_CANONNAME)[0][3].lower()
             CompositionLogger.Info("Found {0} as the local host".format(machine))
         else:
             machine = mach.lower()
         
         for name in known:
-            if machine.find(name) != -1:
+            n = name.lower().rstrip('_cpu').rstrip('_gpu')
+            if machine.find(n) != -1:
+                if mach is None:
+                    machine = n
                 self.__dict__['Machine'] = name
+                if mach is None:
+                    print("Found machine as {0}".format(machine))
                 break
 
         if machine not in known:
             exceptions = ["perlmutter"]
-            if machine.lower() in exceptions:
-                self.__dict__['Machine'] = machine.lower()
+            if machine in exceptions:
+                self.__dict__['Machine'] = machine
             else:
                 CompositionLogger.RaiseError(ValueError, "Cannot find machine = {0}".format(machine))
 

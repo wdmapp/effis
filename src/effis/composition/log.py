@@ -7,7 +7,8 @@ class CompositionLogger:
     
     log = logging.getLogger(__name__)
     log.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt="%Y-%m-%d %H:%M:%S.%03d")
+    #formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt="%Y-%m-%d %H:%M:%S.%03d")
+    formatter = logging.Formatter('%(levelname)s - %(message)s', datefmt="%Y-%m-%d %H:%M:%S.%03d")
 
     streamhandler = logging.StreamHandler()
     streamhandler.setLevel(logging.WARNING)

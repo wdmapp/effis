@@ -72,25 +72,43 @@ class Campaign(codar.cheetah.Campaign):
 
         elif NodeName in codar.savanna.machines.__dict__:
             self.NodeType = codar.savanna.machines.__dict__[NodeName]()
+            if self.machine.lower() == "perlmutter_gpu":
+                workflow.SchedulerDirectives += "--constraint=gpu"
+            elif self.machine.lower() == "perlmutter_cpu":
+                workflow.SchedulerDirectives += "--constraint=cpu"
 
         elif self.machine.lower() in effis.composition.node.effisnodes:
             self.NodeType = effis.composition.node.effisnodes[self.machine.lower()]
-            if self.machine.lower() == "permutter_gpu":
+            if self.machine.lower() == "perlmutter_gpu":
                 workflow.SchedulerDirectives += "--constraint=gpu"
-            elif self.machine.lower() == "permutter_cpu":
+            elif self.machine.lower() == "perlmutter_cpu":
                 workflow.SchedulerDirectives += "--constraint=cpu"
+
         elif self.machine.lower() == "perlmutter":
             args = ' '.join(workflow.SchedulerDirectives.arguments)
             pattern = re.compile(r"--constraint(=|\s*)(gpu|cpu)")
             match = pattern.search(args)
             if match is not None:
-                #self.machine = "{0}_{1}".format(self.machine.lower(), match.group(2))
-                #self.NodeType = effis.composition.node.effisnodes[self.machine]
-
                 self.machine = "{0}_{1}".format(self.machine.lower(), match.group(2))
                 self.NodeType = effis.composition.node.effisnodes["{0}_thread".format(self.machine)]
             else:
-                CompositionLogger.RaiseError(ValueError, "Need a --constraint for gpu or cpu with perlmutter")
+                #CompositionLogger.RaiseError(ValueError, "Need a --constraint for gpu or cpu with perlmutter")
+
+                group = "cpu"
+                for app in workflow.Applications:
+                    if ((app.GPUsPerRank is not None) and (app.GPUsPerRank > 0)) or ((app.RanksPerGPU is not None) and (app.RanksPerGPU > 0)):
+                        group = "gpu"
+                        workflow.SchedulerDirectives += "--constraint=gpu"
+                        break
+                self.machine = "{0}_{1}".format(self.machine.lower(), group)
+                self.NodeType = effis.composition.node.effisnodes["{0}_thread".format(self.machine)]
+                if group == "cpu":
+                    workflow.SchedulerDirectives += "--constraint=cpu"
+                    CompositionLogger.Warning(
+                        "Did not specifically ask for CPU or GPU partition. " +
+                        "Using CPU since no GPUs were requested with Application settings."
+                    )
+
         else:
             CompositionLogger.RaiseError(ValueError, "Could not find a MachineNode for {0}. Please set an effis.composition.Node".format(self.machine))
 
