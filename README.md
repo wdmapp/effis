@@ -80,6 +80,10 @@ if args.machine == "local":
     MyWorkflow.Node = effis.composition.Node(cores=8, gpus=0)   # - Node: Won't be necessary for machines like Frontier, Perlmutter (which are already known by setting Machine).
                                                                 #         If not set for "local", will detect the CPU count on the current node (no GPUs)
 
+elif args.machine == "slurm_cluster":                               # Custom slurm cluster
+    MyWorkflow.SchedulerDirectives += "--constraint=cpu"            # (I'm testing at NERSC)
+    MyWorkflow.Node = effis.composition.Node(cores=128, gpus=0)     # Specify what a node is like
+
 if args.charge is not None:
     MyWorkflow.Charge = args.charge     # Account to charge
 ```
