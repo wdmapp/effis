@@ -151,10 +151,6 @@ if args.analysis:
         for engine in root.iter('engine'):
             engine.attrib['type'] = "SST"
             engine.clear()
-            '''
-            for parameter in engine:
-                engine.remove(parameter)
-            '''
             engine.append(ET.Element("parameter", attrib={'key': "DataTransport", 'value': "WAN"}))
             engine.append(ET.Element("parameter", attrib={'key': "OpenTimeoutSecs", 'value': "60.0"}))
             engine.append(ET.Element("parameter", attrib={'key': "RendezvousReaderCount", 'value': "0"}))
