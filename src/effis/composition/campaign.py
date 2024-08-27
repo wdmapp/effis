@@ -177,6 +177,10 @@ class Campaign(codar.cheetah.Campaign):
             # Do the node layout
             index = AppIndex[app.Name]
             cstart, gstart = self.FindNext(index)
+
+            if cstart is None:
+                l = len(self.node_layout[self.machine][index].cpu)
+                CompositionLogger.RaiseError(ValueError, "{0} trying to set CPU >= {1} when there are only {2} for the Node".format(app.Name, l+1, l))
             
             for i in range(app.RanksPerNode):
                 for j in range(app.CoresPerRank):
@@ -188,6 +192,9 @@ class Campaign(codar.cheetah.Campaign):
             gpunum, ranknum = app.GPUvsRank()
 
             if (gpunum is not None) and (ranknum is not None):
+                if gstart is None:
+                    l = len(self.node_layout[self.machine][index].gpu)
+                    CompositionLogger.RaiseError(ValueError, "{0} trying to set GPU >= {1} when there are only {2} for the Node".format(app.Name, l+1, l))
                 gpugroups = app.RanksPerNode // ranknum
                 for i in range(gpugroups):
                     for j in range(gpunum):
@@ -233,15 +240,21 @@ class Campaign(codar.cheetah.Campaign):
     # Return where CPU, GPU have not yet been filled for a node
     def FindNext(self, index):
         NodeLayout = self.node_layout[self.machine][index]
+        cpu = None
+        gpu = None
         
         for i, cpu in enumerate(NodeLayout.cpu):
             if cpu == None:
                 break
+        if cpu is not None:
+            return None, gpu
 
         j = None
         for j, gpu in enumerate(NodeLayout.gpu):
             if gpu == None:
                 break
+        if gpu is not None:
+            return cpu, None
 
         return i, j
         
