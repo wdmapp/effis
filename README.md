@@ -138,7 +138,7 @@ python3 Compose.py --outdir GrayScott-01
 ```
 
 There’s also an effis-submit command, which can be used instead of `Submit()` and/or
-to do a rerun/restar:
+to do a rerun/restart:
 
 ```bash
 effis-submit --rerun GrayScott-01
