@@ -137,6 +137,13 @@ The composition file is executed as a Python script:
 python3 Compose.py --outdir GrayScott-01
 ```
 
+There’s also an effis-submit command, which can be used instead of `Submit()` and/or
+to do a rerun/restar:
+
+```bash
+effis-submit --rerun GrayScott-01
+```
+
 ## Adding Multiple Workflow Components
 
 One can create multiple `Applications` objects to add to the `Workflow` to run multiple
