@@ -149,8 +149,8 @@ if args.analysis:
         tree = ET.parse(os.path.join(Simulation.Directory, "adios2.xml"))
         root = tree.getroot()
         for engine in root.iter('engine'):
-            engine.attrib['type'] = "SST"
             engine.clear()
+            engine.attrib['type'] = "SST"
             engine.append(ET.Element("parameter", attrib={'key': "DataTransport", 'value': "WAN"}))
             engine.append(ET.Element("parameter", attrib={'key': "OpenTimeoutSecs", 'value': "60.0"}))
             engine.append(ET.Element("parameter", attrib={'key': "RendezvousReaderCount", 'value': "0"}))
