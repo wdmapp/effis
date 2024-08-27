@@ -31,6 +31,7 @@ import datetime
 import shutil
 import os
 import json
+import xml.etree.ElementTree as ET
 
 
 # Add command line arguments in usual Python style for easy configuration at terminal (this is orthogonal to EFFIS)
@@ -40,6 +41,7 @@ parser.add_argument("-m", "--machine", help="Set machine", required=False, type=
 parser.add_argument("-c", "--charge", help="Set charge account", required=False, type=str, default=None)
 parser.add_argument("--analysis", help="Run analysis", action="store_true")
 parser.add_argument("--plot", help="Run plotter", action="store_true")
+parser.add_argument("--stream", help="Stream instead of file", action="store_true")
 parser.add_argument("-b", "--backup", help="Backup run to other location; format: <Globus endpoint>:directory", type=str, default=None)
 args = parser.parse_args()
 
@@ -194,6 +196,28 @@ if args.analysis:
     config["output"] = os.path.basename(simulation_filename)
     with open(jsonfile, "w") as outfile:
         json.dump(config, outfile, ensure_ascii=False, indent=4)
+
+    if args.stream:
+        tree = ET.parse(os.path.join(Simulation.Directory, "adios2.xml"))
+        root = tree.getroot()
+        for engine in root.iter('engine'):
+            engine.attrib['type'] = "SST"
+            engine.clear()
+            '''
+            for parameter in engine:
+                engine.remove(parameter)
+            '''
+            engine.append(ET.Element("parameter", attrib={'key': "DataTransport", 'value': "WAN"}))
+            engine.append(ET.Element("parameter", attrib={'key': "OpenTimeoutSecs", 'value': "60.0"}))
+            engine.append(ET.Element("parameter", attrib={'key': "RendezvousReaderCount", 'value': "0"}))
+
+        ET.indent(tree, space="    ", level=0)
+
+        tree.write(os.path.join(Simulation.Directory, "adios2.xml"))
+        tree.write(os.path.join(Analysis.Directory, "adios2.xml"))
+        if args.plot:
+            tree.write(os.path.join(PDFPlot.Directory, "adios2.xml"))
+
 ```
 
 So configuring this from the current example:
