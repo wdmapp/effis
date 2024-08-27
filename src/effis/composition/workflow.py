@@ -2,6 +2,7 @@
 effis.composition.workflow
 """
 
+import re
 import socket
 import datetime
 import os
