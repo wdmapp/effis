@@ -1,7 +1,16 @@
 # Installation
 
+First, check out this repository:
+
 ```bash
-pip install --editable .
+git clone git@github.com:wdmapp/effis.git
+```
+
+And then install with pip:
+
+```bash
+cd effis/
+pip install [--editable] .
 ```
 
 # Getting Started
@@ -31,6 +40,7 @@ import datetime
 import shutil
 import os
 import json
+import sys
 import xml.etree.ElementTree as ET
 
 
@@ -201,13 +211,14 @@ if args.analysis:
         tree = ET.parse(os.path.join(Simulation.Directory, "adios2.xml"))
         root = tree.getroot()
         for engine in root.iter('engine'):
-            engine.attrib['type'] = "SST"
             engine.clear()
+            engine.attrib['type'] = "SST"
             engine.append(ET.Element("parameter", attrib={'key': "DataTransport", 'value': "WAN"}))
             engine.append(ET.Element("parameter", attrib={'key': "OpenTimeoutSecs", 'value': "60.0"}))
             engine.append(ET.Element("parameter", attrib={'key': "RendezvousReaderCount", 'value': "0"}))
 
-        ET.indent(tree, space="    ", level=0)
+        if sys.version_info.minor >= 9:
+            ET.indent(tree, space="    ", level=0)
 
         tree.write(os.path.join(Simulation.Directory, "adios2.xml"))
         tree.write(os.path.join(Analysis.Directory, "adios2.xml"))
