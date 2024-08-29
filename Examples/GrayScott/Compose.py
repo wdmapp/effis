@@ -14,6 +14,7 @@ import datetime
 import shutil
 import os
 import json
+import sys
 import xml.etree.ElementTree as ET
 
 
@@ -155,7 +156,8 @@ if args.analysis:
             engine.append(ET.Element("parameter", attrib={'key': "OpenTimeoutSecs", 'value': "60.0"}))
             engine.append(ET.Element("parameter", attrib={'key': "RendezvousReaderCount", 'value': "0"}))
 
-        ET.indent(tree, space="    ", level=0)
+        if sys.version_info.minor >= 9:
+            ET.indent(tree, space="    ", level=0)
 
         tree.write(os.path.join(Simulation.Directory, "adios2.xml"))
         tree.write(os.path.join(Analysis.Directory, "adios2.xml"))
