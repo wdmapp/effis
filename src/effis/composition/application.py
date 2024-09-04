@@ -4,7 +4,10 @@ effis.composition.application
 
 import effis.composition.arguments
 import effis.composition.input
+import effis.composition.node
 from effis.composition.log import CompositionLogger
+
+import copy
 
 
 class Application:
@@ -13,25 +16,38 @@ class Application:
     One or more are added to Workflow.
     """
 
+    #: Set a name for the Application (which defines subdirectory name)
     Name = None
+
+    #: Path to application executable
     Filepath = None
 
-    MPIRunnerArguments = []
+    #: Appliction command line arguments
     CommandLineArguments = []
+
+    #: Custom MPI launcher settings; bypasses setting with Runner
+    MPIRunnerArguments = []
     
+    #: A file to source before lanuching the application (for environment setup, etc.)
     SetupFile = None
+
+    #: Set environment variables with Python dictionary (instead of setup file); Not implemented yet
     Environment = {}
-    
+
+    #: This application depends on others finishing
+    DependsOn = []
+
+    #: Input files to copy for the Application
+    Input = []
+
+    """
+    #ShareKey = None
     Ranks = 1
     RanksPerNode = None
     CoresPerRank = None
     GPUsPerRank = None
     RanksPerGPU = None
-
-    ShareKey = None
-    DependsOn = None
-
-    Input = []
+    """
 
     
     def GPUvsRank(self):
@@ -44,10 +60,10 @@ class Application:
             gpunum, ranknum = self.GPUsPerRank.split(":")
             gpunum = int(gpunum)
             ranknum = int(ranknum)
-        elif (self.RanksPerGPU is not None) and (type(self.RanksPerGPU) is int):
+        elif ('RanksPerGPU' in self.__dict__) and (self.RanksPerGPU is not None) and (type(self.RanksPerGPU) is int):
             ranknum = app.RanksPerGPU
             gpunum = 1
-        elif (self.RanksPerGPU is not None) and (type(self.RanksPerGPU) is str):
+        elif ('RanksPerGPU' in self.__dict__) and (self.RanksPerGPU is not None) and (type(self.RanksPerGPU) is str):
             ranknum, gpunum = app.RanksPerGPU.split(":")
             ranknum = int(ranknum.strip())
             gpunum = int(gpunum.strip())
@@ -58,37 +74,37 @@ class Application:
     def CheckApplications(cls, other):
         if type(other) is list:
             for i in range(len(other)):
-                if not isinstance(other[i], type(cls)):
+                if not isinstance(other[i], cls):
                     CompositionLogger.RaiseError(ValueError, "List elements to add as applications must be of type effis.composition.Application")
-        elif not isinstance(other, type(cls)):
+        elif not isinstance(other, cls):
             CompositionLogger.RaiseError(ValueError, "Can only add applications and/or lists of them with elements of type effis.composition.Application")
         return other
 
 
-    # Basic check against basic settings that don't make sense
-    def CheckSensible(self):
-
-        # Need a filepath for something to run
-        if self.Filepath is None:
-            CompositionLogger.RaiseError(ValueError, "Must set a Filepath for an application")
-
-        # Ranks and RanksPerNode relationship
-        if self.Ranks < 1:
-            CompositionLogger.RaiseError(ValueError, "For {0}, cannot set Ranks < 1".format(self.Name))
-        if (self.Ranks == 1) and (self.RanksPerNode is None):
-            self.RanksPerNode = 1
-            CompositionLogger.Info("For {0}, setting RanksPerNode = 1 since Ranks = 1".format(self.Name))
-        if (self.Ranks == 1) and (self.RanksPerNode > 1):
-            CompositionLogger.RaiseError(ValueError, "For {0}, with Ranks = 1, RanksPerNode must also be 1".format(self.Name))
-        if (self.Ranks > 1) and (self.RanksPerNode == None):
-            CompositionLogger.RaiseError(AttributeError, "For {0}, with Ranks > 1, please set RanksPerNode".format(self.Name))
-
-        # Have to know balance for sharing nodes
-        if (self.CoresPerRank is None) and (self.ShareKey is not None):
-            CompositionLogger.RaiseError(ValueError, "With node sharing ('{0}'), please set each application's CoresPerRank – Application '{1}' missing".format(self.ShareKey, self.Name))
+    def GetCall(self):
+        RunnerArgs = []
+        if self.Runner is not None:
+            RunnerArgs = self.Runner.GetCall(self, self.MPIRunnerArguments)
+        Cmd = RunnerArgs + [self.Filepath] + self.CommandLineArguments.arguments
+        return Cmd
     
 
     def __init__(self, **kwargs):
+
+        if "Runner" not in kwargs:
+            CompositionLogger.Warning("Runner was not set with Application **kwargs={0}".format(kwargs))
+            self.__dict__['Runner'] = effis.composition.runner.DetectRunnerInfo(obj=self, useprint=False)
+            if self.Runner is None:
+                CompositionLogger.RaiseError(ValueError, "No Runner was detected and a Runner must be set with an Application")
+            CompositionLogger.Info("Using detected runner {0}".format(self.Runner.cmd))
+        else:
+            self.__dict__['Runner'] = kwargs['Runner']
+            del kwargs['Runner']
+
+        if self.Runner is not None:
+            for key in self.Runner.options:
+                self.__dict__[key] = None
+
 
         if "__class__" in kwargs:
             kwobj = kwargs["__class__"]
@@ -96,13 +112,9 @@ class Application:
         else:
             kwobj = self.__class__
 
-
-        if ("GPUsPerRank" in kwargs) and ("RanksPerGPU" in kwargs):
-            CompositionLogger.RaiseError(AttributeError, "Only set one of GPUsPerRank and RanksPerGPU")
-        
         for key in kwargs:
-            if key not in kwobj.__dict__:
-                CompositionLogger.RaiseError(AttributeError, "{0} is not an Application initializer".format(key))
+            if (key not in kwobj.__dict__) and (key not in self.__dict__):
+                CompositionLogger.RaiseError(AttributeError, "{0} is not an initializer for Application(**kwargs={1}) using Runner={2}".format(key, kwargs, str(self.Runner)))
             else:
                 self.__setattr__(key, kwargs[key])
                 
@@ -117,25 +129,23 @@ class Application:
             
     
     def __setattr__(self, name, value):
-        if (name in ("Ranks")) and (type(value) is not int):
-            CompositionLogger.RaiseError(ValueError, "{0} should be set as an int".format(name))
-        if (name in ("Ranks", "RanksPerNode", "CoresPerRank")) and (value is not None) and (type(value) is not int):
-            CompositionLogger.RaiseError(ValueError, "{0} should be set as an int".format(name))
-        if (name in ("GPUsPerRank", "RanksPerGPU")) and (value is not None) and (type(value) is not int) and (type(value) is not str):
-            CompositionLogger.RaiseError(ValueError, "{0} should be set as an int or a string".format(name))
+
         if (name in ("Filepath", "SetupFile", "Name")) and (value is not None) and (type(value) is not str):
             CompositionLogger.RaiseError(AttributeError, "{0} should be set as a string".format(name))
         if (name in ("Environment")) and (type(value) is not dict):
             CompositionLogger.RaiseError(ValueError, "{0} should be set as a dictionary".format(name))
-        if (name == "DependsOn") and (value is not None) and not isinstance(value, type(self)):
-            CompositionLogger.RaiseError(ValueError, "{0} should be set as an Application".format(name))
+        if (name == "DependsOn") and (value is not None) and not (isinstance(value, type(self)) or isinstance(value, list)):
+            CompositionLogger.RaiseError(ValueError, "{0} should be set as an Application (or list of Applications)".format(name))
 
         if name in ["CommandLineArguments", "MPIRunnerArguments"]:
             self.__dict__[name] = effis.composition.arguments.Arguments(value)
         elif name == "Input":
             self.__dict__[name] = effis.composition.input.InputList(value)
-        elif (name == "DependsOn") and (value is not None):
-            self.__dict__[name] = value.Name
+        elif (name == "DependsOn"):
+            if isinstance(value, type(self)):
+                self.__dict__[name] = [value]
+            elif isinstance(value, list):
+                self.__dict__[name] = value
         else:
             self.__dict__[name] = value
 

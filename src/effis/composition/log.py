@@ -11,7 +11,8 @@ class CompositionLogger:
     formatter = logging.Formatter('%(levelname)s - %(message)s', datefmt="%Y-%m-%d %H:%M:%S.%03d")
 
     streamhandler = logging.StreamHandler()
-    streamhandler.setLevel(logging.WARNING)
+    #streamhandler.setLevel(logging.WARNING)
+    streamhandler.setLevel(logging.INFO)
     streamhandler.setFormatter(formatter)
     log.addHandler(streamhandler)
 

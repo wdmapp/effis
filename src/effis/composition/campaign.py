@@ -159,7 +159,7 @@ class Campaign(codar.cheetah.Campaign):
             else:
                 AppIndex[app.Name] = index
                 self.node_layout[self.machine] += [copy.deepcopy(self.NodeType)]
-                if app.CoresPerRank is None:
+                if ('CoresPerRank' not in app.__dict__) or (app.CoresPerRank is None):
                     app.CoresPerRank = len(self.node_layout[self.machine][index].cpu) // app.RanksPerNode
                 index += 1
                 
@@ -284,9 +284,9 @@ class Campaign(codar.cheetah.Campaign):
 
         # Set properties of the cheetah scheduler
         self.scheduler_options = {self.machine: {}}
-        self.SchedulerSet(workflow.Queue, 'queue')
-        self.SchedulerSet(workflow.Charge, 'project')
-        self.SchedulerSet(workflow.Reservation, 'reservation')
+        #self.SchedulerSet(workflow.Queue, 'queue')
+        #self.SchedulerSet(workflow.Charge, 'project')
+        #self.SchedulerSet(workflow.Reservation, 'reservation')
         if len(workflow.SchedulerDirectives.arguments) > 0:
             self.SchedulerSet(' '.join(workflow.SchedulerDirectives.arguments), 'custom')  # Scheduler Directives, could add --constraint in SetNodeLayout
         self.supported_machines = [self.machine]  # EFFIS only uses one machine at a time, whereas Cheetah could take multiple
@@ -315,8 +315,12 @@ class Campaign(codar.cheetah.Campaign):
 
             self.codes += [(app.Name, code)]
 
+            '''
             if app.DependsOn is not None:
                 rc_dependency[app.Name] = app.DependsOn
+            '''
+
+            #app.GetCall()
 
 
         # Set the things Cheetah considers sweep entities

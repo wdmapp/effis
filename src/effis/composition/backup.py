@@ -27,10 +27,6 @@ class SendData(Input):
 
 class Backup:
 
-    destinations = {}
-    source = None
-    recursive_symlinks = "ignore"
-
 
     def SetSourceEndpoint(self, filename=None):
         if filename is None:
@@ -68,6 +64,10 @@ class Backup:
 
 
     def __init__(self, value=None):
+
+        self.destinations = {}
+        self.source = None
+        self.recursive_symlinks = "ignore"
 
         if value is None:
             self.desinations = {}

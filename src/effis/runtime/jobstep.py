@@ -6,8 +6,9 @@ import json
 import sys
 
 import codar.savanna
-import effis.composition
+import effis.composition.application as application
 import effis.composition.arguments
+import effis.composition.campaign
 
 
 def GetRunner(GetCores=True, base="."):
@@ -184,7 +185,7 @@ def EffisJobStep(**kwargs):
 
     runner, Cores = GetRunner()
 
-    TmpApp = effis.composition.Application(**kwargs)
+    TmpApp = application.Application(**kwargs)
     runner_args = GetRunnerCmd(TmpApp, runner, Cores)
 
     # Set custom environment requested by user
@@ -210,7 +211,7 @@ def EffisJobStep(**kwargs):
         return phandle
 
 
-class EffisSimpleJobStep(effis.composition.Application):
+class EffisSimpleJobStep(application.Application):
 
     def __init__(self, **kwargs):
         if "log" in kwargs:
@@ -219,7 +220,7 @@ class EffisSimpleJobStep(effis.composition.Application):
         else:
             self.log = None
 
-        super(EffisSimpleJobStep, self).__init__(__class__=effis.composition.Application, **kwargs)
+        super(EffisSimpleJobStep, self).__init__(__class__=application.Application, **kwargs)
 
 
 class EffisJobRunner:
@@ -418,7 +419,7 @@ class EffisJobRunner:
 
 
 
-class SimpleJobStep(effis.composition.Application):
+class SimpleJobStep(application.Application):
 
     #SetupFile = None
     #Environment = {}
@@ -435,10 +436,10 @@ class SimpleJobStep(effis.composition.Application):
         self.__dict__['MPIRunnerArguments'] = effis.composition.arguments.Arguments([])
         for key in ["Ranks", "RanksPerNode", "CoresPerRank", "GPUsPerRank", "RanksPerGPU"]:
             self.__dict__[key] = None
-        super(SimpleJobStep, self).__init__(__class__=effis.composition.Application, **kwargs)
+        super(SimpleJobStep, self).__init__(__class__=application.Application, **kwargs)
 
 
-class SimpleRunner(effis.composition.Application):
+class SimpleRunner(application.Application):
 
     def __setattr__(self, name, value):
         if name == "CommandLineArguments":
@@ -452,7 +453,7 @@ class SimpleRunner(effis.composition.Application):
         self.JobSteps = []
         self.__dict__['Filepath'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), "QueueRunner.py")
         self.__dict__['CommandLineArguments'] = effis.composition.arguments.Arguments([])
-        super(SimpleRunner, self).__init__(__class__=effis.composition.Application, **kwargs)
+        super(SimpleRunner, self).__init__(__class__=application.Application, **kwargs)
 
 
     def AddJobStep(self, step):

@@ -120,35 +120,6 @@ if __name__ == "__main__":
                         done = True
 
 
-    """
-    scopes = [TransferScopes.all]
-    tc = GetTransferClient(scopes=scopes)
-
-    AutoActivate(tc, config['source'], "Host")
-    for endpoint in config['endpoints']:
-        AutoActivate(tc, config['endpoints'][endpoint]['id'], endpoint)
-
-        for paths in config['endpoints'][endpoint]['paths']:
-            done = False
-
-            while not done:
-                try:
-                    results = tc.operation_ls(config['endpoints'][endpoint]['id'], path=paths['outpath'])
-                except globus_sdk.TransferAPIError as err:
-                    if err.args[3] == 403:
-                        scopes += err.info.consent_required.required_scopes
-                        print("Need additional consents")
-                        tc = GetTransferClient(scopes=scopes)
-                    elif (err.args[3] == 404) and args.checkdest:
-                        MakeDirs(config['endpoints'][endpoint]['id'], paths['outpath'])
-                    else:
-                        raise
-                except:
-                    raise
-                else:
-                    done = True
-    """
-
     print("Got AuthorizedTransferClient\n")
     print("STATUS=READY", file=sys.stderr)
     sys.stderr.flush()
