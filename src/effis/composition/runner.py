@@ -1,5 +1,6 @@
 import shutil
 import socket
+import os
 
 import effis.composition.runner
 from effis.composition.arguments import Arguments
@@ -133,7 +134,19 @@ class slurm(ParallelRunner):
         'Walltime': "--time",
         'Nodes': "--nodes",
         'Constraint': "--constraint",
+        'Jobname': "--job-name",
+        'Output': "--output",
+        'Error': "--error"
     }
+
+    @classmethod
+    def ValidateOptions(cls, Workflow):
+        ValidateIntOptions(("Nodes"), Workflow, label="Workflow")
+        if Workflow.Jobname is None:
+            Workflow.Jobname = Workflow.Name
+        if Workflow.Output is None:
+            Workflow.Output = os.path.join(Workflow.Directory, "%x-%j.out")
+
 
 
 class perlmutter(slurm):
@@ -143,11 +156,10 @@ class perlmutter(slurm):
 
     @classmethod
     def ValidateOptions(cls, Workflow):
-        #for name in ('Charge', 'QOS', 'Walltime', 'Nodes', 'Constraint'):
         for name in ('Charge', 'Walltime', 'Nodes', 'Constraint'):
             if Workflow.__dict__[name] is None:
                 CompositionLogger.RaiseError(AttributeError, "{0}: Perlmutter workflow must set {1}".format(Workflow.Name, name))
-        ValidateIntOptions(("Nodes"), Workflow, label="Workflow")
+        super().ValidateOptions(Workflow)
 
 
 class frontier(slurm):
@@ -160,7 +172,7 @@ class frontier(slurm):
         for name in ('Charge', 'Walltime', 'Nodes'):
             if Workflow.__dict__[name] is None:
                 CompositionLogger.RaiseError(AttributeError, "{0}: Frontier workflow must set {1}".format(Workflow.Name, name))
-        ValidateIntOptions(("Nodes"), Workflow, label="Workflow")
+        super().ValidateOptions(Workflow)
 
 
 class srun(ParallelRunner):
