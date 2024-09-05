@@ -129,6 +129,10 @@ class Application:
             
     
     def __setattr__(self, name, value):
+        '''
+        if name not in self.__dir__():
+            CompositionLogger.Warning("{0} not recognized as Application attribute".format(name))
+        '''
 
         if (name in ("Filepath", "SetupFile", "Name")) and (value is not None) and (type(value) is not str):
             CompositionLogger.RaiseError(AttributeError, "{0} should be set as a string".format(name))

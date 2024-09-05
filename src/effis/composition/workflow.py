@@ -145,7 +145,9 @@ class Workflow:
 
         # Set what's given in keyword arguments by user
         for key in kwargs:
-            if key not in self.__class__.__dict__:
+            if (key not in self.__class__.__dict__) and (self.Runner is None):
+                CompositionLogger.RaiseError(AttributeError, "{0} is not a Workflow initializer".format(key))
+            elif (key not in self.__class__.__dict__) and (key not in self.Runner.options):
                 CompositionLogger.RaiseError(AttributeError, "{0} is not a Workflow initializer".format(key))
             else:
                 self.__setattr__(key, kwargs[key])
@@ -163,7 +165,7 @@ class Workflow:
     
     def __setattr__(self, name, value):
 
-        if name not in self.__class__.__dict__:
+        if name not in self.__dir__():
             CompositionLogger.Warning("{0} not recognized as Workflow attribute".format(name))
         
         if (name in ("Name", "ParentDirectory", "SetupFile")) and (value is not None) and (type(value) is not str):
@@ -441,7 +443,7 @@ class Workflow:
             with open(self.submitname, 'w') as outfile:
                 outfile.write("#!/bin/sh" + "\n")
                 outfile.write("effis-submit --sub {0}".format(self.Directory))
-            subprocess.Run(SubmitCall)
+            subprocess.run(SubmitCall)
         else:
             self.SubSubmit()
 
