@@ -1,6 +1,5 @@
 import os
 from effis.composition.log import CompositionLogger
-import effis.composition.arguments as arguments
 
 
 class Input():
