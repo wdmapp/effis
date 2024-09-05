@@ -2,15 +2,13 @@
 effis.composition.application
 """
 
-import effis.composition.arguments
-import effis.composition.input
-import effis.composition.node
+from effis.composition.runner import Detected, UseRunner
+from effis.composition.arguments import Arguments
+from effis.composition.input import InputList
 from effis.composition.log import CompositionLogger
 
-import copy
 
-
-class Application:
+class Application(UseRunner):
     """
     An Application is an executable to run.
     One or more are added to Workflow.
@@ -39,6 +37,8 @@ class Application:
 
     #: Input files to copy for the Application
     Input = []
+
+    __RunnerError__ = (CompositionLogger.RunnerError, "No MPI [Application] Runner found. Exiting...")
 
     """
     #ShareKey = None
@@ -75,9 +75,9 @@ class Application:
         if type(other) is list:
             for i in range(len(other)):
                 if not isinstance(other[i], cls):
-                    CompositionLogger.RaiseError(ValueError, "List elements to add as applications must be of type effis.composition.Application")
+                    CompositionLogger.RaiseError(ValueError, "List elements to add as applications must be of type Application")
         elif not isinstance(other, cls):
-            CompositionLogger.RaiseError(ValueError, "Can only add applications and/or lists of them with elements of type effis.composition.Application")
+            CompositionLogger.RaiseError(ValueError, "Can only add applications and/or lists of them with elements of type Application")
         return other
 
 
@@ -87,46 +87,12 @@ class Application:
             RunnerArgs = self.Runner.GetCall(self, self.MPIRunnerArguments)
         Cmd = RunnerArgs + [self.Filepath] + self.CommandLineArguments.arguments
         return Cmd
+
+
+    @staticmethod
+    def AutoRunner():
+        return Detected.Runner
     
-
-    def __init__(self, **kwargs):
-
-        if "Runner" not in kwargs:
-            CompositionLogger.Warning("Runner was not set with Application **kwargs={0}".format(kwargs))
-            self.__dict__['Runner'] = effis.composition.runner.DetectRunnerInfo(obj=self, useprint=False)
-            if self.Runner is None:
-                CompositionLogger.RaiseError(ValueError, "No Runner was detected and a Runner must be set with an Application")
-            CompositionLogger.Info("Using detected runner {0}".format(self.Runner.cmd))
-        else:
-            self.__dict__['Runner'] = kwargs['Runner']
-            del kwargs['Runner']
-
-        if self.Runner is not None:
-            for key in self.Runner.options:
-                self.__dict__[key] = None
-
-
-        if "__class__" in kwargs:
-            kwobj = kwargs["__class__"]
-            del kwargs["__class__"]
-        else:
-            kwobj = self.__class__
-
-        for key in kwargs:
-            if (key not in kwobj.__dict__) and (key not in self.__dict__):
-                CompositionLogger.RaiseError(AttributeError, "{0} is not an initializer for Application(**kwargs={1}) using Runner={2}".format(key, kwargs, str(self.Runner)))
-            else:
-                self.__setattr__(key, kwargs[key])
-                
-        # Set the rest to the defaults in the class definition
-        for key in kwobj.__dict__:
-            if key.startswith("__") and key.endswith("__"):
-                continue
-            elif callable(kwobj.__dict__[key]):
-                continue
-            elif key not in self.__dict__:
-                self.__setattr__(key, kwobj.__dict__[key])
-            
     
     def __setattr__(self, name, value):
         '''
@@ -142,9 +108,9 @@ class Application:
             CompositionLogger.RaiseError(ValueError, "{0} should be set as an Application (or list of Applications)".format(name))
 
         if name in ["CommandLineArguments", "MPIRunnerArguments"]:
-            self.__dict__[name] = effis.composition.arguments.Arguments(value)
+            self.__dict__[name] = Arguments(value)
         elif name == "Input":
-            self.__dict__[name] = effis.composition.input.InputList(value)
+            self.__dict__[name] = InputList(value)
         elif (name == "DependsOn"):
             if isinstance(value, type(self)):
                 self.__dict__[name] = [value]
@@ -162,11 +128,11 @@ class Application:
         elif type(other) is list:
             for i in range(len(other)):
                 if not isinstance(other[i], Application):
-                    CompositionLogger.RaiseError(ValueError, "List elements to add as applications must be of type effis.composition.Application")
+                    CompositionLogger.RaiseError(ValueError, "List elements to add as applications must be of type Application")
             left = [self]
             right = other            
         else:
-            CompositionLogger.RaiseError(ValueError, "Can only add applications and/or lists of them with elements of type effis.composition.Application")
+            CompositionLogger.RaiseError(ValueError, "Can only add applications and/or lists of them with elements of type Application")
 
         if reverse:
             return right + left

@@ -38,6 +38,11 @@ class CompositionLogger:
         
         
     @classmethod
+    def RunnerError(cls, msg):
+        return cls.RaiseError(ValueError, msg)
+
+
+    @classmethod
     def RaiseError(cls, MyError, msg):
         cls.log.error(msg)
         raise MyError(msg)

@@ -2,32 +2,28 @@
 effis.composition.workflow
 """
 
-import re
-import socket
 import datetime
 import os
 import subprocess
 import json
 import sys
 import shutil
-import getpass
 import stat
 import atexit
 from contextlib import ContextDecorator
 import dill as pickle
 
-import codar.savanna
-
-import effis.composition.node
-import effis.composition.application
-import effis.composition.arguments
-import effis.composition.input
-import effis.composition.campaign
-import effis.composition.runner
-
+from effis.composition.runner import Detected, UseRunner
+from effis.composition.application import Application
+from effis.composition.arguments import Arguments
+from effis.composition.input import InputList
+from effis.composition.backup import Backup
 from effis.composition.log import CompositionLogger
 
+
+# This is just for convenience with examples
 ExamplesPath = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "Examples"))
+
 
 
 class Chdir(ContextDecorator):
@@ -74,7 +70,7 @@ def InputCopy(setup):
         setup.SetupFile = os.path.basename(setup.SetupFile)
 
 
-class Workflow:
+class Workflow(UseRunner):
     """
     Add one or more Applications to a compose a Workflow.
     """
@@ -113,6 +109,9 @@ class Workflow:
     Subdirs = True
     MPMD = False
 
+    __RunnerError__ = (CompositionLogger.Warning, "No batch queue [Workflow] Runner found, conintuining without one.")
+
+
     """ These are now Runner specific and set there
 
     #: The maximum run time. (This is not necessary without a scheduler, but will cause time outs)
@@ -126,43 +125,6 @@ class Workflow:
     """
 
     
-    def __init__(self, **kwargs):
-
-        if 'Runner' not in kwargs:
-            CompositionLogger.Warning("Runner was not set with Workflow **kwargs={0}".format(kwargs))
-            self.__dict__['Runner'], runner = effis.composition.runner.DetectRunnerInfo(obj=None, useprint=True)
-            if self.Runner is None:
-                CompositionLogger.Warning("No batch queue detected.")
-            else:
-                CompositionLogger.Info("Using detected runner {0}".format(self.Runner.cmd))
-        else:
-            self.__dict__['Runner'] = kwargs['Runner']
-            del kwargs['Runner']
-
-        if self.Runner is not None:
-            for key in self.Runner.options:
-                self.__dict__[key] = None
-
-        # Set what's given in keyword arguments by user
-        for key in kwargs:
-            if (key not in self.__class__.__dict__) and (self.Runner is None):
-                CompositionLogger.RaiseError(AttributeError, "{0} is not a Workflow initializer".format(key))
-            elif (key not in self.__class__.__dict__) and (key not in self.Runner.options):
-                CompositionLogger.RaiseError(AttributeError, "{0} is not a Workflow initializer".format(key))
-            else:
-                self.__setattr__(key, kwargs[key])
-
-        # Set the rest to the defaults in the class definition
-        for key in self.__class__.__dict__:
-            if key.startswith("__") and key.endswith("__"):
-                continue
-            elif callable(self.__class__.__dict__[key]):
-                continue
-            elif key not in self.__dict__:
-                self.__setattr__(key, self.__class__.__dict__[key])
-
-
-    
     def __setattr__(self, name, value):
 
         if name not in self.__dir__():
@@ -174,13 +136,13 @@ class Workflow:
             CompositionLogger.RaiseError(ValueError, "Workflow attribute: {0} should be set as a boolean".format(name))
 
         if name == "SchedulerDirectives":
-            self.__dict__[name] = effis.composition.arguments.Arguments(value)  # Arguments does the type check
+            self.__dict__[name] = Arguments(value)  # Arguments does the type check
         elif name == "Input":
-            self.__dict__[name] = effis.composition.input.InputList(value)
+            self.__dict__[name] = InputList(value)
         elif name == "Backup":
-            self.__dict__[name] = effis.composition.backup.Backup(value)
+            self.__dict__[name] = Backup(value)
         elif name == "Applications":
-            self.__dict__[name] = effis.composition.application.Application.CheckApplications(value)  # Also does the type check
+            self.__dict__[name] = Application.CheckApplications(value)  # Also does the type check
         elif (name == "MPMD") and value and self.Subdirs:            
             self.__dict__[name] = value
             self.Subdirs = False
@@ -197,11 +159,11 @@ class Workflow:
     
     # Use (workflow += application) as an intuitive way to build the workflow with applications
     def __iadd__(self, other):
-        if isinstance(other, effis.composition.application.Application) or (type(other) is list):
+        if isinstance(other, Application) or (type(other) is list):
             self.__dict__['Applications'] =  self.Applications + other
 
             if "WorkflowDirectory" in self.__dict__:
-                if isinstance(other, effis.composition.application.Application):
+                if isinstance(other, Application):
                     newother = [other]
                 else:
                     newother = other
@@ -209,15 +171,20 @@ class Workflow:
 
             return self
         else:
-            CompositionLogger.RaiseError(ValueError, "Only effis.composition.Application objects can be added to a Workflow object")
+            CompositionLogger.RaiseError(ValueError, "Only Application objects can be added to a Workflow object")
+
+
+    @staticmethod
+    def AutoRunner():
+        return Detected.System
 
 
     def Application(self, **kwargs):
         if ('Runner' not in kwargs):
-            runner = effis.composition.runner.DetectRunnerInfo(bytype=effis.composition.application.Application, useprint=True)
-            CompositionLogger.Info("Application(**kwargs={0}): Using detected runner {1}".format(kwargs, runner.cmd))
-            kwargs['Runner'] = runner
-        self += effis.composition.application.Application(**kwargs)
+            thisrunner = Application.DetectRunnerInfo(useprint=True)
+            CompositionLogger.Info("Application ({0}): Using detected runner {1}".format(UseRunner.kwargsmsg(kwargs), thisrunner.cmd))
+            kwargs['Runner'] = thisrunner
+        self += Application(**kwargs)
         return self.Applications[-1]
 
 
@@ -242,78 +209,6 @@ class Workflow:
             if self.Subdirs:
                 app.__dict__['Directory'] = os.path.join(app.Directory, app.Name)
     
-
-    def Submit(self, rerun=False):
-        """
-        Submit the workflow to the queue and/or run it.
-        """
-
-        touchname = os.path.join(os.path.dirname(self.post_script), ".backup.ready")
-
-        # If forcing a rerun, remove the .backup.ready file if it's there
-        if rerun:
-            if os.path.exists(touchname):
-                os.remove(touchname)
-            wfile = os.path.join(self.WorkflowDirectory, getpass.getuser(), "EFFIS", "codar.workflow.status.json")
-            if os.path.exists(wfile):
-                with open(wfile) as infile:
-                    config = json.load(infile)
-                if config[self.IterationLabel]["state"] != codar.savanna.status.NOT_STARTED:
-                    config[self.IterationLabel]["state"] = codar.savanna.status.NOT_STARTED
-                    with open(wfile, "w") as outfile:
-                        json.dump(config, outfile, ensure_ascii=False, indent=4)
-
-        if len(self.Backup.destinations) > 0:
-            with open(self.post_script, "a+") as outfile:
-                outfile.write("touch {0}\n".format(touchname))
-
-            if self.Backup.source is None:
-                self.Backup.SetSourceEndpoint()
-
-            outdict = {
-                'readyfile': touchname,
-                'source': self.Backup.source,
-                'recursive_symlinks': self.Backup.recursive_symlinks,
-                'endpoints': {},
-            }
-            for endpoint in self.Backup.destinations:
-                outdict['endpoints'][endpoint] = {
-                    'id': self.Backup.destinations[endpoint].Endpoint,
-                    'paths': [],
-                }
-                for entry in self.Backup.destinations[endpoint].Input.list:
-                    entrydict = {}
-                    for key in ('inpath', 'outpath', 'link', 'rename'):
-                        entrydict[key] = entry.__dict__[key]
-                    outdict['endpoints'][endpoint]['paths'] += [entrydict]
-
-            jsonname = os.path.join(os.path.dirname(self.post_script), "backup.json")
-            with open(jsonname, "w") as outfile:
-                json.dump(outdict, outfile, ensure_ascii=False, indent=4)
-
-
-            # Start the globus process here
-            scriptname = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "runtime", "BackupGlobus.py"))
-            #cmd = ["python3", scriptname, jsonname, "--checkdest"]
-            cmd = ["python3", scriptname, jsonname]
-            p = subprocess.Popen(cmd, stderr=subprocess.PIPE, shell=False)
-
-            error = False
-            for line in iter(p.stderr.readline, b''):
-                if line.decode("utf-8").rstrip() == "STATUS=READY":
-                    break
-                elif line.decode("utf-8").rstrip() != "":
-                    print(line.decode("utf-8"), file=sys.stderr, end="")
-                    error = True
-            if error:
-                sys.exit(1)
-
-            p.stderr = sys.stderr
-
-        shpath = os.path.join(self.WorkflowDirectory, getpass.getuser(), "run-all.sh")
-        print("Called: ", shpath)
-        subprocess.call([shpath])
-
 
     def PickleWrite(self):
         """
@@ -428,7 +323,7 @@ class Workflow:
             p.stderr = sys.stderr
 
 
-    def NewSubmit(self, rerun=False):
+    def Submit(self, rerun=False):
 
         with Chdir(self.Directory):
             if os.path.exists(self.touchname):

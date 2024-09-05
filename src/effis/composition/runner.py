@@ -2,54 +2,9 @@ import shutil
 import socket
 import os
 
-import effis.composition.runner
 from effis.composition.arguments import Arguments
 from effis.composition.log import CompositionLogger
 
-
-def DetectRunnerInfo(obj=None, bytype=None, useprint=True):
-
-    if effis.composition.runner.Detected.System is False:
-
-        # Check for recognized, commonly used things
-        machine = socket.getaddrinfo(socket.gethostname(), 0, flags=socket.AI_CANONNAME)[0][3].lower()
-        for test in ("perlmutter", "frontier"):
-            if machine.find(test) != -1:
-                effis.composition.runner.Detected.System = effis.composition.runner.__dict__[test]()
-                effis.composition.runner.Detected.Runner = effis.composition.runner.srun()
-                msg = "DetectRunnerInfo: Found {0}".format(test)
-
-                if useprint:
-                    CompositionLogger.Info(msg)
-
-
-    if effis.composition.runner.Detected.Runner is False:
-
-        # Check for commands
-        if shutil.which("srun") is not None:
-            msg = "DetectRunnerInfo: Found Slurm"
-            effis.composition.runner.Detected.Runner = effis.composition.runner.srun()
-            if effis.composition.runner.Detected.System is False:
-                effis.composition.runner.Detected.System = effis.composition.runner.slurm()
-        elif shutil.which("mpiexec.hydra") is not None:
-            msg = "DetectRunnerInfo: Found mpiexec"
-            effis.composition.runner.Detected.Runner = effis.composition.runner.mpiexec_hydra()
-            effis.composition.runner.Detected.System = None
-        else:
-            msg = "DetectRunnerInfo: Did not find a known runner"
-            effis.composition.runner.Detected.Runner = None
-            effis.composition.runner.Detected.System = None
-
-        if useprint:
-            CompositionLogger.Info(msg)
-
-
-    if isinstance(obj, effis.composition.workflow.Workflow) or (bytype is effis.composition.workflow.Workflow):
-        return effis.composition.runner.Detected.System
-    elif isinstance(obj, effis.composition.application.Application) or (bytype is effis.composition.application.Application):
-        return effis.composition.runner.Detected.Runner
-    else:
-        return effis.composition.runner.Detected.System, effis.composition.runner.Detected.Runner
 
 
 class Detected:
@@ -64,6 +19,99 @@ def ValidateIntOptions(options, Application, label="Application"):
                 CompositionLogger.RaiseError(AttributeError, "{0} {1} setting must be an integer (or string of one)".format(name, label))
             elif not str(Application.__dict__[name]).isdigit():
                 CompositionLogger.RaiseError(AttributeError, "{0} {1} setting must be an integer (or string of one)".format(name, label))
+
+
+class UseRunner:
+
+    @classmethod
+    def DetectRunnerInfo(cls, useprint=True):
+
+        if Detected.System is False:
+
+            # Check for recognized, commonly used things
+            machine = socket.getaddrinfo(socket.gethostname(), 0, flags=socket.AI_CANONNAME)[0][3].lower()
+            for test in ("perlmutter", "frontier"):
+                if machine.find(test) != -1:
+                    Detected.System = globals()[test]()
+                    Detected.Runner = srun()
+                    msg = "DetectRunnerInfo: Found {0}".format(test)
+
+                    if useprint:
+                        CompositionLogger.Info(msg)
+
+        if Detected.Runner is False:
+
+            # Check for commands
+            if shutil.which("srun") is not None:
+                msg = "DetectRunnerInfo: Found Slurm"
+                Detected.Runner = srun()
+                if Detected.System is False:
+                    Detected.System = slurm()
+            elif shutil.which("mpiexec.hydra") is not None:
+                msg = "DetectRunnerInfo: Found mpiexec"
+                Detected.Runner = mpiexec_hydra()
+                Detected.System = None
+            else:
+                msg = "DetectRunnerInfo: Did not find a known runner"
+                Detected.Runner = None
+                Detected.System = None
+
+            if useprint:
+                CompositionLogger.Info(msg)
+
+        if 'AutoRunner' in cls.__dict__:
+            return cls.AutoRunner()
+        else:
+            return Detected.System
+
+
+    @staticmethod
+    def kwargsmsg(kwargs):
+        if "Name" in kwargs:
+            return "name = '{0}'".format(kwargs["Name"])
+        else:
+            return "**kwargs={0}".format(kwargs)
+
+
+    def __init__(self, **kwargs):
+
+        if "Runner" not in kwargs:
+            CompositionLogger.Warning("Runner was not set with {0} ({1}). Detecting what to use...".format(self.__class__.__name__, self.kwargsmsg(kwargs)))
+            self.__dict__['Runner'] = self.DetectRunnerInfo(useprint=False)
+            if self.Runner is None:
+                self.__RunnerError__[0](self.__RunnerError__[1])
+            else:
+                CompositionLogger.Info("Using detected runner {0}".format(self.Runner.cmd))
+        else:
+            self.__dict__['Runner'] = kwargs['Runner']
+            del kwargs['Runner']
+
+        if self.Runner is not None:
+            for key in self.Runner.options:
+                self.__dict__[key] = None
+
+        """
+        if "__class__" in kwargs:
+            kwobj = kwargs["__class__"]
+            del kwargs["__class__"]
+        else:
+            kwobj = self.__class__
+        """
+
+        for key in kwargs:
+            if (key not in self.__class__.__dict__) and (key not in self.__dict__):
+                CompositionLogger.RaiseError(AttributeError, "{0} is not an initializer for {1} ({2}) using Runner={3}".format(key, self.__class__.__name__, self.kwargsmsg(kwargs), str(self.Runner)))
+            else:
+                self.__setattr__(key, kwargs[key])
+                
+        # Set the rest to the defaults in self.__dict__
+        for key in self.__class__.__dict__:
+            if key.startswith("__") and key.endswith("__"):
+                continue
+            elif callable(self.__class__.__dict__[key]):
+                continue
+            elif key not in self.__dict__:
+                self.__setattr__(key, self.__class__.__dict__[key])
 
 
 class ParallelRunner:
@@ -119,6 +167,7 @@ class mpiexec_hydra(ParallelRunner):
                 if Application.__dict__[name] is not None:
                     CompositionLogger.RaiseError(AttributeError, "Setting {0} with setting Ranks is ambiguous".format(name))
             CompositionLogger.Warning("Ranks was not set for Application name={0}. Setting it to 1 (with {1})".format(Application.Name, cls.cmd))
+            Application.Ranks = 1
 
 
 class slurm(ParallelRunner):

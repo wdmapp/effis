@@ -1,4 +1,3 @@
-import effis.composition
 import argparse
 import os
 import dill as pickle
@@ -8,7 +7,6 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("directory", help="Path to directory", type=str)
-    parser.add_argument("--rerun", help="Force rerun (if already finished before)", action="store_true")
     parser.add_argument("--sub", help="Sub-submit", action="store_true")
     args = parser.parse_args()
 
@@ -22,6 +20,4 @@ def main():
     if args.sub:
         workflow.SubSubmit()
     else:
-        workflow.NewSubmit()
-
-    #workflow.Submit(rerun=args.rerun)
+        workflow.Submit()
