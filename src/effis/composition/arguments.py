@@ -23,3 +23,4 @@ class Arguments:
         elif type(value) is list:
             self.arguments = self.arguments + value
         return self
+

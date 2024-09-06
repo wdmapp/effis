@@ -10,7 +10,8 @@ logger = logging.getLogger(__name__)
 
 import globus_sdk
 from globus_sdk.scopes import TransferScopes
-import globus
+
+import effis.runtime.globus as globus
 
 
 def AutoActivate(tc, idhash, label):
@@ -68,7 +69,9 @@ def MakeDirs(endpoint, fullpath):
 
 
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
+
+def main():
         
     parser = argparse.ArgumentParser()
     parser.add_argument("jsonfile", help="Path to json file")

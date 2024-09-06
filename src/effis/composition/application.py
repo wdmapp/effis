@@ -2,10 +2,38 @@
 effis.composition.application
 """
 
+import copy
 from effis.composition.runner import Detected, UseRunner
 from effis.composition.arguments import Arguments
 from effis.composition.input import InputList
 from effis.composition.log import CompositionLogger
+
+
+class DependsClass(Arguments):
+
+    def __init__(self, value):
+        if isinstance(value, type(self)):
+            self.arguments = value.arguments
+        elif (not isinstance(value, Application)) and (not isinstance(value, list)):
+            CompositionLogger.RaiseError(ValueError, "DependsOn must be given as an Application or a list of them (or another DependsClass object)")
+        elif isinstance(value, list):
+            self.arguments = value
+        elif isinstance(value, Application):
+            self.arguments = [value]
+
+
+    def __iadd__(self, value):
+        if isinstance(value, type(self)):
+            self.arguments = self.arguments + value.arguments
+        elif (not isinstance(value, Application)) and (not isinstance(value, list)):
+            CompositionLogger.RaiseError(ValueError, "DependsOn must be given as an Application or a list of them")
+        elif isinstance(value, list):
+            self.arguments = self.arguments + value
+        elif isinstance(value, Application):
+            self.arguments = self.arguments + [value]
+
+        return self
+
 
 
 class Application(UseRunner):
@@ -104,18 +132,13 @@ class Application(UseRunner):
             CompositionLogger.RaiseError(AttributeError, "{0} should be set as a string".format(name))
         if (name in ("Environment")) and (type(value) is not dict):
             CompositionLogger.RaiseError(ValueError, "{0} should be set as a dictionary".format(name))
-        if (name == "DependsOn") and (value is not None) and not (isinstance(value, type(self)) or isinstance(value, list)):
-            CompositionLogger.RaiseError(ValueError, "{0} should be set as an Application (or list of Applications)".format(name))
 
         if name in ["CommandLineArguments", "MPIRunnerArguments"]:
             self.__dict__[name] = Arguments(value)
         elif name == "Input":
             self.__dict__[name] = InputList(value)
         elif (name == "DependsOn"):
-            if isinstance(value, type(self)):
-                self.__dict__[name] = [value]
-            elif isinstance(value, list):
-                self.__dict__[name] = value
+            self.__dict__[name] = DependsClass(value)
         else:
             self.__dict__[name] = value
 
@@ -148,6 +171,7 @@ class Application(UseRunner):
         return self._add_(other)
 
 
+"""
 class LoginNodeApplication(Application):
 
     def __init__(self, **kwargs):
@@ -165,4 +189,4 @@ class LoginNodeApplication(Application):
 
         #Application.__init__(self, **kwargs)
         super(LoginNodeApplication, self).__init__(__class__=Application, **kwargs)
-
+"""

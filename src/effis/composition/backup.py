@@ -21,7 +21,7 @@ class SendData(Input):
     def __init__(self, value, outpath=None, rename=None):
         if outpath is None:
             CompositionLogger.RaiseError(ValueError, "Need to give an outpath for Backup SendData")
-        super(SendData, self).__init__(value, outpath=outpath, link=False, rename=rename)
+        super().__init__(value, outpath=outpath, link=False, rename=rename)
         
 
 class Backup:

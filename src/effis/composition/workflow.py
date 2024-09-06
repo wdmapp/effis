@@ -152,7 +152,7 @@ class Workflow(UseRunner):
         else:
             self.__dict__[name] = value
             if (name in ("Name", "ParentDirectory")) and (self.Name is not None) and (self.ParentDirectory is not None):
-                if "WorkflowDirectory" in self.__dict__:
+                if "Directory" in self.__dict__:
                     CompositionLogger.Warning("Changing Name or ParentDirectory after they've both been set can break referencing (Workflow)Directory before Create()")
                 self.SetWorkflowDirectory()
 
@@ -162,7 +162,7 @@ class Workflow(UseRunner):
         if isinstance(other, Application) or (type(other) is list):
             self.__dict__['Applications'] =  self.Applications + other
 
-            if "WorkflowDirectory" in self.__dict__:
+            if "Directory" in self.__dict__:
                 if isinstance(other, Application):
                     newother = [other]
                 else:
@@ -196,11 +196,10 @@ class Workflow(UseRunner):
 
 
     def SetWorkflowDirectory(self):
-        self.__dict__["WorkflowDirectory"] = os.path.join(self.ParentDirectory, self.Name)
+        self.__dict__["Directory"] = os.path.join(self.ParentDirectory, self.Name)
         if self.TimeIndex:
-            self.__dict__["WorkflowDirectory"] = "{0}.{1}".format(self.WorkflowDirectory, datetime.datetime.now().strftime('%Y-%m-%d.%H.%M.%S'))
-        self.__dict__["WorkflowDirectory"] = os.path.abspath(self.__dict__["WorkflowDirectory"])
-        self.__dict__['Directory'] = self.WorkflowDirectory
+            self.__dict__["Directory"] = "{0}.{1}".format(self.Directory, datetime.datetime.now().strftime('%Y-%m-%d.%H.%M.%S'))
+        self.__dict__["Directory"] = os.path.abspath(self.Directory)
 
 
     def SetAppDirectories(self, applications):
@@ -215,7 +214,7 @@ class Workflow(UseRunner):
         Write the workflow to a pickle file
         """
 
-        with open(os.path.join(self.WorkflowDirectory, 'workflow.pickle'), 'wb') as handle:
+        with open(os.path.join(self.Directory, 'workflow.pickle'), 'wb') as handle:
             pickle.dump(self, handle, protocol=pickle.HIGHEST_PROTOCOL, recurse=True)
 
     
@@ -236,10 +235,10 @@ class Workflow(UseRunner):
         self.SetAppDirectories(self.Applications)
 
         # Create Directories
-        if os.path.exists(self.WorkflowDirectory):
-            CompositionLogger.RaiseError(FileExistsError, "Trying to create to a directory that already exists: {0}".format(self.WorkflowDirectory))
-        os.makedirs(self.WorkflowDirectory)
-        CompositionLogger.Info("Created: {0}".format(self.WorkflowDirectory))
+        if os.path.exists(self.Directory):
+            CompositionLogger.RaiseError(FileExistsError, "Trying to create to a directory that already exists: {0}".format(self.Directory))
+        os.makedirs(self.Directory)
+        CompositionLogger.Info("Created: {0}".format(self.Directory))
         for app in self.Applications:
             if not os.path.exists(app.Directory):
                 os.makedirs(app.Directory)
@@ -250,13 +249,10 @@ class Workflow(UseRunner):
             InputCopy(app)
 
         # Check for cyclic dependencies
-        apps = {}
         for app in self.Applications:
-            apps[app.Name] = {}
-            apps[app.Name]['complete'] = False
-            for dep in app.DependsOn:
+            for dep in app.DependsOn.arguments:
                 depdeps = dep.DependsOn
-                for depdep in depdeps:
+                for depdep in depdeps.arguments:
                     if app.Name == depdep.Name:
                         CompositionLogger.RaiseError(ValueError, "Cyclic dependencies between {0} and {1}".format(app.Name, dep.Name))
 
@@ -303,11 +299,8 @@ class Workflow(UseRunner):
 
         if len(self.Backup.destinations) > 0:
 
-            # Start the globus process here
-            scriptname = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "runtime", "BackupGlobus.py"))
-
             #cmd = ["python3", scriptname, jsonname, "--checkdest"]
-            cmd = ["python3", scriptname, self.backupname]
+            cmd = ["effis-globus-backup", self.backupname]
             p = subprocess.Popen(cmd, stderr=subprocess.PIPE)
 
             error = False
@@ -345,35 +338,72 @@ class Workflow(UseRunner):
 
     def SubSubmit(self):
 
-        apps = []
         for app in self.Applications:
-            pwd = os.getcwd()
+            for dep in app.DependsOn.arguments:
+                print(app.Name, dep.Name)
 
-            with Chdir(app.Directory):
 
-                cmd = app.GetCall()
-                CompositionLogger.Info("Running: {0}".format(" ".join(cmd)))
+        while True:
 
-                if app.SetupFile is not None:
-                    jobfile = "./{0}.sh".format(app.Name)
-                    with open(jobfile, "w") as outfile:
-                        outfile.write("#!/bin/sh" + "\n")
-                        outfile.write(". {0}".format(app.SetupFile) + "\n")
-                        outfile.write("{0}".format(" ".join(cmd)))
-                    os.chmod(
-                        jobfile,
-                        stat.S_IRUSR | stat.S_IXUSR | stat.S_IWUSR |
-                        stat.S_IRGRP | stat.S_IXGRP |
-                        stat.S_IROTH | stat.S_IXOTH
-                    )
-                    p = subprocess.Popen([jobfile])
-                else:
-                    p = subprocess.Popen(cmd)
+            apps = []
+            for app in self.Applications:
 
-                apps += [p]
+                blocked = False
+                for dep in app.DependsOn.arguments:
+                    #print(app.Name, dep.Name)
+                    if ('Status' not in dep.__dict__) or (dep.Status is None):
+                        blocked = True
+                        break
 
-        for app in apps:
-            p.wait()
+                if blocked:
+                    continue
+                elif ('Status' in app.__dict__):
+                    continue
+
+                with Chdir(app.Directory):
+
+                    cmd = app.GetCall()
+                    CompositionLogger.Info("Running: {0}".format(" ".join(cmd)))
+
+                    if app.SetupFile is not None:
+                        jobfile = "./{0}.sh".format(app.Name)
+                        with open(jobfile, "w") as outfile:
+                            outfile.write("#!/bin/sh" + "\n")
+                            outfile.write(". {0}".format(app.SetupFile) + "\n")
+                            outfile.write("{0}".format(" ".join(cmd)))
+                        os.chmod(
+                            jobfile,
+                            stat.S_IRUSR | stat.S_IXUSR | stat.S_IWUSR |
+                            stat.S_IRGRP | stat.S_IXGRP |
+                            stat.S_IROTH | stat.S_IXOTH
+                        )
+                        p = subprocess.Popen([jobfile])
+                    else:
+                        p = subprocess.Popen(cmd)
+
+                    #apps += [p]
+                    app.__dict__['procid'] = p
+
+            '''
+            for app in apps:
+                p.wait()
+            '''
+
+            done = True
+            for app in self.Applications:
+                if ('procid' in app.__dict__) and ('Status' not in app.__dict__):
+                    app.__dict__['Status'] = app.procid.poll()
+                elif ('procid' in app.__dict__) and (app.Status is None):
+                    app.__dict__['Status'] = app.procid.poll()
+
+                if 'Status' not in app.__dict__:
+                    done = False
+                elif app.Status is None:
+                    done = False
+
+            if done:
+                break
+
 
         with Chdir(self.Directory):
             with open(self.touchname, "w") as outfile:

@@ -9,13 +9,15 @@ include = ["effis.composition", "effis.runtime"]
 [project]
 name = "effis"
 description = "EFFIS workflow manager"
-version = "0.3.0"
+version = "1.0.0"
 authors = [{name="Eric Suchyta", email="eric.d.suchyta@gmail.com"}]
 dependencies = [
   "dill",
   "globus_sdk", 
-  "cheetah @ git+ssh://git@github.com/CODARcode/cheetah.git"
 ]
+#"cheetah @ git+ssh://git@github.com/CODARcode/cheetah.git"
+#"adios2", 
 
 [project.scripts]
 effis-submit = "effis.runtime.EffisSubmit:main"
+effis-globus-backup = "effis.runtime.BackupGlobus:main"

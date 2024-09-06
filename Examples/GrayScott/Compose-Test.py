@@ -109,11 +109,14 @@ if args.analysis:
         if args.plot:
             tree.write(os.path.join(PDFPlot.Directory, "adios2.xml"))
 
+    else:
+        Analysis.DependsOn += [Simulation]
+
 
 if args.backup is not None:
     endpoint, directory = args.backup.split(':')
     MyWorkflow.Backup['Remote'] = effis.composition.Destination(endpoint)  # The destination is set with UUID of the Globus endpoint
-    MyWorkflow.Backup['Remote'] += effis.composition.SendData(MyWorkflow.WorkflowDirectory, outpath=directory)
+    MyWorkflow.Backup['Remote'] += effis.composition.SendData(MyWorkflow.Directory, outpath=directory)
 
 
 #MyWorkflow.NewSubmit()
