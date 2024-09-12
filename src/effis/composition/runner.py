@@ -68,7 +68,7 @@ class UseRunner:
     @staticmethod
     def kwargsmsg(kwargs):
         if "Name" in kwargs:
-            return "name = '{0}'".format(kwargs["Name"])
+            return "Name = '{0}'".format(kwargs["Name"])
         else:
             return "**kwargs={0}".format(kwargs)
 
@@ -79,7 +79,7 @@ class UseRunner:
             CompositionLogger.Warning("Runner was not set with {0} ({1}). Detecting what to use...".format(self.__class__.__name__, self.kwargsmsg(kwargs)))
             self.__dict__['Runner'] = self.DetectRunnerInfo(useprint=False)
             if self.Runner is None:
-                self.__RunnerError__[0](self.__RunnerError__[1])
+                self._RunnerError_[0](self._RunnerError_[1])
             else:
                 CompositionLogger.Info("Using detected runner {0}".format(self.Runner.cmd))
         else:
@@ -90,28 +90,22 @@ class UseRunner:
             for key in self.Runner.options:
                 self.__dict__[key] = None
 
-        """
-        if "__class__" in kwargs:
-            kwobj = kwargs["__class__"]
-            del kwargs["__class__"]
-        else:
-            kwobj = self.__class__
-        """
 
         for key in kwargs:
-            if (key not in self.__class__.__dict__) and (key not in self.__dict__):
+            if key not in self.__dir__():
                 CompositionLogger.RaiseError(AttributeError, "{0} is not an initializer for {1} ({2}) using Runner={3}".format(key, self.__class__.__name__, self.kwargsmsg(kwargs), str(self.Runner)))
             else:
                 self.__setattr__(key, kwargs[key])
-                
+
+
         # Set the rest to the defaults in self.__dict__
-        for key in self.__class__.__dict__:
+        for key in self.__dir__():
             if key.startswith("__") and key.endswith("__"):
                 continue
-            elif callable(self.__class__.__dict__[key]):
+            elif callable(getattr(self, key)):
                 continue
             elif key not in self.__dict__:
-                self.__setattr__(key, self.__class__.__dict__[key])
+                self.__setattr__(key, getattr(self, key))
 
 
 class ParallelRunner:

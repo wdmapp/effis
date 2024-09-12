@@ -66,7 +66,7 @@ class Application(UseRunner):
     #: Input files to copy for the Application
     Input = []
 
-    __RunnerError__ = (CompositionLogger.RunnerError, "No MPI [Application] Runner found. Exiting...")
+    _RunnerError_ = (CompositionLogger.RunnerError, "No MPI [Application] Runner found. Exiting...")
 
     """
     #ShareKey = None
@@ -123,11 +123,12 @@ class Application(UseRunner):
     
     
     def __setattr__(self, name, value):
-        '''
+
+        # Warn if setting something unknown
         if name not in self.__dir__():
             CompositionLogger.Warning("{0} not recognized as Application attribute".format(name))
-        '''
 
+        # Throw errors for bad attribute type settings
         if (name in ("Filepath", "SetupFile", "Name")) and (value is not None) and (type(value) is not str):
             CompositionLogger.RaiseError(AttributeError, "{0} should be set as a string".format(name))
         if (name in ("Environment")) and (type(value) is not dict):

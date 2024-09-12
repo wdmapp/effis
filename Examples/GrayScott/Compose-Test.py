@@ -27,9 +27,9 @@ runner = effis.composition.Workflow.DetectRunnerInfo()
 
 MyWorkflow = effis.composition.Workflow(
     Runner=runner,
-    ParentDirectory=os.path.dirname(args.outdir),   # - ParentDirctory: The directory to create new workflows into
-    Name=os.path.basename(args.outdir.rstrip("/")), # - Name: The workflow will run and create its output in <ParentDirectory/Name>
+    Directory=args.outdir,                          # - Dirctory: The directory to create new workflows into
 )
+MyWorkflow.Subdirs = False
 
 Simulation = MyWorkflow.Application(
     Filepath=shutil.which("adios2_simulations_gray-scott"),     # – Filepath: The path of the executable to run
