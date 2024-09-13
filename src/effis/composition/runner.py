@@ -6,7 +6,6 @@ from effis.composition.arguments import Arguments
 from effis.composition.log import CompositionLogger
 
 
-
 class Detected:
     Runner = False
     System = False

@@ -2,7 +2,6 @@
 effis.composition.application
 """
 
-import copy
 from effis.composition.runner import Detected, UseRunner
 from effis.composition.arguments import Arguments
 from effis.composition.input import InputList

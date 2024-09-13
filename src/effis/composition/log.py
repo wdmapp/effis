@@ -1,6 +1,4 @@
 import logging
-import traceback
-import sys
 
 
 class CompositionLogger:
@@ -15,8 +13,6 @@ class CompositionLogger:
     streamhandler.setLevel(logging.INFO)
     streamhandler.setFormatter(formatter)
     log.addHandler(streamhandler)
-
-    #TracebackLimit = -1
 
 
     @classmethod
@@ -49,18 +45,3 @@ class CompositionLogger:
     def RaiseError(cls, MyError, msg):
         cls.log.error(msg)
         raise MyError(msg)
-
-        # Could filter traceback stack to hide full trace from user, but it's not clear to me how to properly interact with Jupyter/IPython sessions
-        """
-        try:
-            raise MyError(msg)
-        except:            
-            stack = traceback.extract_stack()
-            print(len(stack))
-            traceback.print_stack(stack)
-            
-            #traceback.print_stack(limit=cls.TracebackLimit)
-            #sys.exit(1)
-        """
-        
-
