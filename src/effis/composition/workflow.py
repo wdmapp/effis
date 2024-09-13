@@ -5,6 +5,7 @@ effis.composition.workflow
 import datetime
 import os
 import subprocess
+import threading
 import json
 import sys
 import shutil
@@ -19,11 +20,6 @@ from effis.composition.arguments import Arguments
 from effis.composition.input import InputList
 from effis.composition.backup import Backup
 from effis.composition.log import CompositionLogger
-
-
-# This is just for convenience with examples
-ExamplesPath = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "Examples"))
-
 
 
 class Chdir(ContextDecorator):
@@ -116,6 +112,9 @@ class Workflow(UseRunner):
 
     # Used with checking for the Runner
     _RunnerError_ = (CompositionLogger.Warning, "No batch queue [Workflow] Runner found, conintuining without one.")
+
+    # Used to make sure Create() is called before Submit()
+    _CreateCalled_ = False
 
 
     
@@ -222,7 +221,7 @@ class Workflow(UseRunner):
     def SetAppDirectories(self, applications):
         for app in applications:
             app.__dict__['Directory'] = self.Directory
-            if self.Subdirs:
+            if self.Subdirs and (app.Name is not None):
                 app.__dict__['Directory'] = os.path.join(app.Directory, app.Name)
     
 
@@ -249,6 +248,18 @@ class Workflow(UseRunner):
 
         # May already be set, but call in case not
         self.SetWorkflowDirectory()
+
+        # Check things that don't make really make sense for applications
+        for i, app in enumerate(self.Applications):
+            
+            if app.cmd is None:
+                CompositionLogger.RaiseError(AttributeError, "Cannot use an Application (#{0}) with no cmd attribute".format(i))
+
+            if app.Name is None:
+                app.Name = os.path.basename(app.cmd)
+                CompositionLogger.Warning("Application (#{0}) cmd={1} did not set Name – using {2}".format(i, app.cmd, app.Name))
+
+        # May already be set, but call in case not
         self.SetAppDirectories(self.Applications)
 
         # Don't overwrite original composition; Anticipate that SubWorkflows (Runner=None) will be using the same directory
@@ -281,6 +292,8 @@ class Workflow(UseRunner):
         self.backupname = os.path.join(self.Directory, "{0}.{1}".format(self.Name, self.backupname))
         self.submitname = os.path.join(self.Directory, "{0}.{1}".format(self.Name, self.submitname))
         self.picklename = os.path.join(self.Directory, "{0}.{1}".format(self.Name, self.picklename))
+
+        self._CreateCalled_ = True
 
         # Dump pickle file when Python closes
         atexit.register(self.PickleWrite)
@@ -335,7 +348,10 @@ class Workflow(UseRunner):
             p.stderr = sys.stderr
 
 
-    def Submit(self, rerun=False):
+    def Submit(self, wait=True):
+
+        if not self._CreateCalled_:
+            self.Create()
 
         with Chdir(self.Directory):
             if os.path.exists(self.touchname):
@@ -345,21 +361,34 @@ class Workflow(UseRunner):
         self.SubmitBackup()
 
         SubmitCall = self.GetCall()
+
         if len(SubmitCall) > 0:
             SubmitCall += [self.submitname]
             with open(self.submitname, 'w') as outfile:
                 outfile.write("#!/bin/sh" + "\n")
                 outfile.write("effis-submit --sub {0}".format(self.Directory))
             subprocess.run(SubmitCall)
+
         else:
-            self.SubSubmit()
+            if not wait:
+                self.__dict__['Wait'] = wait
+
+            if "Wait" not in self.__dict__:
+                self.__dict__['Wait'] = True
+
+            if self.Wait:
+                self.SubSubmit()
+            else:
+                tid = threading.Thread(target=self.SubSubmit)
+                CompositionLogger.Info("Starting thread to run worklow")
+                tid.start()
+                return tid
 
 
     def SubSubmit(self):
 
         while True:
 
-            apps = []
             for app in self.Applications:
 
                 blocked = False
@@ -424,6 +453,9 @@ class SubWorkflow(Workflow):
     backupname = "sub.backup.json"      # Configures the globus movement
     submitname = "sub.workflow.sh"      # File that submits with scheduler
     picklename = "sub.workflow.pickle"  # Saves workflow description
+
+    # Allow user to not wait for SubWorkflow to finish
+    Wait = True
 
 
     def __init__(self, **kwargs):

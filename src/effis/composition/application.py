@@ -68,35 +68,6 @@ class Application(UseRunner):
 
     _RunnerError_ = (CompositionLogger.RunnerError, "No MPI [Application] Runner found. Exiting...")
 
-    """
-    #ShareKey = None
-    Ranks = 1
-    RanksPerNode = None
-    CoresPerRank = None
-    GPUsPerRank = None
-    RanksPerGPU = None
-    """
-
-    
-    def GPUvsRank(self):
-        gpunum = None
-        ranknum = None
-        if (self.GPUsPerRank is not None) and (type(self.GPUsPerRank) is int):
-            gpunum = self.GPUsPerRank
-            ranknum = 1
-        elif (self.GPUsPerRank is not None) and (type(self.GPUsPerRank) is str):
-            gpunum, ranknum = self.GPUsPerRank.split(":")
-            gpunum = int(gpunum)
-            ranknum = int(ranknum)
-        elif ('RanksPerGPU' in self.__dict__) and (self.RanksPerGPU is not None) and (type(self.RanksPerGPU) is int):
-            ranknum = app.RanksPerGPU
-            gpunum = 1
-        elif ('RanksPerGPU' in self.__dict__) and (self.RanksPerGPU is not None) and (type(self.RanksPerGPU) is str):
-            ranknum, gpunum = app.RanksPerGPU.split(":")
-            ranknum = int(ranknum.strip())
-            gpunum = int(gpunum.strip())
-        return gpunum, ranknum
-    
 
     @classmethod
     def CheckApplications(cls, other):
@@ -171,23 +142,3 @@ class Application(UseRunner):
     def __add__(self, other):
         return self._add_(other)
 
-
-"""
-class LoginNodeApplication(Application):
-
-    def __init__(self, **kwargs):
-
-        self.UseNodes = 0
-
-        for  key in ["Ranks", "RanksPerNode", "CoresPerRank", "GPUsPerRank", "RanksPerGPU", "ShareKey", "MPIRunnerArguments", "__class__"]:
-            if key in kwargs:
-                CompositionLogger.RaiseError(ValueError, "Setting {0} is not allowed with LoginNodeApplication.".format(key))
-        if ("UseNodes" in kwargs) and (type(kwargs["UseNodes"]) is int):
-            self.UseNodes = kwargs["UseNodes"]
-            del kwargs["UseNodes"]
-        elif ("UseNodes" in kwargs):
-            CompositionLogger.RaiseError(ValueError, "UseNodes value must be an integer")
-
-        #Application.__init__(self, **kwargs)
-        super(LoginNodeApplication, self).__init__(__class__=Application, **kwargs)
-"""
