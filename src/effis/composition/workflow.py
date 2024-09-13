@@ -198,7 +198,7 @@ class Workflow(UseRunner):
         """
 
         if ('Runner' not in kwargs):
-            thisrunner = Application.DetectRunnerInfo(useprint=True)
+            thisrunner = Application.DetectRunnerInfo(useprint=False)
             CompositionLogger.Info("Application ({0}): Using detected runner {1}".format(UseRunner.kwargsmsg(kwargs), thisrunner.cmd))
             kwargs['Runner'] = thisrunner
         self += Application(**kwargs)
@@ -269,7 +269,7 @@ class Workflow(UseRunner):
         # Create Directories
         if not os.path.exists(self.Directory):
             os.makedirs(self.Directory)
-        CompositionLogger.Info("Created: {0}".format(self.Directory))
+            CompositionLogger.Info("Created: {0}".format(self.Directory))
         for app in self.Applications:
             if not os.path.exists(app.Directory):
                 os.makedirs(app.Directory)
@@ -380,7 +380,7 @@ class Workflow(UseRunner):
                 self.SubSubmit()
             else:
                 tid = threading.Thread(target=self.SubSubmit)
-                CompositionLogger.Info("Starting thread to run worklow")
+                CompositionLogger.Info("Starting thread to run Worklow Name={0}".format(self.Name))
                 tid.start()
                 return tid
 
