@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
-import effis.composition
+import effis.runtime
 import logging
 
 
 if __name__ == "__main__":
 
-    effis.composition.EffisLogger.SetLevel(logging.WARNING)
+    effis.runtime.EffisLogger.SetLevel(logging.WARNING)
 
-    SubWorkflow = effis.composition.SubWorkflow(
+    SubWorkflow = effis.runtime.SubWorkflow(
         Name="SubRun",
     )
     SubWorkflow.Subdirs = False
