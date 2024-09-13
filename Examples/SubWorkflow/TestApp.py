@@ -10,8 +10,8 @@ if __name__ == "__main__":
     )
     SubWorkflow.Subdirs = False
 
-    ls = SubWorkflow.Application(Filepath="ls", Ranks=1)
-    date = SubWorkflow.Application(Filepath="date", Ranks=2)
+    ls = SubWorkflow.Application(cmd="ls", Ranks=1)
+    date = SubWorkflow.Application(cmd="date", Ranks=2)
     
     SubWorkflow.Create()
     SubWorkflow.Submit()

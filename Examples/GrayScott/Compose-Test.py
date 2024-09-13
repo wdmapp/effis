@@ -32,15 +32,15 @@ MyWorkflow = effis.composition.Workflow(
 MyWorkflow.Subdirs = False
 
 Simulation = MyWorkflow.Application(
-    Filepath=shutil.which("adios2_simulations_gray-scott"),     # – Filepath: The path of the executable to run
-    Name="Simulation",                                          # – Name: Will run in a subdirectory set by Name
+    cmd=shutil.which("adios2_simulations_gray-scott"),  # – cmd: The (path of the) executable to run
+    Name="Simulation",                                  # – Name: Will run in a subdirectory set by Name
     Ranks=2,
     RanksPerNode=2,
 )
 
 Simulation.SetupFile = "/Users/ericsuchyta/Code/effis/Examples/GrayScott/Runs/test.sh"
 
-configdir = os.path.join(os.path.dirname(Simulation.Filepath), "..", "share", "adios2", "gray-scott")
+configdir = os.path.join(os.path.dirname(Simulation.cmd), "..", "share", "adios2", "gray-scott")
 jsonfile = os.path.join(configdir, "settings-files.json")
 
 Simulation.Input += effis.composition.Input(jsonfile, rename="settings.json")
@@ -52,7 +52,7 @@ Simulation.CommandLineArguments += "settings.json"
 if args.analysis:
 
     Analysis = MyWorkflow.Application(
-        Filepath=shutil.which("adios2_simulations_gray-scott_pdf-calc"),
+        cmd=shutil.which("adios2_simulations_gray-scott_pdf-calc"),
         Name="Analysis",
         #Ranks=1,
         #RanksPerNode=1
@@ -66,7 +66,7 @@ if args.analysis:
 if args.plot and args.analysis:
 
     PDFPlot = MyWorkflow.Application(
-        Filepath=shutil.which("python3"),
+        cmd=shutil.which("python3"),
         CommandLineArguments=os.path.join(configdir, "pdfplot.py"),
         Name="PDFPlot",
         Runner=None,

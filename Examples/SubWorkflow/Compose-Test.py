@@ -20,7 +20,7 @@ if __name__ == "__main__":
     MyWorkflow.Subdirs = False
 
     Simulation = MyWorkflow.Application(
-        Filepath="python3",
+        cmd="python3",
         Name="TestRunner",
         Runner=None,
     )

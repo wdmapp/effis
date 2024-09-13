@@ -46,7 +46,7 @@ class Application(UseRunner):
     Name = None
 
     #: Path to application executable
-    Filepath = None
+    cmd = None
 
     #: Appliction command line arguments
     CommandLineArguments = []
@@ -113,7 +113,7 @@ class Application(UseRunner):
         RunnerArgs = []
         if self.Runner is not None:
             RunnerArgs = self.Runner.GetCall(self, self.MPIRunnerArguments)
-        Cmd = RunnerArgs + [self.Filepath] + self.CommandLineArguments.arguments
+        Cmd = RunnerArgs + [self.cmd] + self.CommandLineArguments.arguments
         return Cmd
 
 
@@ -129,7 +129,7 @@ class Application(UseRunner):
             CompositionLogger.Warning("{0} not recognized as Application attribute".format(name))
 
         # Throw errors for bad attribute type settings
-        if (name in ("Filepath", "SetupFile", "Name")) and (value is not None) and (type(value) is not str):
+        if (name in ("cmd", "SetupFile", "Name")) and (value is not None) and (type(value) is not str):
             CompositionLogger.RaiseError(AttributeError, "{0} should be set as a string".format(name))
         if (name in ("Environment")) and (type(value) is not dict):
             CompositionLogger.RaiseError(ValueError, "{0} should be set as a dictionary".format(name))
