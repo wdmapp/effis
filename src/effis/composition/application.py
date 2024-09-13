@@ -96,6 +96,9 @@ class Application(UseRunner):
     
     
     def setattr(self, name, value):
+        """
+        Attribute setting; due to inheritance, names are guaranteed to be in the class
+        """
 
         # Throw errors for bad attribute type settings
         if (name in ("cmd", "SetupFile", "Name")) and (value is not None) and (type(value) is not str):

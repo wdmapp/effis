@@ -119,10 +119,9 @@ class Workflow(UseRunner):
 
     
     def setattr(self, name, value):
-
-        # Setting something unknown; this should debatably be a warning
-        if name not in self.__dir__():
-            self.UnknownError(name)
+        """
+        Attribute setting; due to inheritance, names are guaranteed to be in the class
+        """
 
         # Throw errors for bad attribute type settings
         if (name in ("Name", "Directory", "SetupFile")) and (value is not None) and (type(value) is not str):
