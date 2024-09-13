@@ -120,7 +120,7 @@ class Workflow(UseRunner):
     
     def __setattr__(self, name, value):
 
-        # Warn if setting something unknown
+        # Warn if setting something unknown; this should debatably be an error
         if name not in self.__dir__():
             CompositionLogger.Warning("{0} not recognized as Workflow attribute".format(name))
 

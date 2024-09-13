@@ -7,11 +7,17 @@ from effis.composition.log import CompositionLogger
 
 
 class Detected:
+    """
+    Keeps track of automatically detected Queue, MPI Runner info
+    """
     Runner = False
     System = False
 
 
 def ValidateIntOptions(options, Application, label="Application"):
+    """
+    Raise an error if the provided options aren't Integers (or strings of them)
+    """
     for name in options:
         if (name in Application.__dict__) and (Application.__dict__[name] is not None):
             if not isinstance(Application.__dict__[name], (str, int)):
@@ -21,9 +27,17 @@ def ValidateIntOptions(options, Application, label="Application"):
 
 
 class UseRunner:
+    """
+    The idea of UseRunner inheritance is an abstraction on Workflow and Application setup.
+    The two are separate, but use a common backend infrastructure for attribute configuration.
+    Each takes a Parallel Runner child class object (or None) to configure appropriately for the system/situation.
+    """
 
     @classmethod
     def DetectRunnerInfo(cls, useprint=True):
+        """
+        Check for Batch Queue and MPI Runners on the system
+        """
 
         if Detected.System is False:
 
@@ -73,6 +87,9 @@ class UseRunner:
 
 
     def __init__(self, **kwargs):
+        """
+        Set up with the proper kind of Runner and only allow setting known attributes
+        """
 
         if "Runner" not in kwargs:
             CompositionLogger.Warning("Runner was not set with {0} ({1}). Detecting what to use...".format(self.__class__.__name__, self.kwargsmsg(kwargs)))
@@ -109,7 +126,7 @@ class UseRunner:
 
 class ParallelRunner:
     """
-    Defines a parallel runner, e.g. srun
+    All Batch Queues and MPI(or other multiprocess) Launchers will inherit from this.
     """ 
 
     cmd = None
@@ -117,6 +134,9 @@ class ParallelRunner:
 
 
     def Validate(self, Options):
+        """
+        Mainly calls child's Validation (ValidateOptions)
+        """
         if shutil.which(self.cmd) is None:
             CompositionLogger.RaiseError(ValueError, "{0} was not found".format(self.cmd))
         if 'ValidateOptions' in self.__dir__():
@@ -124,6 +144,9 @@ class ParallelRunner:
 
 
     def GetCall(self, Options, Extra=Arguments([])):
+        """
+        Get the Runner's command line call
+        """
         self.Validate(Options)
         RunnerArgs = [self.cmd]
         for option in self.options:
