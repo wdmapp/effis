@@ -86,6 +86,25 @@ class UseRunner:
             return "**kwargs={0}".format(kwargs)
 
 
+    def UnknownError(self, key):
+        if self.Runner is None:
+            rname = "None"
+        else:
+            rname = self.Runner.__class__.__name__
+        CompositionLogger.RaiseError(AttributeError, "{0} is not an attribute for {1} using Runner={2}".format(key, self.__class__.__name__, rname))
+
+
+    def __setattr__(self, name, value):
+
+        if name not in self.__dir__():
+            self.UnknownError(name)
+
+        if 'setattr' in self.__dir__():
+            self.setattr(name, value)
+        else:
+            self.__dict__[name] = value
+
+
     def __init__(self, **kwargs):
         """
         Set up with the proper kind of Runner and only allow setting known attributes
@@ -108,10 +127,7 @@ class UseRunner:
 
 
         for key in kwargs:
-            if key not in self.__dir__():
-                CompositionLogger.RaiseError(AttributeError, "{0} is not an initializer for {1} ({2}) using Runner={3}".format(key, self.__class__.__name__, self.kwargsmsg(kwargs), str(self.Runner)))
-            else:
-                self.__setattr__(key, kwargs[key])
+            self.__setattr__(key, kwargs[key])
 
 
         # Set the rest to the defaults in self.__dict__

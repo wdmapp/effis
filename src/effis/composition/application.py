@@ -95,11 +95,7 @@ class Application(UseRunner):
         return Detected.Runner
     
     
-    def __setattr__(self, name, value):
-
-        # Warn if setting something unknown; this should debatably be an error
-        if name not in self.__dir__():
-            CompositionLogger.Warning("{0} not recognized as Application attribute".format(name))
+    def setattr(self, name, value):
 
         # Throw errors for bad attribute type settings
         if (name in ("cmd", "SetupFile", "Name")) and (value is not None) and (type(value) is not str):
