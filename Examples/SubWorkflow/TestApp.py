@@ -6,15 +6,14 @@ import logging
 
 if __name__ == "__main__":
 
-    effis.runtime.EffisLogger.SetLevel(logging.WARNING)
-
     SubWorkflow = effis.runtime.SubWorkflow(
         Name="SubRun",
     )
     SubWorkflow.Subdirs = False
 
-    ls = SubWorkflow.Application(cmd="ls", Ranks=1)
     date = SubWorkflow.Application(cmd="date", Ranks=2)
+    ls = SubWorkflow.Application(cmd="ls", Ranks=1)
+    ls.DependsOn += date
     
     #SubWorkflow.Create()
 
