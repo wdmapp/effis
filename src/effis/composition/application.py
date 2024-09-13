@@ -57,6 +57,9 @@ class Application(UseRunner):
     #: A file to source before lanuching the application (for environment setup, etc.)
     SetupFile = None
 
+    #: Send the Application's terminal output to a file
+    LogFile = None
+
     #: Set environment variables with Python dictionary (instead of setup file); Not implemented yet
     Environment = {}
 

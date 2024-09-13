@@ -407,6 +407,11 @@ class Workflow(UseRunner):
                     cmd = app.GetCall()
                     CompositionLogger.Info("Running: {0}".format(" ".join(cmd)))
 
+                    if app.LogFile is not None:
+                        app.__dict__['stdout'] = open(app.LogFile, 'w')
+                    else:
+                        app.__dict__['stdout'] = None
+
                     if app.SetupFile is not None:
                         jobfile = "./{0}.sh".format(app.Name)
                         with open(jobfile, "w") as outfile:
@@ -419,9 +424,9 @@ class Workflow(UseRunner):
                             stat.S_IRGRP | stat.S_IXGRP |
                             stat.S_IROTH | stat.S_IXOTH
                         )
-                        p = subprocess.Popen([jobfile])
+                        p = subprocess.Popen([jobfile], stdout=app.stdout, stderr=app.stdout)
                     else:
-                        p = subprocess.Popen(cmd)
+                        p = subprocess.Popen(cmd, stdout=app.stdout, stderr=app.stdout)
 
                     app.__dict__['procid'] = p
 
@@ -440,6 +445,10 @@ class Workflow(UseRunner):
             if done:
                 break
 
+        for app in self.Applications:
+            with Chdir(app.Directory):
+                if app.stdout is not None:
+                    app.stdout.close()
 
         with Chdir(self.Directory):
             with open(self.touchname, "w") as outfile:

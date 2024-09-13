@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import effis.runtime
-import logging
 
 
 if __name__ == "__main__":
@@ -12,6 +11,8 @@ if __name__ == "__main__":
     SubWorkflow.Subdirs = False
 
     date = SubWorkflow.Application(cmd="date", Ranks=2)
+    date.LogFile = "date.log"
+
     ls = SubWorkflow.Application(cmd="ls", Ranks=1)
     ls.DependsOn += date
     

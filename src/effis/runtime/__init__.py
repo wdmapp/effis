@@ -6,4 +6,4 @@ from effis.composition.application import Application
 
 # Also enable the Logger here
 from effis.composition.log import CompositionLogger as EffisLogger
-EffisLogger.SetWarning()
+#EffisLogger.SetWarning()
