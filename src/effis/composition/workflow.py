@@ -423,9 +423,9 @@ class Workflow(UseRunner):
                             stat.S_IRGRP | stat.S_IXGRP |
                             stat.S_IROTH | stat.S_IXOTH
                         )
-                        p = subprocess.Popen([jobfile], stdout=app.stdout, stderr=app.stdout)
+                        p = subprocess.Popen([jobfile], stdout=app.stdout, stderr=app.stdout, env={**os.environ, **app.Environment})
                     else:
-                        p = subprocess.Popen(cmd, stdout=app.stdout, stderr=app.stdout)
+                        p = subprocess.Popen(cmd, stdout=app.stdout, stderr=app.stdout, env={**os.environ, **app.Environment})
 
                     app.__dict__['procid'] = p
 
