@@ -415,7 +415,7 @@ class Workflow(UseRunner):
                         jobfile = "./{0}.sh".format(app.Name)
                         with open(jobfile, "w") as outfile:
                             outfile.write("#!/bin/sh" + "\n")
-                            outfile.write(". {0}".format(app.SetupFile) + "\n")
+                            outfile.write(". ./{0}".format(app.SetupFile) + "\n")
                             outfile.write("{0}".format(" ".join(cmd)))
                         os.chmod(
                             jobfile,
