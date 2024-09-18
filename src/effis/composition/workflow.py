@@ -116,6 +116,9 @@ class Workflow(UseRunner):
     # Used to make sure Create() is called before Submit()
     _CreateCalled_ = False
 
+    #: Lets set a max running for the group
+    GroupMax = {}
+
 
     
     def setattr(self, name, value):
@@ -128,6 +131,8 @@ class Workflow(UseRunner):
             CompositionLogger.RaiseError(ValueError, "Workflow attribute: {0} should be set as a string".format(name))
         elif name in ("Subdirs", "MPMD", "TimeIndex") and (type(value) is not bool):
             CompositionLogger.RaiseError(ValueError, "Workflow attribute: {0} should be set as a boolean".format(name))
+        elif (name == "GroupMax") and (not isinstance(value, dict)):
+            CompositionLogger.RaiseError(ValueError, "Workflow attribute: {0} should be set as a dictionary".format(name))
 
         # These are for Object types, will throw errors within if necessary
         if name == "SchedulerDirectives":
@@ -386,6 +391,13 @@ class Workflow(UseRunner):
 
     def SubSubmit(self):
 
+        GroupRunning = {}
+        for app in self.Applications:
+            if (app.Group is None) or (app.Group in GroupRunning):
+                continue
+            GroupRunning[app.Group] = []
+
+
         while True:
 
             for app in self.Applications:
@@ -395,6 +407,8 @@ class Workflow(UseRunner):
                     if ('Status' not in dep.__dict__) or (dep.Status is None):
                         blocked = True
                         break
+                if (app.Group is not None) and (len(GroupRunning[app.Group]) >= self.GroupMax[app.Group]):
+                    blocked = True
 
                 if blocked:
                     continue
@@ -428,6 +442,8 @@ class Workflow(UseRunner):
                         p = subprocess.Popen(cmd, stdout=app.stdout, stderr=app.stdout, env={**os.environ, **app.Environment})
 
                     app.__dict__['procid'] = p
+                    if app.Group is not None:
+                        GroupRunning[app.Group] += [app.procid]
 
             done = True
             for app in self.Applications:
@@ -440,6 +456,8 @@ class Workflow(UseRunner):
                     done = False
                 elif app.Status is None:
                     done = False
+                elif (app.Group is not None) and (app.procid in GroupRunning[app.Group]):
+                    GroupRunning[app.Group].remove(app.procid)
 
             if done:
                 break

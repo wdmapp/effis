@@ -70,6 +70,9 @@ class Application(UseRunner):
 
     _RunnerError_ = (CompositionLogger.RunnerError, "No MPI [Application] Runner found. Exiting...")
 
+    #: Lets set a max running for the group
+    Group = None
+
 
     @classmethod
     def CheckApplications(cls, other):
@@ -101,7 +104,7 @@ class Application(UseRunner):
         """
 
         # Throw errors for bad attribute type settings
-        if (name in ("cmd", "SetupFile", "Name")) and (value is not None) and (type(value) is not str):
+        if (name in ("cmd", "SetupFile", "Name", "Group")) and (value is not None) and (type(value) is not str):
             CompositionLogger.RaiseError(AttributeError, "{0} should be set as a string".format(name))
         if (name in ("Environment")) and (type(value) is not dict):
             CompositionLogger.RaiseError(ValueError, "{0} should be set as a dictionary".format(name))
