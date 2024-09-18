@@ -17,7 +17,7 @@ pip install [--editable] .
 
 Here, let’s consider running an example simulation that installs with ADIOS (Gray-Scott),
 with workflow options to turn on analysis, plotting, and remote data movement.
-The code that follows below is taken from the [Compose.py](https://github.com/wdmapp/effis/blob/no-cheetah/Examples/GrayScott/GrayScott.py)
+The code that follows below is taken from the [GrayScoot.py](https://github.com/wdmapp/effis/blob/no-cheetah/Examples/GrayScott/GrayScott.py)
 script from `Examples/GrayScott`.
 
 ## Python Composition
