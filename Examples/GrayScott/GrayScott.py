@@ -25,7 +25,8 @@ parser.add_argument("-b", "--backup", help="Backup run to other location; format
 if isinstance(runner, effis.composition.runner.perlmutter):
     parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=1)
     parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="00:05:00")
-    parser.add_argument("-q", "--qos", help="QOS", required=False, type=str, default="cpu")
+    parser.add_argument("-q", "--qos", help="QOS", required=False, type=str, default="regular")
+    parser.add_argument("-k", "--constraint", help="cpu or gpu", required=False, type=str, default="cpu")
     parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
 elif runner is not None:
     raise(ValueError, "Example is configured for NERSC or a machine without a scheduler (with mpiexec)")
@@ -46,8 +47,9 @@ MyWorkflow = effis.composition.Workflow(
 if isinstance(runner, effis.composition.runner.perlmutter):
     MyWorkflow.Nodes = args.nodes
     MyWorkflow.Walltime = args.walltime
+    MyWorkflow.QOS = args.qos
+    MyWorkflow.Constraint = args.constraint
     MyWorkflow.Charge = args.charge
-    MyWorkflow.Constraint = args.contraint
 
 
 # Add one more more application to a Workflow; here we'll add an example simulation from ADIOS
@@ -85,25 +87,38 @@ if args.analysis:
     Analysis.CommandLineArguments += [simulation_filename, analysis_filename]           # Can add more than one argument at once
     Analysis.Input += effis.composition.Input(os.path.join(configdir, "adios2.xml"))
 
+    if isinstance(runner, effis.composition.runner.perlmutter):
+        Simulation.CoresPerRank = 1     # These are need on Perlmutter for --cpus-per-task (to imply --exact); but mpiexec.hydra doesn't have an option like this
+        Analysis.CoresPerRank = 1
+
 
 # Add a plotting process to the workflow
 if args.plot and args.analysis:
 
-    # We can also give Runner as None; this means that we won't use an MPI Runner, and just call the command; (Or, a Workflow runner as None would not use a batch Queue)
     PDFPlot = effis.composition.Application(
         cmd=shutil.which("python3"),
         CommandLineArguments=os.path.join(configdir, "pdfplot.py"),
         Name="PDFPlot",
-        Runner=None,
+        Ranks=1,
+        RanksPerNode=1,
     )
-
-    # Applications can be created (outside) the Workflow, and then added in
+    # Applications can be created (outside) the Workflow, and then added in; (This will give WARNING instead of INFO if Runner is not given)
     MyWorkflow += PDFPlot
 
     PDFPlot.Input += effis.composition.Input(os.path.join(configdir, "adios2.xml"))
     PDFPlot.CommandLineArguments += "--instream={0}".format(os.path.join(Analysis.Directory, analysis_filename))
     if isinstance(runner, effis.composition.runner.perlmutter):
         PDFPlot.CommandLineArguments += "--outfile=img".format()
+        PDFPlot.CoresPerRank = 1
+
+
+    # We can also give Runner as None; this means that we won't use an MPI Runner, and just call the command; (Or, a Workflow runner as None would not use a batch Queue)
+    ls = MyWorkflow.Application(
+        cmd="ls",
+        Runner=None,
+    )
+    ls.CommandLineArguments=["-lhrt", PDFPlot.Directory]
+    ls.DependsOn = PDFPlot
 
 
 # Create() will copy the input files and set up the run area
