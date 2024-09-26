@@ -43,14 +43,21 @@ class UseRunner:
 
             # Check for recognized, commonly used things
             machine = socket.getaddrinfo(socket.gethostname(), 0, flags=socket.AI_CANONNAME)[0][3].lower()
-            for test in ("perlmutter", "frontier"):
-                if machine.find(test) != -1:
+
+            for test in ("perlmutter", "frontier", "summit"):
+
+                if (machine.find("perlmutter") != -1) or (machine.find("frontier") != -1):
                     Detected.System = globals()[test]()
                     Detected.Runner = srun()
-                    msg = "DetectRunnerInfo: Found {0}".format(test)
 
-                    if useprint:
-                        CompositionLogger.Info(msg)
+                elif machine.find("summit") != -1:
+                    Detected.System = summit()
+                    Detected.Runner = jsrun()
+
+            if useprint and (Detected.System is not False):
+                msg = "DetectRunnerInfo: Found {0}".format(Detected.System.__name__)
+                CompositionLogger.Info(msg)
+
 
         if Detected.Runner is False:
 
@@ -200,6 +207,66 @@ class mpiexec_hydra(ParallelRunner):
                     CompositionLogger.RaiseError(AttributeError, "Setting {0} with setting Ranks is ambiguous".format(name))
             CompositionLogger.Warning("Ranks was not set for Application name={0}. Setting it to 1 (with {1})".format(Application.Name, cls.cmd))
             Application.Ranks = 1
+
+
+class lsf(ParallelRunner):
+    """
+    For bsub directives with a job submission
+    """
+
+    directive = "#BSUB"
+    cmd = "bsub"
+    options = {
+        'Charge': "-P",
+        'Walltime': "-W",
+        'Nodes': "-nnodes",
+        'Jobname': "-J",
+        'Output': "-o",
+        'Error': "-e",
+        'alloc_flags': "-alloc_flags",
+    }
+
+    @classmethod
+    def ValidateOptions(cls, Workflow):
+        ValidateIntOptions(("Nodes"), Workflow, label="Workflow")
+        if Workflow.Jobname is None:
+            Workflow.Jobname = Workflow.Name
+        if Workflow.Output is None:
+            Workflow.Output = os.path.join(Workflow.Directory, "{0}-%J.out".format(Workflow.Jobname))
+
+
+class summit(lsf):
+    """
+    Summit lsf setup
+    """
+
+    @classmethod
+    def ValidateOptions(cls, Workflow):
+        for name in ('Charge', 'Walltime', 'Nodes'):
+            if Workflow.__dict__[name] is None:
+                CompositionLogger.RaiseError(AttributeError, "{0}: Summit workflow must set {1}".format(Workflow.Name, name))
+        super().ValidateOptions(Workflow)
+
+
+class jsrun(ParallelRunner):
+    """
+    For jsrun options
+    """
+
+    cmd = "jsrun"
+    options = {
+        'nrs': "--nrs",
+        'RanksPerRs': "--tasks_per_rs",
+        'CoresPerRs': "--cpu_per_rs",
+        'GPUsPerRs': "--gpu_per_rs",
+        'RsPerNode': "--rs_per_host",
+        "bind": "--bind",
+        "launch_distribution": "--launch_distribution",
+    }
+
+    @classmethod
+    def ValidateOptions(cls, Application):
+        ValidateIntOptions(("nrs", "RanksPerRs", "CoresPerRs", "GPUsPerRs", "RsPerNode"), Application)
 
 
 class slurm(ParallelRunner):
