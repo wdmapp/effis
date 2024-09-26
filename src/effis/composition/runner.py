@@ -55,7 +55,7 @@ class UseRunner:
                     Detected.Runner = jsrun()
 
             if useprint and (Detected.System is not False):
-                msg = "DetectRunnerInfo: Found {0}".format(Detected.System.__name__)
+                msg = "DetectRunnerInfo: Found {0}".format(Detected.System.__class__.__name__)
                 CompositionLogger.Info(msg)
 
 

@@ -10,11 +10,24 @@ if __name__ == "__main__":
     )
     SubWorkflow.Subdirs = False
 
-    date = SubWorkflow.Application(cmd="date", Ranks=2)
-    date.LogFile = "date.log"
+    date = SubWorkflow.Application(cmd="date", LogFile="date.log")
+    if date.Runner.__class__.__name__ == "jsrun":
+        date.nrs = 2
+        date.RsPerNode = 2
+        date.RanksPerRs = 1
+        date.CoresPerRs = 1
+    else:
+        date.Ranks = 2
 
-    ls = SubWorkflow.Application(cmd="ls", Ranks=1)
-    ls.DependsOn += date
+    ls = SubWorkflow.Application(cmd="ls", DependsOn=date)
+    if ls.Runner.__class__.__name__ == "jsrun":
+        ls.nrs = 1
+        ls.RsPerNode = 1
+        ls.RanksPerRs = 1
+        ls.CoresPerRs = 1
+    else:
+        ls.Ranks = 1
+
     
     #SubWorkflow.Create()
 
