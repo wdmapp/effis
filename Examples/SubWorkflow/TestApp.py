@@ -8,41 +8,38 @@ if __name__ == "__main__":
 
     SubWorkflow = effis.runtime.SubWorkflow(
         Name="SubRun",
+        Subdirs=False,
     )
-    SubWorkflow.Subdirs = False
 
     runner = effis.composition.Application.DetectRunnerInfo()
-    """
-    if runner.__class__.__name__ == "jsrun":
-        runner = effis.composition.runner.srun2jsrun()
-    """
 
-    date = SubWorkflow.Application(cmd="date", LogFile="date.log", Runner=runner, Ranks=2)
+    appsetup = {
+        'Ranks': 2,
+        'RanksPerNode': 2,
+        'CoresPerRank': 2
+    }
 
-    '''
-    if date.Runner.__class__.__name__ == "jsrun":
-        date.nrs = 2
-        date.RsPerNode = 2
-        date.RanksPerRs = 1
-        date.CoresPerRs = 1
-    else:
-        date.Ranks = 2
-    '''
+    # mpiexec-hydra doesn't have a cores per rank setting
+    if runner.__class__.__name__ == "mpiexec_hydra":
+        del appsetup['CoresPerRank']
 
-    ls = SubWorkflow.Application(cmd="ls", DependsOn=date, Runner=runner, Ranks=1)
+    date = SubWorkflow.Application(
+        cmd="date",
+        Runner=runner,
+        LogFile="date.log",
+        **appsetup,
+    )
 
-    '''
-    if ls.Runner.__class__.__name__ == "jsrun":
-        ls.nrs = 1
-        ls.RsPerNode = 1
-        ls.RanksPerRs = 1
-        ls.CoresPerRs = 1
-    else:
-        ls.Ranks = 1
-    '''
+    for key in appsetup:
+        appsetup[key] = 1
 
-    
-    #SubWorkflow.Create()
+    ls = SubWorkflow.Application(
+        cmd="ls",
+        Runner=runner,
+        DependsOn=date,
+        **appsetup,
+    )
+
 
     tid = SubWorkflow.Submit(wait=False)
 

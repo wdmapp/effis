@@ -129,7 +129,7 @@ class AuthorizedTranserClient:
                     redo = True
 
                     if err.info.consent_required:
-                        print("{0} – Extra consents required: required_scopes-->{1}".format(endpoint, err.info.consent_required.required_scopes))
+                        print("{0} -- Extra consents required: required_scopes-->{1}".format(endpoint, err.info.consent_required.required_scopes))
                         if self.ConsentRequired['required_scopes'] is None:
                             self.ConsentRequired['required_scopes'] = err.info.consent_required.required_scopes
                         else:
@@ -139,7 +139,7 @@ class AuthorizedTranserClient:
                         for key in self.AuthorizationParameters:
                             entry = err.info.authorization_parameters.__dict__[key]
                             if (type(entry) is list) and (len(entry) > 0):
-                                print("{0} – Extra authorizations required: {1}-->{2}".format(endpoint, key, entry))
+                                print("{0} -- Extra authorizations required: {1}-->{2}".format(endpoint, key, entry))
                                 if self.AuthorizationParameters[key] is None:
                                     self.AuthorizationParameters[key] = entry
                                 else:

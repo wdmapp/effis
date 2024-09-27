@@ -24,7 +24,7 @@ from effis.composition.log import CompositionLogger
 
 class Chdir(ContextDecorator):
     """
-    Context manager that works with Python's with statement – changes directory and then returns
+    Context manager that works with Python's with statement -- changes directory and then returns
     """
 
     def __init__(self, directory):
@@ -172,8 +172,8 @@ class Workflow(UseRunner):
     def __iadd__(self, other):
         """
         Meant as an intuitive way to build the workflow by adding applications; takes single applications or lists:
-        – workflow += application 
-        – workflow += [app1, app2]
+            workflow += application 
+            workflow += [app1, app2]
         """
 
         if isinstance(other, Application) or (type(other) is list):
@@ -261,7 +261,7 @@ class Workflow(UseRunner):
 
             if app.Name is None:
                 app.Name = os.path.basename(app.cmd)
-                CompositionLogger.Warning("Application (#{0}) cmd={1} did not set Name – using {2}".format(i, app.cmd, app.Name))
+                CompositionLogger.Warning("Application (#{0}) cmd={1} did not set Name -- using {2}".format(i, app.cmd, app.Name))
 
         # May already be set, but call in case not
         self.SetAppDirectories(self.Applications)
