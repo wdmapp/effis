@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import effis.runtime
+import effis.composition
 
 
 if __name__ == "__main__":
@@ -10,7 +11,13 @@ if __name__ == "__main__":
     )
     SubWorkflow.Subdirs = False
 
-    date = SubWorkflow.Application(cmd="date", LogFile="date.log")
+    runner = effis.composition.Application.DetectRunnerInfo()
+    if runner.__class__.__name__ == "jsrun":
+        runner = effis.composition.runner.srun2jsrun()
+
+    date = SubWorkflow.Application(cmd="date", LogFile="date.log", Runner=runner, Ranks=2)
+
+    '''
     if date.Runner.__class__.__name__ == "jsrun":
         date.nrs = 2
         date.RsPerNode = 2
@@ -18,8 +25,11 @@ if __name__ == "__main__":
         date.CoresPerRs = 1
     else:
         date.Ranks = 2
+    '''
 
-    ls = SubWorkflow.Application(cmd="ls", DependsOn=date)
+    ls = SubWorkflow.Application(cmd="ls", DependsOn=date, Runner=runner, Ranks=1)
+
+    '''
     if ls.Runner.__class__.__name__ == "jsrun":
         ls.nrs = 1
         ls.RsPerNode = 1
@@ -27,6 +37,7 @@ if __name__ == "__main__":
         ls.CoresPerRs = 1
     else:
         ls.Ranks = 1
+    '''
 
     
     #SubWorkflow.Create()

@@ -345,3 +345,74 @@ class srun(ParallelRunner):
             CompositionLogger.RaiseError(AttributeError, "{0}: Can only set one of GPUsPerRank and RanksPerGPU".format(Application.Name))
         ValidateIntOptions(cls.options, Application)
 
+
+class srun2jsrun(srun):
+
+    cmd = "jsrun"
+
+
+    @staticmethod
+    def CoresNodesAdd(RunnerArgs, Options, RanksPerRs=1):
+
+        if Options.CoresPerRank is not None:
+            cores_per_rs = Options.CoresPerRank * RanksPerRs
+            RunnerArgs += [jsrun.options['CoresPerRs'], str(cores_per_rs)]
+            RunnerArgs += [jsrun.options['bind'], "packed:{0}".format(Options.CoresPerRank)]
+        else:
+            CompositionLogger.Warning("Cannot determine CoresPerRs for Application Name={0}".format(Options.Name))
+
+        if Options.RanksPerNode is not None:
+            if Options.RanksPerNode % RanksPerRs != 0:
+                CompositionLogger.RaiseError(AttributeError, "RanksPerNode={0} not divisible by RanksPerRs={1}".format(Options.RanksPerNode, RanksPerRs))
+            rs_per_node = Options.RanksPerNode // RanksPerRs
+            RunnerArgs += [jsrun.options['RsPerNode'], str(rs_per_node)]
+        elif Options.Nodes is not None:
+            if nrs % Options.Nodes != 0:
+                CompositionLogger.RaiseError(AttributeError, "nrs={0} not divisible by Nodes={1}".format(nrs, Options.Nodes))
+            rs_per_node = nrs // Options.Nodes
+            RunnerArgs += [jsrun.options['RsPerNode'], str(rs_per_node)]
+        elif str(Options.Ranks) == "1":
+            RunnerArgs += [jsrun.options['RsPerNode'], "1"]
+        else:
+            CompositionLogger.Warning("Cannot determine RsPerNode for Application Name={0}".format(Options.Name))
+
+
+    @classmethod
+    def CallMap(cls, RunnerArgs, Options, nrs=1, GPUsPerRs=None, RanksPerRs=1):
+        RunnerArgs += [jsrun.options['nrs'], str(nrs)]
+        RunnerArgs += [jsrun.options['RanksPerRs'], str(RanksPerRs)]
+        if GPUsPerRs is not None:
+            RunnerArgs += [jsrun.options['GPUsPerRs'], str(GPUsPerRs)]
+        cls.CoresNodesAdd(RunnerArgs, Options)
+
+
+    def GetCall(self, Options, Extra=Arguments([])):
+        """
+        Get the Runner's command line call
+        """
+        self.Validate(Options)
+        RunnerArgs = [self.cmd]
+
+        if Options.RanksPerGPU is not None:
+            if Options.Ranks % Options.RanksPerGPU != 0:
+                CompositionLogger.RaiseError(AttributeError, "Ranks={0} not divisible by RanksPerGPU={1}".format(Options.Ranks, Options.RanksPerGpu))
+            nrs = Options.Ranks // Options.RanksPerGPU
+            self.CallMap(RunnerArgs, Options, nrs=nrs, GPUsPerRs=1, RanksPerRs=Options.RanksPerGPU)
+
+        elif Options.GPUsPerRank is not None:
+            nrs = Options.Ranks
+            self.CallMap(RunnerArgs, Options, nrs=nrs, GPUsPerRs=Options.GPUsPerRank, RanksPerRs=1)
+
+        else:
+            nrs = Options.Ranks
+            self.CallMap(RunnerArgs, Options, nrs=nrs, RanksPerRs=1)
+
+
+        for arg in Extra.arguments:
+            if not isinstance(arg, str):
+                RunnerArgs += [str(arg)]
+            else:
+                RunnerArgs += [arg]
+
+        return RunnerArgs
+
