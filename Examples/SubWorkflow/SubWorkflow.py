@@ -23,6 +23,11 @@ if __name__ == "__main__":
         parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="5")
         parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
 
+    elif isinstance(runner, effis.composition.runner.frontier):
+        parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=1)
+        parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="00:05:00")
+        parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
+
     elif runner is not None:
         raise(ValueError, "Example is configured for Perlmutter, Summit or a machine without a scheduler (using mpiexec)")
 
@@ -30,7 +35,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     extra = {}
-    for key in ('nodes', 'walltime', 'charge', 'qos', 'constraint'):
+    for key in ('nodes', 'walltime', 'charge', 'constraint'):
         if key in args.__dict__:
             extra[key.title()] = args.__dict__[key]
     for key in ('qos'):

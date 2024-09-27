@@ -44,16 +44,19 @@ class UseRunner:
             # Check for recognized, commonly used things
             machine = socket.getaddrinfo(socket.gethostname(), 0, flags=socket.AI_CANONNAME)[0][3].lower()
 
-            for test in ("perlmutter", "frontier", "summit"):
 
-                if (machine.find("perlmutter") != -1) or (machine.find("frontier") != -1):
-                    Detected.System = globals()[test]()
-                    Detected.Runner = srun()
+            if machine.find("perlmutter") != -1:
+                Detected.System = perlmutter()
+                Detected.Runner = srun()
 
-                elif machine.find("summit") != -1:
-                    Detected.System = summit()
-                    #Detected.Runner = jsrun()
-                    Detected.Runner = srun2jsrun()
+            elif machine.find("frontier") != -1:
+                Detected.System = frontier()
+                Detected.Runner = srun()
+
+            elif machine.find("summit") != -1:
+                Detected.System = summit()
+                #Detected.Runner = jsrun()
+                Detected.Runner = srun2jsrun()
 
             if useprint and (Detected.System is not False):
                 msg = "DetectRunnerInfo: Found {0}".format(Detected.System.__class__.__name__)
