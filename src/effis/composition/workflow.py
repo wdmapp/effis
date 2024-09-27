@@ -384,7 +384,7 @@ class Workflow(UseRunner):
                 self.SubSubmit()
             else:
                 tid = threading.Thread(target=self.SubSubmit)
-                CompositionLogger.Info("Starting thread to run Worklow Name={0}".format(self.Name))
+                CompositionLogger.Info("Starting thread to run Workflow Name={0}".format(self.Name))
                 tid.start()
                 return tid
 
