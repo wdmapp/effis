@@ -52,7 +52,8 @@ class UseRunner:
 
                 elif machine.find("summit") != -1:
                     Detected.System = summit()
-                    Detected.Runner = jsrun()
+                    #Detected.Runner = jsrun()
+                    Detected.Runner = srun2jsrun()
 
             if useprint and (Detected.System is not False):
                 msg = "DetectRunnerInfo: Found {0}".format(Detected.System.__class__.__name__)

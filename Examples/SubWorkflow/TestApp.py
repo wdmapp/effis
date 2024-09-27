@@ -12,8 +12,10 @@ if __name__ == "__main__":
     SubWorkflow.Subdirs = False
 
     runner = effis.composition.Application.DetectRunnerInfo()
+    """
     if runner.__class__.__name__ == "jsrun":
         runner = effis.composition.runner.srun2jsrun()
+    """
 
     date = SubWorkflow.Application(cmd="date", LogFile="date.log", Runner=runner, Ranks=2)
 
