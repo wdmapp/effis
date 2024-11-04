@@ -24,7 +24,7 @@ if __name__ == "__main__":
         parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=4)
         parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="02:00:00")
         parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
-        parser.add_argument("-q", "--qos", help="QOS", required=False, type=str, default="regular")
+        parser.add_argument("-q", "--qos", help="QOS", type=str, default="regular")
 
     parser.add_argument("-o", "--outdir", help="Path to top parent directory for run directory", required=True, type=str)
     args = parser.parse_args()
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     for key in ('nodes', 'walltime', 'charge'):
         if key in args.__dict__:
             extra[key.title()] = args.__dict__[key]
-    for key in ('qos'):
+    for key in ('qos',):
         if key in args.__dict__:
             extra[key.upper()] = args.__dict__[key]
 
