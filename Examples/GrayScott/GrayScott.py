@@ -25,11 +25,15 @@ parser.add_argument("-b", "--backup", help="Backup run to other location; format
 if isinstance(runner, effis.composition.runner.perlmutter):
     parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=1)
     parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="00:05:00")
+    parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
     parser.add_argument("-q", "--qos", help="QOS", required=False, type=str, default="regular")
     parser.add_argument("-k", "--constraint", help="cpu or gpu", required=False, type=str, default="cpu")
+elif isinstance(runner, effis.composition.runner.frontier):
+    parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=1)
+    parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="00:05:00")
     parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
 elif runner is not None:
-    raise(ValueError, "Example is configured for NERSC or a machine without a scheduler (with mpiexec)")
+    raise(ValueError, "Example is configured for Perlmutter, Frontier or a machine without a scheduler (with mpiexec)")
 
 args = parser.parse_args()
 
@@ -37,12 +41,23 @@ if (args.backup is not None) and (args.backup.find(':') == -1):
     raise ValueError("Incorrect format for --backup. Use <Globus endpoint>:directory")
 
 
+extra = {}
+for key in ('nodes', 'walltime', 'charge', 'constraint'):
+    if key in args.__dict__:
+        extra[key.title()] = args.__dict__[key]
+for key in ('qos'):
+    if key in args.__dict__:
+        extra[key.upper()] = args.__dict__[key]
+
+
 # We will set up a workflow to hold Applications to run
 MyWorkflow = effis.composition.Workflow(
     Runner=runner,          # If Runner wasn't given, DetectRunnerInfo() would exeucute
     Directory=args.outdir,  # - Directory: Where to run the workflow; by default, Applications will run in subdirectories
+    **extra,
 )
 
+'''
 # Workflow attributes can be set after the constructor as well; here, add scheduler ones if needed
 if isinstance(runner, effis.composition.runner.perlmutter):
     MyWorkflow.Nodes = args.nodes
@@ -50,6 +65,7 @@ if isinstance(runner, effis.composition.runner.perlmutter):
     MyWorkflow.QOS = args.qos
     MyWorkflow.Constraint = args.constraint
     MyWorkflow.Charge = args.charge
+'''
 
 
 # Add one more more application to a Workflow; here we'll add an example simulation from ADIOS
@@ -87,7 +103,7 @@ if args.analysis:
     Analysis.CommandLineArguments += [simulation_filename, analysis_filename]           # Can add more than one argument at once
     Analysis.Input += effis.composition.Input(os.path.join(configdir, "adios2.xml"))
 
-    if isinstance(runner, effis.composition.runner.perlmutter):
+    if isinstance(runner, (effis.composition.runner.perlmutter, effis.composition.runner.frontier)):
         Simulation.CoresPerRank = 1     # These are need on Perlmutter for --cpus-per-task (to imply --exact); but mpiexec.hydra doesn't have an option like this
         Analysis.CoresPerRank = 1
 
@@ -107,7 +123,7 @@ if args.plot and args.analysis:
 
     PDFPlot.Input += effis.composition.Input(os.path.join(configdir, "adios2.xml"))
     PDFPlot.CommandLineArguments += "--instream={0}".format(os.path.join(Analysis.Directory, analysis_filename))
-    if isinstance(runner, effis.composition.runner.perlmutter):
+    if isinstance(runner, (effis.composition.runner.perlmutter, effis.composition.runner.frontier)):
         PDFPlot.CommandLineArguments += "--outfile=img".format()
         PDFPlot.CoresPerRank = 1
 
