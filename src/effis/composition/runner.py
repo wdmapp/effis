@@ -356,7 +356,7 @@ class srun2jsrun(srun):
 
 
     @staticmethod
-    def CoresNodesAdd(RunnerArgs, Options, RanksPerRs=1):
+    def CoresNodesAdd(RunnerArgs, Options, RanksPerRs=1, nrs=1):
 
         if Options.CoresPerRank is not None:
             cores_per_rs = Options.CoresPerRank * RanksPerRs
@@ -387,7 +387,8 @@ class srun2jsrun(srun):
         RunnerArgs += [jsrun.options['RanksPerRs'], str(RanksPerRs)]
         if GPUsPerRs is not None:
             RunnerArgs += [jsrun.options['GPUsPerRs'], str(GPUsPerRs)]
-        cls.CoresNodesAdd(RunnerArgs, Options)
+        #cls.CoresNodesAdd(RunnerArgs, Options)
+        cls.CoresNodesAdd(RunnerArgs, Options, RanksPerRs=RanksPerRs, nrs=nrs)
 
 
     def GetCall(self, Options, Extra=Arguments([])):

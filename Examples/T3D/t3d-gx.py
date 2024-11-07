@@ -27,6 +27,7 @@ if __name__ == "__main__":
         parser.add_argument("-q", "--qos", help="QOS", type=str, default="regular")
 
     parser.add_argument("-o", "--outdir", help="Path to top parent directory for run directory", required=True, type=str)
+    parser.add_argument("--small", help="Smaller, faster run", action="store_true")
     args = parser.parse_args()
 
     extra = {}
@@ -74,6 +75,20 @@ if __name__ == "__main__":
         Simulation.Environment['GK_SYSTEM'] = "perlmutter"
         Simulation.SetupFile = os.path.join(os.path.dirname(__file__), "modules-perlmutter.sh")
 
+
+    plot = MyWorkflow.Application(
+        cmd="t3d-plot",
+        Name="plot",
+        Runner=None,
+    )
+    plot.CommandLineArguments += [
+        os.path.relpath(os.path.join(Simulation.Directory, "{0}.bp".format(configname)), start=plot.Directory),
+        "--grid",
+        "--savefig",
+        "-p", "density", "temperature", "pressure", "heat_flux", "particle_flux", "flux",
+    ]
+    plot.DependsOn += Simulation
+
     MyWorkflow.Create()
 
 
@@ -83,6 +98,12 @@ if __name__ == "__main__":
     config = re.compile("geo_file\s*=\s*.*", re.MULTILINE).sub('geo_file = "wout_w7x.nc"', config)
     config = re.compile("gx_template\s*=\s*.*", re.MULTILINE).sub('gx_template = "gx_template.in"', config)
     config = re.compile("gx_outputs\s*=\s*.*", re.MULTILINE).sub('gx_outputs = "gx-flux-tubes"', config)
+    config = re.compile("\[\[model\]\]", re.MULTILINE).sub("[[model]]" + "\n" + "  " + "effis = true", config)
+    if args.small == True:
+        config = re.compile("N_radial\s*=\s*.*", re.MULTILINE).sub('N_radial = 4', config)
+        config = re.compile("#N_steps\s*=\s*.*", re.MULTILINE).sub('N_steps = 1', config)
+        config = re.compile("t_max\s*=\s*.*", re.MULTILINE).sub('#t_max = 10.0', config)
+
     with open(os.path.join(Simulation.Directory, "{0}.in".format(configname)), 'w') as outfile:
         outfile.write(config)
 
