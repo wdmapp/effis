@@ -27,9 +27,11 @@ if __name__ == "__main__":
         Directory=args.outdir,
     )
     MyWorkflow.GroupMax['t3d'] = 2
+    MyWorkflow.CampaignName = "Something"
 
 
-    for i in range(10):
+    #for i in range(10):
+    for i in range(2):
 
         Simulation = MyWorkflow.Application(
             cmd="t3d",

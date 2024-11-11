@@ -69,6 +69,21 @@ def InputCopy(setup):
         setup.SetupFile = os.path.basename(setup.SetupFile)
 
 
+def FindBP(path=None, bp=[]):
+    if path is None:
+        path = "./"
+    paths = os.listdir(path)
+    for p in paths:
+        fullpath = os.path.join(path, p)
+        if os.path.isdir(fullpath):
+            if fullpath.endswith(".bp"):
+                bp += [fullpath]
+            else:
+                FindBP(path=fullpath, bp=bp)
+    return bp
+
+
+
 class Workflow(UseRunner):
     """
     Add one or more Applications to a compose a Workflow.
@@ -119,6 +134,8 @@ class Workflow(UseRunner):
     #: Lets set a max running for the group
     GroupMax = {}
 
+    #: ADIOS Campaign Management – Use campaign other than Directory name
+    CampaignName = None
 
     
     def setattr(self, name, value):
@@ -127,7 +144,7 @@ class Workflow(UseRunner):
         """
 
         # Throw errors for bad attribute type settings
-        if (name in ("Name", "Directory", "SetupFile")) and (value is not None) and (type(value) is not str):
+        if (name in ("Name", "Directory", "SetupFile", "CampaignName")) and (value is not None) and (type(value) is not str):
             CompositionLogger.RaiseError(ValueError, "Workflow attribute: {0} should be set as a string".format(name))
         elif name in ("Subdirs", "MPMD", "TimeIndex") and (type(value) is not bool):
             CompositionLogger.RaiseError(ValueError, "Workflow attribute: {0} should be set as a boolean".format(name))
@@ -352,6 +369,40 @@ class Workflow(UseRunner):
             p.stderr = sys.stderr
 
 
+    def Campaignify(self):
+        checkpath = os.path.expanduser("~/.config/adios2/adios2.yaml")
+        if not os.path.exists(checkpath):
+            CompositionLogger.Info("Skipping campaign management: {0} does not exist".format(checkpath))
+            return
+
+        cmd = shutil.which("hpc_campaign_manager.py")
+        if cmd is None:
+            CompositionLogger.Info("Skipping campaign management: {0} is not in $PATH".format(cmd))
+            return
+
+        if self.CampaignName is None:
+            CampaignName = os.path.basename(self.Directory)
+            cdir = self.Directory
+            reldir = None
+        else:
+            CampaignName = self.CampaignName
+            cdir = os.path.dirname(self.Directory)
+            reldir = os.path.basename(self.Directory)
+
+        with Chdir(cdir):
+            bp = FindBP(path=reldir)
+
+            if len(bp) == 0:
+                CompositionLogger.Debug("Skipping campaign management: No .bp files")
+                return
+
+            args = ["create", CampaignName, "--files"] + bp
+            fullcmd = [cmd] + args
+
+            CompositionLogger.Info("Campaign management: {0}".format(' '.join(fullcmd)))
+            subprocess.call([cmd] + args)
+
+
     def Submit(self, wait=True):
 
         if not self._CreateCalled_:
@@ -382,6 +433,7 @@ class Workflow(UseRunner):
 
             if self.Wait:
                 self.SubSubmit()
+                self.Campaignify()
             else:
                 tid = threading.Thread(target=self.SubSubmit)
                 CompositionLogger.Info("Starting thread to run Workflow Name={0}".format(self.Name))
