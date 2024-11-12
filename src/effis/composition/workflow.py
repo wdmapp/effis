@@ -13,12 +13,14 @@ import stat
 import atexit
 from contextlib import ContextDecorator
 import dill as pickle
+import yaml
 
 from effis.composition.runner import Detected, UseRunner
 from effis.composition.application import Application
 from effis.composition.arguments import Arguments
 from effis.composition.input import InputList
 from effis.composition.backup import Backup
+from effis.composition.campaign import Campaign
 from effis.composition.log import CompositionLogger
 
 
@@ -135,7 +137,7 @@ class Workflow(UseRunner):
     GroupMax = {}
 
     #: ADIOS Campaign Management – Use campaign other than Directory name
-    CampaignName = None
+    Campaign = None
 
     
     def setattr(self, name, value):
@@ -144,7 +146,7 @@ class Workflow(UseRunner):
         """
 
         # Throw errors for bad attribute type settings
-        if (name in ("Name", "Directory", "SetupFile", "CampaignName")) and (value is not None) and (type(value) is not str):
+        if (name in ("Name", "Directory", "SetupFile")) and (value is not None) and (type(value) is not str):
             CompositionLogger.RaiseError(ValueError, "Workflow attribute: {0} should be set as a string".format(name))
         elif name in ("Subdirs", "MPMD", "TimeIndex") and (type(value) is not bool):
             CompositionLogger.RaiseError(ValueError, "Workflow attribute: {0} should be set as a boolean".format(name))
@@ -160,6 +162,8 @@ class Workflow(UseRunner):
             self.__dict__[name] = Backup(value)
         elif name == "Applications":
             self.__dict__[name] = Application.CheckApplications(value)  # Also does the type check
+        elif name == "Campaign":
+            self.__dict__["Campaign"] = Campaign(value)
 
         # Check for some other conditions that don't make sense; don't set anything
         elif (name == "MPMD") and value:
@@ -185,7 +189,6 @@ class Workflow(UseRunner):
                 self.SetWorkflowDirectory()
 
 
-    
     def __iadd__(self, other):
         """
         Meant as an intuitive way to build the workflow by adding applications; takes single applications or lists:
@@ -370,37 +373,34 @@ class Workflow(UseRunner):
 
 
     def Campaignify(self):
-        checkpath = os.path.expanduser("~/.config/adios2/adios2.yaml")
-        if not os.path.exists(checkpath):
-            CompositionLogger.Info("Skipping campaign management: {0} does not exist".format(checkpath))
-            return
 
-        cmd = shutil.which("hpc_campaign_manager.py")
-        if cmd is None:
-            CompositionLogger.Info("Skipping campaign management: {0} is not in $PATH".format(cmd))
-            return
+        if self.Campaign.Available:
 
-        if self.CampaignName is None:
-            CampaignName = os.path.basename(self.Directory)
-            cdir = self.Directory
-            reldir = None
-        else:
-            CampaignName = self.CampaignName
+            CampaignName = self.Campaign.Name
             cdir = os.path.dirname(self.Directory)
             reldir = os.path.basename(self.Directory)
 
-        with Chdir(cdir):
-            bp = FindBP(path=reldir)
+            with Chdir(cdir):
+                bp = FindBP(path=reldir)
 
-            if len(bp) == 0:
-                CompositionLogger.Debug("Skipping campaign management: No .bp files")
-                return
+                if len(bp) == 0:
+                    CompositionLogger.Debug("Skipping campaign management: No .bp files")
+                    return
 
-            args = ["create", CampaignName, "--files"] + bp
-            fullcmd = [cmd] + args
+                with open(self.Campaign.ConfigFile, 'r') as infile:
+                    config = yaml.safe_load(infile)
 
-            CompositionLogger.Info("Campaign management: {0}".format(' '.join(fullcmd)))
-            subprocess.call([cmd] + args)
+                storepath = os.path.join(os.path.expanduser(config['Campaign']['campaignstorepath']), "{0}.aca".format(self.Campaign.Name))
+                if os.path.exists(storepath):
+                    subcmd = "update"
+                else:
+                    subcmd = "create"
+
+                args = [subcmd, self.Campaign.Name, "--files"] + bp
+
+                fullcmd = [self.Campaign.ManagerCommand] + args
+                CompositionLogger.Info("Campaign management: {0}".format(' '.join(fullcmd)))
+                subprocess.call(fullcmd)
 
 
     def Submit(self, wait=True):

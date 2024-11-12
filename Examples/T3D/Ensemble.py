@@ -27,7 +27,7 @@ if __name__ == "__main__":
         Directory=args.outdir,
     )
     MyWorkflow.GroupMax['t3d'] = 2
-    MyWorkflow.CampaignName = "Something"
+    MyWorkflow.Campaign = os.path.basename(MyWorkflow.Directory)
 
 
     #for i in range(10):
