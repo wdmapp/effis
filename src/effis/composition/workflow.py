@@ -387,6 +387,7 @@ class Workflow(UseRunner):
                     CompositionLogger.Debug("Skipping campaign management: No .bp files")
                     return
 
+                CompositionLogger.Info("BP files to add to campaign {0}:\n{1}".format(self.Campaign.Name, "\n".join(bp)))
                 with open(self.Campaign.ConfigFile, 'r') as infile:
                     config = yaml.safe_load(infile)
 
@@ -433,7 +434,6 @@ class Workflow(UseRunner):
 
             if self.Wait:
                 self.SubSubmit()
-                self.Campaignify()
             else:
                 tid = threading.Thread(target=self.SubSubmit)
                 CompositionLogger.Info("Starting thread to run Workflow Name={0}".format(self.Name))
@@ -522,6 +522,9 @@ class Workflow(UseRunner):
         with Chdir(self.Directory):
             with open(self.touchname, "w") as outfile:
                 outfile.write("")
+
+        if ("Wait" not in self.__dict__) or self.Wait:
+            self.Campaignify()
 
 
 class SubWorkflow(Workflow):
