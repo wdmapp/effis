@@ -391,6 +391,15 @@ class Workflow(UseRunner):
                 with open(self.Campaign.ConfigFile, 'r') as infile:
                     config = yaml.safe_load(infile)
 
+                """
+                if 'Campaign' not in config:
+                    CompositionLogger.Warning("Key 'Campaign' not found in {0}. Skipping campaign management.".format(self.Campaign.ConfigFile))
+                    return
+                elif 'campaignstorepath' not in config['Campaign']:
+                    CompositionLogger.Warning("Key 'campaignstorepath' not found under 'Campaign' in {0}. Skipping campaign management.".format(self.Campaign.ConfigFile))
+                    return
+                """
+
                 storepath = os.path.join(os.path.expanduser(config['Campaign']['campaignstorepath']), "{0}.aca".format(self.Campaign.Name))
                 if os.path.exists(storepath):
                     subcmd = "update"
@@ -438,6 +447,8 @@ class Workflow(UseRunner):
                 tid = threading.Thread(target=self.SubSubmit)
                 CompositionLogger.Info("Starting thread to run Workflow Name={0}".format(self.Name))
                 tid.start()
+                if len(self.Applications) == 0:
+                    CompositionLogger.Info("Empty Workflow Name={0}".format(self.Name))
                 return tid
 
 

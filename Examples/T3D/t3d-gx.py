@@ -20,11 +20,23 @@ if __name__ == "__main__":
         parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="2:00")
         parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
 
+    elif isinstance(runner, effis.composition.runner.andes):
+        parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=4)
+        parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="02:00:00")
+        parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
+        #parser.add_argument("-q", "--qos", help="QOS", type=str, default="regular")
+
     elif isinstance(runner, effis.composition.runner.perlmutter):
         parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=4)
         parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="02:00:00")
         parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
         parser.add_argument("-q", "--qos", help="QOS", type=str, default="regular")
+
+    elif isinstance(runner, effis.composition.runner.frontier):
+        parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=4)
+        parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="02:00:00")
+        parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
+        parser.add_argument("-q", "--qos", help="QOS", type=str)
 
     parser.add_argument("-o", "--outdir", help="Path to top parent directory for run directory", required=True, type=str)
     parser.add_argument("--small", help="Smaller, faster run", action="store_true")
@@ -40,6 +52,8 @@ if __name__ == "__main__":
 
     if isinstance(runner, effis.composition.runner.perlmutter):
         extra['Constraint'] = 'gpu'
+    elif isinstance(runner, effis.composition.runner.andes):
+        extra['Partition'] = 'gpu'
 
 
     MyWorkflow = effis.composition.Workflow(
@@ -70,10 +84,18 @@ if __name__ == "__main__":
         Simulation.Environment['GX_PATH'] = "/ccs/home/esuchyta/software/build/summit/gx-adios"
         Simulation.Environment['GK_SYSTEM'] = "summit"
         Simulation.SetupFile = os.path.join(os.path.dirname(__file__), "modules-summit.sh")
+    elif isinstance(runner, effis.composition.runner.andes):
+        Simulation.Environment['GX_PATH'] = "/ccs/home/esuchyta/software/build/andes/gx"
+        Simulation.Environment['GK_SYSTEM'] = "andes"
+        Simulation.SetupFile = os.path.join(os.path.dirname(__file__), "modules-andes.sh")
     elif isinstance(runner, effis.composition.runner.perlmutter):
         Simulation.Environment['GX_PATH'] = "/global/homes/e/esuchyta/software/build/perlmutter/gx-adios-2"
         Simulation.Environment['GK_SYSTEM'] = "perlmutter"
         Simulation.SetupFile = os.path.join(os.path.dirname(__file__), "modules-perlmutter.sh")
+    elif isinstance(runner, effis.composition.runner.frontier):
+        Simulation.Environment['GX_PATH'] = "/ccs/home/esuchyta/software/build/frontier/gx"
+        Simulation.Environment['GK_SYSTEM'] = "frontier"
+        Simulation.SetupFile = os.path.join(os.path.dirname(__file__), "modules-frontier.sh")
 
 
     plot = MyWorkflow.Application(
@@ -89,20 +111,27 @@ if __name__ == "__main__":
     ]
     plot.DependsOn += Simulation
 
+    MyWorkflow.Campaign = os.path.basename(MyWorkflow.Directory)
     MyWorkflow.Create()
 
 
     # Rewrite a few things in the config file
     with open(os.path.join(Simulation.Directory, "{0}.in".format(configname)), 'r') as infile:
         config = infile.read()
-    config = re.compile("geo_file\s*=\s*.*", re.MULTILINE).sub('geo_file = "wout_w7x.nc"', config)
-    config = re.compile("gx_template\s*=\s*.*", re.MULTILINE).sub('gx_template = "gx_template.in"', config)
-    config = re.compile("gx_outputs\s*=\s*.*", re.MULTILINE).sub('gx_outputs = "gx-flux-tubes"', config)
-    config = re.compile("\[\[model\]\]", re.MULTILINE).sub("[[model]]" + "\n" + "  " + "effis = true", config)
+    config = re.compile(r"geo_file\s*=\s*.*", re.MULTILINE).sub('geo_file = "wout_w7x.nc"', config)
+    config = re.compile(r"gx_template\s*=\s*.*", re.MULTILINE).sub('gx_template = "gx_template.in"', config)
+    config = re.compile(r"gx_outputs\s*=\s*.*", re.MULTILINE).sub('gx_outputs = "gx-flux-tubes"', config)
+
+    config = re.compile(r"\[\[model\]\]", re.MULTILINE).sub("[[model]]" + 
+                                                            "\n" + "  " + "effis = true" + 
+                                                            "\n" + "  " + "stall_abort_count = 10" +
+                                                            "\n" + "  " + "monitor_time = 30", 
+                                                            config)
+
     if args.small == True:
-        config = re.compile("N_radial\s*=\s*.*", re.MULTILINE).sub('N_radial = 4', config)
-        config = re.compile("#N_steps\s*=\s*.*", re.MULTILINE).sub('N_steps = 1', config)
-        config = re.compile("t_max\s*=\s*.*", re.MULTILINE).sub('#t_max = 10.0', config)
+        config = re.compile(r"N_radial\s*=\s*.*", re.MULTILINE).sub('N_radial = 4', config)
+        config = re.compile(r"#N_steps\s*=\s*.*", re.MULTILINE).sub('N_steps = 2', config)
+        config = re.compile(r"t_max\s*=\s*.*", re.MULTILINE).sub('#t_max = 10.0', config)
 
     with open(os.path.join(Simulation.Directory, "{0}.in".format(configname)), 'w') as outfile:
         outfile.write(config)

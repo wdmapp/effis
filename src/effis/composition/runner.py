@@ -53,6 +53,10 @@ class UseRunner:
                 Detected.System = frontier()
                 Detected.Runner = srun()
 
+            elif machine.find("andes") != -1:
+                Detected.System = andes()
+                Detected.Runner = srun()
+
             elif machine.find("summit") != -1:
                 Detected.System = summit()
                 #Detected.Runner = jsrun()
@@ -286,6 +290,7 @@ class slurm(ParallelRunner):
         'Walltime': "--time",
         'Nodes': "--nodes",
         'Constraint': "--constraint",
+        'Partition': "--partition",
         'Jobname': "--job-name",
         'Output': "--output",
         'Error': "--error"
@@ -324,6 +329,19 @@ class frontier(slurm):
         for name in ('Charge', 'Walltime', 'Nodes'):
             if Workflow.__dict__[name] is None:
                 CompositionLogger.RaiseError(AttributeError, "{0}: Frontier workflow must set {1}".format(Workflow.Name, name))
+        super().ValidateOptions(Workflow)
+
+
+class andes(slurm):
+    """
+    Andes sbatch setup
+    """
+
+    @classmethod
+    def ValidateOptions(cls, Workflow):
+        for name in ('Charge', 'Walltime', 'Nodes'):
+            if Workflow.__dict__[name] is None:
+                CompositionLogger.RaiseError(AttributeError, "{0}: Andes workflow must set {1}".format(Workflow.Name, name))
         super().ValidateOptions(Workflow)
 
 

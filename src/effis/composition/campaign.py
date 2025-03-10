@@ -1,5 +1,6 @@
 import os
 import shutil
+import yaml
 from effis.composition.log import CompositionLogger
 
 
@@ -12,6 +13,8 @@ class Campaign:
 
 
     def __init__(self, name):
+
+        self.Name = name
 
         if name is None:
             pass
@@ -26,6 +29,14 @@ class Campaign:
             CompositionLogger.Warning("Can't configure campaign management: {0} is not in $PATH".format(self.ManagerCommand))
 
         else:
-            self.Available = True
+            with open(self.ConfigFile, 'r') as infile:
+                config = yaml.safe_load(infile)
 
-        self.Name = name
+            if 'Campaign' not in config:
+                CompositionLogger.Warning("Key 'Campaign' not found in {0}. Skipping campaign management.".format(self.ConfigFile))
+            elif 'campaignstorepath' not in config['Campaign']:
+                CompositionLogger.Warning("Key 'campaignstorepath' not found under 'Campaign' in {0}. Skipping campaign management.".format(self.ConfigFile))
+            else:
+                self.Available = True
+
+

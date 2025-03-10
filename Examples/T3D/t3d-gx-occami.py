@@ -21,6 +21,11 @@ if __name__ == "__main__":
         parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="02:00:00")
         parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
         parser.add_argument("-q", "--qos", help="QOS", type=str, default="regular")
+    elif isinstance(runner, effis.composition.runner.frontier):
+        parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=4)
+        parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="02:00:00")
+        parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
+        parser.add_argument("-q", "--qos", help="QOS", type=str)
 
     parser.add_argument("-o", "--outdir", help="Path to top parent directory for run directory", required=True, type=str)
     parser.add_argument("--small", help="Smaller, faster run", action="store_true")
@@ -67,6 +72,11 @@ if __name__ == "__main__":
         Simulation.Environment['GK_SYSTEM'] = "perlmutter"
         Simulation.Environment['GX_PATH'] = "/global/homes/e/esuchyta/software/build/perlmutter/gx-adios-2"
         Simulation.Environment['GENRAY_APP'] = "/global/homes/e/esuchyta/software/build/perlmutter/genray/xgenray.gcc.perlmutter"
+    elif isinstance(runner, effis.composition.runner.frontier):
+        Simulation.SetupFile = os.path.join(os.path.dirname(__file__), "modules-frontier.sh")
+        Simulation.Environment['GK_SYSTEM'] = "frontier"
+        Simulation.Environment['GX_PATH'] = "/ccs/home/esuchyta/software/build/frontier/gx"
+        Simulation.Environment['GENRAY_APP'] = "/ccs/home/esuchyta/software/build/frontier/genray/xgenray.gcc.frontier"
 
 
     plot = MyWorkflow.Application(
@@ -90,7 +100,10 @@ if __name__ == "__main__":
     # Ensure occami.py in PYTHONPATH at runtime, add PGPLOT
     with open(os.path.join(Simulation.Directory, Simulation.SetupFile), 'a') as infile:
         infile.write("\n" + "export PYTHONPATH=$PYTHONPATH:{0}".format(os.path.dirname(occami.__file__)))
-        infile.write("\n" + "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/global/homes/e/esuchyta/software/build/perlmutter/pgplot")
+        if isinstance(runner, effis.composition.runner.perlmutter):
+            infile.write("\n" + "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/global/homes/e/esuchyta/software/build/perlmutter/pgplot")
+        elif isinstance(runner, effis.composition.runner.frontier):
+            infile.write("\n" + "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/ccs/home/esuchyta/software/build/frontier/pgplot")
 
     # Turn on debug prints in GENRAY
     with open(os.path.join(Simulation.Directory, "occami", "input.py"), 'r') as infile:
@@ -105,13 +118,19 @@ if __name__ == "__main__":
     #config = re.compile("geo_file\s*=\s*.*", re.MULTILINE).sub('geo_file = "wout_w7x.nc"', config)
     #config = re.compile("gx_template\s*=\s*.*", re.MULTILINE).sub('gx_template = "gx_template.in"', config)
     #config = re.compile("gx_outputs\s*=\s*.*", re.MULTILINE).sub('gx_outputs = "gx-flux-tubes"', config)
-    #config = re.compile("\[\[model\]\]", re.MULTILINE).sub("[[model]]" + "\n" + "  " + "effis = true", config)
+
+    config = re.compile(r"\[\[model\]\]", re.MULTILINE).sub("[[model]]" + 
+                                                            "\n" + "  " + "effis = true" + 
+                                                            "\n" + "  " + "stall_abort_count = 10" +
+                                                            "\n" + "  " + "monitor_time = 10", 
+                                                            config)
+
     config = re.compile("read_gk_coeffs\s*=\s*.*", re.MULTILINE).sub('#read_gk_coeffs = ', config)
 
     if args.small == True:
         config = re.compile("N_radial\s*=\s*.*", re.MULTILINE).sub('N_radial = 5', config)
-        config = re.compile("N_steps\s*=\s*.*", re.MULTILINE).sub('N_steps = 10', config)
-        config = re.compile("t_max\s*=\s*.*", re.MULTILINE).sub('#t_max = 10.0', config)
+        #config = re.compile("N_steps\s*=\s*.*", re.MULTILINE).sub('N_steps = 2', config)
+        #config = re.compile("t_max\s*=\s*.*", re.MULTILINE).sub('#t_max = 10.0', config)
 
     with open(os.path.join(Simulation.Directory, "{0}.in".format(configname)), 'w') as outfile:
         outfile.write(config)
