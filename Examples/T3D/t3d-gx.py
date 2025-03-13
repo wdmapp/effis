@@ -77,7 +77,8 @@ if __name__ == "__main__":
     setupdir = os.path.join(os.path.dirname(t3dir), "tests", "regression")
     datadir = os.path.join(os.path.dirname(t3dir), "tests", "data")
     Simulation.Input += effis.composition.Input(os.path.join(setupdir, "{0}.in".format(configname)))
-    Simulation.Input += effis.composition.Input(os.path.join(datadir, "wout_w7x.nc"))
+    geofile = "wout_w7x.nc"
+    Simulation.Input += effis.composition.Input(os.path.join(datadir, geofile))
     Simulation.Input += effis.composition.Input(os.path.join(setupdir, "gx_template.in"))
 
     if isinstance(runner, effis.composition.runner.summit):
@@ -111,14 +112,38 @@ if __name__ == "__main__":
     ]
     plot.DependsOn += Simulation
 
+    nc2bp = MyWorkflow.Application(
+        cmd="effis-nc2bp",
+        Name="nc2bp",
+        Runner=None,
+    )
+    nc2bp.CommandLineArguments += ["--directory", MyWorkflow.Directory]
+    nc2bp.DependsOn += Simulation
+
+    gx_omas = MyWorkflow.Application(
+        cmd="effis-omas-gx",
+        Name="gx_omas",
+        Runner=None,
+    )
+    gx_omas.CommandLineArguments += ["--directory", Simulation.Directory]
+    gx_omas.DependsOn += Simulation
+
+    vmec_omas = MyWorkflow.Application(
+        cmd="effis-omas-vmec",
+        Name="vmec_omas",
+        Runner=None,
+        CommandLineArguments=["--filename", os.path.join(Simulation.Directory, geofile)]
+    )
+
     MyWorkflow.Campaign = os.path.basename(MyWorkflow.Directory)
+    MyWorkflow.Campaign.SchemaOnly = True
     MyWorkflow.Create()
 
 
     # Rewrite a few things in the config file
     with open(os.path.join(Simulation.Directory, "{0}.in".format(configname)), 'r') as infile:
         config = infile.read()
-    config = re.compile(r"geo_file\s*=\s*.*", re.MULTILINE).sub('geo_file = "wout_w7x.nc"', config)
+    config = re.compile(r"geo_file\s*=\s*.*", re.MULTILINE).sub('geo_file = "{0}"'.format(geofile), config)
     config = re.compile(r"gx_template\s*=\s*.*", re.MULTILINE).sub('gx_template = "gx_template.in"', config)
     config = re.compile(r"gx_outputs\s*=\s*.*", re.MULTILINE).sub('gx_outputs = "gx-flux-tubes"', config)
 

@@ -4,20 +4,28 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src/"]
-include = ["effis.composition", "effis.runtime"]
+include = [
+  "effis.composition",
+  "effis.runtime",
+  "effis.shim",
+]
 
 [project]
 name = "effis"
 description = "EFFIS workflow manager"
 version = "1.0.0"
-authors = [{name="Eric Suchyta", email="eric.d.suchyta@gmail.com"}]
+authors = [
+  {name="Eric Suchyta", email="eric.d.suchyta@gmail.com"}
+]
 dependencies = [
   "dill",
   "globus_sdk", 
+  "omas",
 ]
-#"cheetah @ git+ssh://git@github.com/CODARcode/cheetah.git"
-#"adios2", 
 
 [project.scripts]
 effis-submit = "effis.runtime.EffisSubmit:main"
 effis-globus-backup = "effis.runtime.BackupGlobus:main"
+effis-nc2bp = "effis.shim.nc:main"
+effis-omas-gx = "effis.shim.gx_omas:main"
+effis-omas-vmec = "effis.shim.vmec_omas:main"

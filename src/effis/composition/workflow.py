@@ -14,6 +14,7 @@ import atexit
 from contextlib import ContextDecorator
 import dill as pickle
 import yaml
+import omas
 
 from effis.composition.runner import Detected, UseRunner
 from effis.composition.application import Application
@@ -71,7 +72,25 @@ def InputCopy(setup):
         setup.SetupFile = os.path.basename(setup.SetupFile)
 
 
-def FindBP(path=None, bp=[]):
+def FindExt(path, files=[], ext=".bp", isdir=True):
+    if path is None:
+        path = "./"
+    paths = os.listdir(path)
+    for p in paths:
+        fullpath = os.path.join(path, p)
+        if os.path.isdir(fullpath):
+            if isdir and fullpath.endswith(ext):
+                files += [fullpath]
+            else:
+                FindExt(path=fullpath, files=files, ext=ext, isdir=isdir)
+        elif fullpath.endswith(ext):
+            files += [fullpath]
+
+    return files
+
+
+def FindBP(path=None):
+    '''
     if path is None:
         path = "./"
     paths = os.listdir(path)
@@ -82,6 +101,8 @@ def FindBP(path=None, bp=[]):
                 bp += [fullpath]
             else:
                 FindBP(path=fullpath, bp=bp)
+    '''
+    bp = FindExt(path, ext=".bp", isdir=True)
     return bp
 
 
@@ -381,24 +402,32 @@ class Workflow(UseRunner):
             reldir = os.path.basename(self.Directory)
 
             with Chdir(cdir):
+
                 bp = FindBP(path=reldir)
+
+                if self.Campaign.SchemaOnly:
+                    info = omas.omas_info()
+                    names = info.keys()
+                    newbp = []
+                    for filename in bp:
+                        if os.path.splitext(os.path.basename(filename))[0] in names:
+                            newbp += [filename]
+                    bp = newbp
 
                 if len(bp) == 0:
                     CompositionLogger.Debug("Skipping campaign management: No .bp files")
                     return
 
-                CompositionLogger.Info("BP files to add to campaign {0}:\n{1}".format(self.Campaign.Name, "\n".join(bp)))
+                if not self.Campaign.ExistenceChecks():
+                    return
+
+                CompositionLogger.Info(
+                    "BP files to add to campaign {0}:".format(self.Campaign.Name) + "\n" + 
+                    "\n".join(bp)
+                )
+
                 with open(self.Campaign.ConfigFile, 'r') as infile:
                     config = yaml.safe_load(infile)
-
-                """
-                if 'Campaign' not in config:
-                    CompositionLogger.Warning("Key 'Campaign' not found in {0}. Skipping campaign management.".format(self.Campaign.ConfigFile))
-                    return
-                elif 'campaignstorepath' not in config['Campaign']:
-                    CompositionLogger.Warning("Key 'campaignstorepath' not found under 'Campaign' in {0}. Skipping campaign management.".format(self.Campaign.ConfigFile))
-                    return
-                """
 
                 storepath = os.path.join(os.path.expanduser(config['Campaign']['campaignstorepath']), "{0}.aca".format(self.Campaign.Name))
                 if os.path.exists(storepath):
