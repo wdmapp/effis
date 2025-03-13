@@ -6,7 +6,12 @@ import t3d.trinity_lib
 import argparse
 import os
 import re
+import shutil
 
+"""
+--small uses 6 GX calls in parallel and only 2 time steps. (Total of 24 GX runs [2 rounds per step].)
+Normal T3D config has 16 GX calls in parallel, with more steps [still 2 rounds of GX per step].
+"""
 
 if __name__ == "__main__":
 
@@ -15,39 +20,41 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    if isinstance(runner, effis.composition.runner.summit):
-        parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=3)
-        parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="2:00")
+    if runner.__class__.__name__ in ("andes", "perlmutter", "frontier"):
         parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
-
-    elif isinstance(runner, effis.composition.runner.andes):
-        parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=4)
         parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="02:00:00")
-        parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
-        #parser.add_argument("-q", "--qos", help="QOS", type=str, default="regular")
 
-    elif isinstance(runner, effis.composition.runner.perlmutter):
+
+    if isinstance(runner, effis.composition.runner.perlmutter):
         parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=4)
-        parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="02:00:00")
-        parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
         parser.add_argument("-q", "--qos", help="QOS", type=str, default="regular")
 
     elif isinstance(runner, effis.composition.runner.frontier):
-        parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=4)
-        parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="02:00:00")
-        parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
+        parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=2)
         parser.add_argument("-q", "--qos", help="QOS", type=str)
 
-    parser.add_argument("-o", "--outdir", help="Path to top parent directory for run directory", required=True, type=str)
+    elif isinstance(runner, effis.composition.runner.andes):
+        parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=4)
+
+    else:
+        parser.add_argument("-c", "--charge", help="charge", required=False, type=str, default=None)
+        parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default=None)
+        parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=None)
+        parser.add_argument("-q", "--qos", help="QOS", required=False, type=str, default=None)
+
     parser.add_argument("--small", help="Smaller, faster run", action="store_true")
+    parser.add_argument("--setupfile", help="Path to file for modules to load", type=str, default=None)
+    parser.add_argument("--gk_system", help="Set GK_SYSTEM", type=str, default=None)
+
+    parser.add_argument("-o", "--outdir", help="Path to top parent directory for run directory", required=True, type=str)
     args = parser.parse_args()
 
     extra = {}
     for key in ('nodes', 'walltime', 'charge'):
-        if key in args.__dict__:
+        if (key in args.__dict__) and (args.__dict__[key] is not None):
             extra[key.title()] = args.__dict__[key]
     for key in ('qos',):
-        if key in args.__dict__:
+        if key in args.__dict__ and (args.__dict__[key] is not None):
             extra[key.upper()] = args.__dict__[key]
 
     if isinstance(runner, effis.composition.runner.perlmutter):
@@ -81,22 +88,22 @@ if __name__ == "__main__":
     Simulation.Input += effis.composition.Input(os.path.join(datadir, geofile))
     Simulation.Input += effis.composition.Input(os.path.join(setupdir, "gx_template.in"))
 
-    if isinstance(runner, effis.composition.runner.summit):
-        Simulation.Environment['GX_PATH'] = "/ccs/home/esuchyta/software/build/summit/gx-adios"
-        Simulation.Environment['GK_SYSTEM'] = "summit"
-        Simulation.SetupFile = os.path.join(os.path.dirname(__file__), "modules-summit.sh")
-    elif isinstance(runner, effis.composition.runner.andes):
-        Simulation.Environment['GX_PATH'] = "/ccs/home/esuchyta/software/build/andes/gx"
-        Simulation.Environment['GK_SYSTEM'] = "andes"
-        Simulation.SetupFile = os.path.join(os.path.dirname(__file__), "modules-andes.sh")
-    elif isinstance(runner, effis.composition.runner.perlmutter):
-        Simulation.Environment['GX_PATH'] = "/global/homes/e/esuchyta/software/build/perlmutter/gx-adios-2"
-        Simulation.Environment['GK_SYSTEM'] = "perlmutter"
-        Simulation.SetupFile = os.path.join(os.path.dirname(__file__), "modules-perlmutter.sh")
-    elif isinstance(runner, effis.composition.runner.frontier):
-        Simulation.Environment['GX_PATH'] = "/ccs/home/esuchyta/software/build/frontier/gx"
-        Simulation.Environment['GK_SYSTEM'] = "frontier"
-        Simulation.SetupFile = os.path.join(os.path.dirname(__file__), "modules-frontier.sh")
+    gxpath = shutil.which("gx")
+    if gxpath is None:
+        effis.composition.EffisLogger.RaiseError(FileExistsError, "gx not found. Add to $PATH")
+    Simulation.Environment['GX_PATH'] = os.path.dirname(gxpath)
+
+    if (args.setupfile is not None) and (not os.exists(args.setupfile)):
+        effis.composition.EffisLogger.RaiseError(FileExistsError, "--setupfile={0} not found".format(args.setupfile))
+    elif args.setupfile is not None:
+        Simulation.SetupFile = args.setupfile
+    elif runner.__class__.__name__ in ("andes", "perlmutter", "frontier"):
+        Simulation.SetupFile = os.path.join(os.path.dirname(__file__), "modules-{0}.sh".format(runner.__class__.__name__))
+
+    if args.gk_system is not None:
+        Simulation.Environment['GK_SYSTEM'] = args.gk_system
+    elif runner.__class__.__name__ in ("andes", "perlmutter", "frontier"):
+        Simulation.Environment['GK_SYSTEM'] = runner.__class__.__name__
 
 
     plot = MyWorkflow.Application(
