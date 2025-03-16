@@ -13,7 +13,8 @@ version = "1.0.0"
 authors = [{name="Eric Suchyta", email="eric.d.suchyta@gmail.com"}]
 dependencies = [
   "dill",
-  "globus_sdk", 
+  "globus_sdk",
+  "pyyaml" 
 ]
 #"cheetah @ git+ssh://git@github.com/CODARcode/cheetah.git"
 #"adios2", 
