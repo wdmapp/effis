@@ -49,6 +49,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--outdir", help="Path to top parent directory for run directory", required=True, type=str)
     args = parser.parse_args()
 
+    # Collect these into dictionary for convenience
     extra = {}
     for key in ('nodes', 'walltime', 'charge'):
         if (key in args.__dict__) and (args.__dict__[key] is not None):
@@ -67,7 +68,7 @@ if __name__ == "__main__":
     MyWorkflow = effis.composition.Workflow(
         Runner=runner,          # Set the appropriate scheduler (e.g. Slurm)
         Directory=args.outdir,  # Where we'll run
-        **extra
+        **extra                 # Nodes, Walltime, Charge, etc.
     )
 
     # Application() Objects are added to a Workflow
