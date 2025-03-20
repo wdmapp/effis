@@ -19,7 +19,8 @@ authors = [
 ]
 dependencies = [
   "dill",
-  "globus_sdk", 
+  "globus_sdk",
+  "pyyaml", 
   "omas",
 ]
 
