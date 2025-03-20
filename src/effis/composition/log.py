@@ -24,6 +24,10 @@ class CompositionLogger:
         cls.streamhandler.setLevel(logging.WARNING)
 
     @classmethod
+    def SetDebug(cls):
+        cls.streamhandler.setLevel(logging.DEBUG)
+
+    @classmethod
     def Info(cls, msg):
         cls.log.info(msg)
 
