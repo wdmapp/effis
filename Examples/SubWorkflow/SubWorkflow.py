@@ -68,7 +68,7 @@ if __name__ == "__main__":
     )
     sleep = LocalWorkflow.Application(
         cmd="sleep",
-        CommandLineArguments=["15"],
+        CommandLineArguments=["10"],
     )
     #LocalWorkflow.Submit(wait=False)
 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     )
 
     did = DepWorkflow.Submit(BackgroundTimeout=-1)
-    time.sleep(10)
+    time.sleep(5)
 
     lid = LocalWorkflow.Submit(wait=False)
 

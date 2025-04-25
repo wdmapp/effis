@@ -625,8 +625,8 @@ class Workflow(UseRunner):
 
     def ThreadRun(self, tid):
 
+        tid.start()
         super(UseRunner, self).__setattr__("tid", tid)
-        self.tid.start()
         if self.Wait:
             self.tid.join()
 
