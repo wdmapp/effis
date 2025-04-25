@@ -473,28 +473,58 @@ class Workflow(UseRunner):
                 subprocess.call(fullcmd)
 
 
-    def GetDependencies(self):
+    def GetDependencies(self, BackgroundTimeout=0):
         runnerdeps = []
         runnernames = []
         threaddeps = []
         threadnames = []
 
+        start = datetime.datetime.now()
+        current = start
+
         for dep in self.DependsOn.arguments:
+
             if dep.Runner is not None:
-                # I can add a timeout here to wait for other jobs to possibly start
-                if dep.JobID is None:
+
+                while (((current - start).total_seconds() < BackgroundTimeout) or (BackgroundTimeout == -1)) and ("JobID" not in dep.__dir__()):
+                    current = datetime.datetime.now()
+
+                if "JobID" not in dep.__dir__():
+                    CompositionLogger.RaiseError(
+                        ValueError,
+                        "Waiting for Dependency Name={0} of Workflow Name={1} timed out".format(
+                            dep.Name, self.Name
+                        )
+                    )
+
+                elif dep.JobID is None:
                     CompositionLogger.RaiseError(
                         ValueError,
                         "Cannot determine JobID for Workflow Name={0} to make it a depedency for Workflow Name={1}".format(
                             dep.Name, self.Name
                         )
                     )
+
                 else:
                     runnerdeps += [dep.JobID]
                     runnernames += [dep.Name]
-            elif "tid" in dep.__dir__():
-                threaddeps += [dep.tid]
-                threadnames += [dep.Name]
+
+            else:
+
+                while (((current - start).total_seconds() < BackgroundTimeout) or (BackgroundTimeout == -1)) and ("tid" not in dep.__dir__()):
+                    current = datetime.datetime.now()
+
+                if "tid" not in dep.__dir__():
+                    CompositionLogger.RaiseError(
+                        ValueError,
+                        "Waiting for Dependency Name={0} of Workflow Name={1} timed out".format(
+                            dep.Name, self.Name
+                        )
+                    )
+
+                else:
+                    threaddeps += [dep.tid]
+                    threadnames += [dep.Name]
 
         return runnerdeps, runnernames, threaddeps, threadnames
 
@@ -528,8 +558,19 @@ class Workflow(UseRunner):
             super(UseRunner, self).__setattr__('JobID', None)
 
 
-    def Submit(self, wait=True):
+    def Submit(self, wait=True, BackgroundTimeout=0):
+        if BackgroundTimeout == 0:
+            return self._Submit(wait=wait, BackgroundTimeout=BackgroundTimeout)
+        else:
+            tid = threading.Thread(
+                target=self._Submit,
+                kwargs={'wait': wait, 'BackgroundTimeout': BackgroundTimeout}
+            )
+            tid.start()
+            return tid
 
+
+    def _Submit(self, wait=True, BackgroundTimeout=0):
         if not self._CreateCalled_:
             self.Create()
 
@@ -540,7 +581,7 @@ class Workflow(UseRunner):
         self.SetupBackup()
         self.SubmitBackup()
 
-        runnerdeps, runnernames, threaddeps, threadnames = self.GetDependencies()
+        runnerdeps, runnernames, threaddeps, threadnames = self.GetDependencies(BackgroundTimeout=BackgroundTimeout)
         super(UseRunner, self).__setattr__('Wait', wait)
 
         if self.Runner is not None:
@@ -555,11 +596,7 @@ class Workflow(UseRunner):
                     args=(SubmitCall, ),
                     kwargs={'threaddeps': threaddeps, 'threadnames': threadnames}
                 )
-                tid.start()
-                super(UseRunner, self).__setattr__("tid", tid)
-                if wait:
-                    tid.join()
-                return tid
+                return self.ThreadRun(tid)
             else:
                 self.RunnerSubmit(SubmitCall)
 
@@ -574,17 +611,8 @@ class Workflow(UseRunner):
                     )
                 )
             self.ThreadWait(threaddeps, threadnames)
-
-            if self.Wait:
-                self.SubSubmit()
-            else:
-                tid = threading.Thread(target=self.SubSubmit)
-                CompositionLogger.Info("Starting thread to run Workflow Name={0}".format(self.Name))
-                if len(self.Applications) == 0:
-                    CompositionLogger.Info("Empty Workflow Name={0}".format(self.Name))
-                tid.start()
-                super(UseRunner, self).__setattr__("tid", tid)
-                return tid
+            tid = threading.Thread(target=self.SubSubmit)
+            return self.ThreadRun(tid)
 
         '''
         if adios2 is not None:
@@ -593,6 +621,16 @@ class Workflow(UseRunner):
         '''
 
         self.PickleWrite()
+
+
+    def ThreadRun(self, tid):
+
+        super(UseRunner, self).__setattr__("tid", tid)
+        self.tid.start()
+        if self.Wait:
+            self.tid.join()
+
+        return self.tid
 
 
     def SubSubmit(self):

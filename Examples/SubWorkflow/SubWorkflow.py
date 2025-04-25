@@ -3,6 +3,7 @@
 import argparse
 import shutil
 import os
+import time
 import effis.composition
 
 if __name__ == "__main__":
@@ -69,7 +70,7 @@ if __name__ == "__main__":
         cmd="sleep",
         CommandLineArguments=["15"],
     )
-    LocalWorkflow.Submit(wait=False)
+    #LocalWorkflow.Submit(wait=False)
 
 
     DepWorkflow = effis.composition.Workflow(
@@ -84,5 +85,11 @@ if __name__ == "__main__":
         cmd="date",
         Runner=None,
     )
-    tid = DepWorkflow.Submit()
+
+    did = DepWorkflow.Submit(BackgroundTimeout=-1)
+    time.sleep(10)
+
+    lid = LocalWorkflow.Submit(wait=False)
+
+    did.join()
 
