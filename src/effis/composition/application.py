@@ -10,25 +10,33 @@ from effis.composition.log import CompositionLogger
 
 class DependsClass(Arguments):
 
-    def __init__(self, value):
+    def TypeError(self):
+        CompositionLogger.RaiseError(
+            ValueError,
+            "DependsOn must be given as {0} object or a list of them (or another DependsClass object)".format(self.astype.__name__)
+        )
+
+
+    def __init__(self, value, astype):
+        self.astype = astype
         if isinstance(value, type(self)):
             self.arguments = value.arguments
-        elif (not isinstance(value, Application)) and (not isinstance(value, list)):
-            CompositionLogger.RaiseError(ValueError, "DependsOn must be given as an Application or a list of them (or another DependsClass object)")
+        elif (not isinstance(value, self.astype)) and (not isinstance(value, list)):
+            self.TypeError()
         elif isinstance(value, list):
             self.arguments = value
-        elif isinstance(value, Application):
+        elif isinstance(value, self.astype):
             self.arguments = [value]
 
 
     def __iadd__(self, value):
         if isinstance(value, type(self)):
             self.arguments = self.arguments + value.arguments
-        elif (not isinstance(value, Application)) and (not isinstance(value, list)):
-            CompositionLogger.RaiseError(ValueError, "DependsOn must be given as an Application or a list of them")
+        elif (not isinstance(value, self.astype)) and (not isinstance(value, list)):
+            self.TypeError()
         elif isinstance(value, list):
             self.arguments = self.arguments + value
-        elif isinstance(value, Application):
+        elif isinstance(value, self.astype):
             self.arguments = self.arguments + [value]
 
         return self
@@ -110,13 +118,14 @@ class Application(UseRunner):
             CompositionLogger.RaiseError(ValueError, "{0} should be set as a dictionary".format(name))
 
         if name in ["CommandLineArguments", "MPIRunnerArguments"]:
-            self.__dict__[name] = Arguments(value)
+            #self.__dict__[name] = Arguments(value)
+            super(UseRunner, self).__setattr__(name, Arguments(value))
         elif name == "Input":
-            self.__dict__[name] = InputList(value)
+            super(UseRunner, self).__setattr__(name, InputList(value))
         elif (name == "DependsOn"):
-            self.__dict__[name] = DependsClass(value)
+            super(UseRunner, self).__setattr__(name, DependsClass(value, Application))
         else:
-            self.__dict__[name] = value
+            super(UseRunner, self).__setattr__(name, value)
 
     
     def _add_(self, other, reverse=False):

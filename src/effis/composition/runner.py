@@ -19,14 +19,14 @@ def ValidateIntOptions(options, Application, label="Application"):
     Raise an error if the provided options aren't Integers (or strings of them)
     """
     for name in options:
-        if (name in Application.__dict__) and (Application.__dict__[name] is not None):
-            if not isinstance(Application.__dict__[name], (str, int)):
+        if (name in Application.__dir__()) and (getattr(Application, name) is not None):
+            if not isinstance(getattr(Application, name), (str, int)):
                 CompositionLogger.RaiseError(AttributeError, "{0} {1} setting must be an integer (or string of one)".format(name, label))
-            elif not str(Application.__dict__[name]).isdigit():
+            elif not str(getattr(Application, name)).isdigit():
                 CompositionLogger.RaiseError(AttributeError, "{0} {1} setting must be an integer (or string of one)".format(name, label))
 
 
-class UseRunner:
+class UseRunner(object):
     """
     The idea of UseRunner inheritance is an abstraction on Workflow and Application setup.
     The two are separate, but use a common backend infrastructure for attribute configuration.
@@ -87,7 +87,7 @@ class UseRunner:
             if useprint:
                 CompositionLogger.Info(msg)
 
-        if 'AutoRunner' in cls.__dict__:
+        if 'AutoRunner' in dir(cls):
             return cls.AutoRunner()
         else:
             return Detected.System
@@ -113,11 +113,14 @@ class UseRunner:
 
         if name not in self.__dir__():
             self.UnknownError(name)
+        elif name.startswith('_') and name.endswith('_'):
+            CompositionLogger.RaiseError(AttributeError, "For {1}, not allowed to explicitly set private attribute {0}".format(name, self.__class__.__name__))
 
         if 'setattr' in self.__dir__():
             self.setattr(name, value)
         else:
             self.__dict__[name] = value
+            #super().__setattr__(name, value)
 
 
     def __init__(self, **kwargs):
@@ -127,31 +130,32 @@ class UseRunner:
 
         if "Runner" not in kwargs:
             CompositionLogger.Warning("Runner was not set with {0} ({1}). Detecting what to use...".format(self.__class__.__name__, self.kwargsmsg(kwargs)))
-            self.__dict__['Runner'] = self.DetectRunnerInfo(useprint=False)
+            #self.__dict__['Runner'] = self.DetectRunnerInfo(useprint=False)
+            super().__setattr__('Runner', self.DetectRunnerInfo(useprint=False))
             if self.Runner is None:
                 self._RunnerError_[0](self._RunnerError_[1])
             else:
                 CompositionLogger.Info("Using detected runner {0}".format(self.Runner.cmd))
         else:
-            self.__dict__['Runner'] = kwargs['Runner']
+            super().__setattr__('Runner', kwargs['Runner'])
             del kwargs['Runner']
 
         if self.Runner is not None:
             for key in self.Runner.options:
-                self.__dict__[key] = None
+                super().__setattr__(key, None)
 
 
+        # Set what's given in the initalizer call
         for key in kwargs:
             self.__setattr__(key, kwargs[key])
 
 
-        # Set the rest to the defaults in self.__dict__
+        # Set the rest to the defaults,
+        # including applying any special classes that are designed to handle how arguments are given as easier inputs
+
         for key in self.__dir__():
-            if key.startswith("__") and key.endswith("__"):
-                continue
-            elif callable(getattr(self, key)):
-                continue
-            elif key not in self.__dict__:
+
+            if not callable(getattr(self, key)) and (key not in self.__dict__) and not (key.startswith("_") and key.endswith("_")):
                 self.__setattr__(key, getattr(self, key))
 
 
@@ -180,9 +184,13 @@ class ParallelRunner:
         """
         self.Validate(Options)
         RunnerArgs = [self.cmd]
+
+        if 'always' in self.__dir__():
+            RunnerArgs += self.always
+
         for option in self.options:
-            if Options.__dict__[option] is not None:
-                RunnerArgs += [self.options[option], str(Options.__dict__[option])]
+            if getattr(Options, option) is not None:
+                RunnerArgs += [self.options[option], str(getattr(Options, option))]
 
         for arg in Extra.arguments:
             if not isinstance(arg, str):
@@ -211,8 +219,8 @@ class mpiexec_hydra(ParallelRunner):
         ValidateIntOptions(cls.options, Application)
         if Application.Ranks is None:
             for name in ('RanksPerNode', 'GPUsPerRank'):
-                if Application.__dict__[name] is not None:
-                    CompositionLogger.RaiseError(AttributeError, "Setting {0} with setting Ranks is ambiguous".format(name))
+                if getattr(Application, name) is not None:
+                    CompositionLogger.RaiseError(AttributeError, "Setting {0} without setting Ranks is ambiguous".format(name))
             CompositionLogger.Warning("Ranks was not set for Application name={0}. Setting it to 1 (with {1})".format(Application.Name, cls.cmd))
             Application.Ranks = 1
 
@@ -251,7 +259,7 @@ class summit(lsf):
     @classmethod
     def ValidateOptions(cls, Workflow):
         for name in ('Charge', 'Walltime', 'Nodes'):
-            if Workflow.__dict__[name] is None:
+            if getattr(Workflow, name) is None:
                 CompositionLogger.RaiseError(AttributeError, "{0}: Summit workflow must set {1}".format(Workflow.Name, name))
         super().ValidateOptions(Workflow)
 
@@ -296,6 +304,10 @@ class slurm(ParallelRunner):
         'Error': "--error"
     }
 
+    always = [
+        "--parsable",
+    ]
+
     @classmethod
     def ValidateOptions(cls, Workflow):
         ValidateIntOptions(("Nodes"), Workflow, label="Workflow")
@@ -303,6 +315,21 @@ class slurm(ParallelRunner):
             Workflow.Jobname = Workflow.Name
         if Workflow.Output is None:
             Workflow.Output = os.path.join(Workflow.Directory, "%x-%j.out")
+
+    @classmethod
+    def GetJobID(cls, result):
+        idstr = result.stdout.decode("utf-8").strip()
+        return idstr
+
+    @classmethod
+    def Dependency(cls, deplist):
+        deps = []
+        if len(deplist) > 0:
+            deps = [
+                "--dependency",
+                "afterok:{0}".format(":".join(deplist))
+            ]
+        return deps
 
 
 
@@ -314,7 +341,7 @@ class perlmutter(slurm):
     @classmethod
     def ValidateOptions(cls, Workflow):
         for name in ('Charge', 'Walltime', 'Nodes', 'Constraint'):
-            if Workflow.__dict__[name] is None:
+            if getattr(Workflow, name) is None:
                 CompositionLogger.RaiseError(AttributeError, "{0}: Perlmutter workflow must set {1}".format(Workflow.Name, name))
         super().ValidateOptions(Workflow)
 
@@ -327,7 +354,7 @@ class frontier(slurm):
     @classmethod
     def ValidateOptions(cls, Workflow):
         for name in ('Charge', 'Walltime', 'Nodes'):
-            if Workflow.__dict__[name] is None:
+            if getattr(Workflow, name) is None:
                 CompositionLogger.RaiseError(AttributeError, "{0}: Frontier workflow must set {1}".format(Workflow.Name, name))
         super().ValidateOptions(Workflow)
 
@@ -340,7 +367,7 @@ class andes(slurm):
     @classmethod
     def ValidateOptions(cls, Workflow):
         for name in ('Charge', 'Walltime', 'Nodes'):
-            if Workflow.__dict__[name] is None:
+            if getattr(Workflow, name) is None:
                 CompositionLogger.RaiseError(AttributeError, "{0}: Andes workflow must set {1}".format(Workflow.Name, name))
         super().ValidateOptions(Workflow)
 

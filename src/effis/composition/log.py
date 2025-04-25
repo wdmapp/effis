@@ -1,12 +1,55 @@
 import logging
+import shutil
+
+
+class EffisFormatter(logging.Formatter):
+
+    def __init__(
+        self,
+        fmt='EFFIS [%(asctime)s.%(msecs)03d]  %(levelname)-8s  %(message)s',
+        datefmt="%Y-%m-%d %H:%M:%S"
+    ):
+        logging.Formatter.__init__(self, fmt=fmt, datefmt=datefmt)
+
+        self.last = None
+        self.cols, self.lines = shutil.get_terminal_size(fallback=(150,10))
+
+        self.startsize = (
+            5 +             # EFFIS
+            1 + 2 + 2 +     # Explicit Spaces
+            2 +             # Brackets
+            10 + 1 + 12 +   # Date, Space, Time (what's in the brackets)
+            8               # levelname field
+        )
+
+
+    def format(self, record):
+        format_orig = self._fmt
+
+        comp = self.cols - self.startsize - len(record.msg)
+
+        if comp < 0:
+            if self.last != "long":
+                self._fmt = "\n" + self._fmt + "\n"
+            else:
+                self._fmt = self._fmt + "\n"
+            self.last = "long"
+        else:
+            self.last = "short"
+
+        self._style = logging.PercentStyle(self._fmt)
+        result = logging.Formatter.format(self, record)
+        self._fmt = format_orig
+        return result
 
 
 class CompositionLogger:
     
     log = logging.getLogger(__name__)
     log.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('EFFIS [%(asctime)s.%(msecs)03d] - %(levelname)s - %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
-    #formatter = logging.Formatter('EFFIS: %(levelname)s - %(message)s', datefmt="%Y-%m-%d %H:%M:%S.%03d")
+    #formatter = logging.Formatter('EFFIS [%(asctime)s.%(msecs)03d] - %(levelname)s - %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+    #formatter = logging.Formatter('EFFIS [%(asctime)s.%(msecs)03d]  %(levelname)-8s  %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+    formatter = EffisFormatter()
 
     streamhandler = logging.StreamHandler()
     #streamhandler.setLevel(logging.WARNING)
