@@ -6,9 +6,8 @@ import os
 import time
 import effis.composition
 
-if __name__ == "__main__":
 
-    runner = effis.composition.Workflow.DetectRunnerInfo()
+def SetupArgs(runner):
 
     fullparser = argparse.ArgumentParser()
     subparsers = fullparser.add_subparsers(help='subcommand help', dest="batchtype")
@@ -27,6 +26,13 @@ if __name__ == "__main__":
         subparser.add_argument("-o", "--outdir", help="Path to top parent directory for run directory", required=True, type=str)
 
     args = fullparser.parse_args()
+    return args
+
+
+def Run(args, runner=None):
+
+    if (args.batchtype == "batch") and (runner is None):
+        runner = effis.composition.Workflow.DetectRunnerInfo()
 
     if (args.batchtype == "batch") and (runner is not None) and (not isinstance(runner, effis.composition.runner.slurm)):
         effis.composition.EffisLogger.RaiseError(ValueError, "Current batch setup is for Slurm")
@@ -92,4 +98,79 @@ if __name__ == "__main__":
     lid = LocalWorkflow.Submit(wait=False)
 
     did.join()
+
+
+
+if __name__ == "__main__":
+
+    runner = effis.composition.Workflow.DetectRunnerInfo()
+    args = SetupArgs(runner)
+    Run(args, runner=runner)
+
+    """
+    if (args.batchtype == "batch") and (runner is not None) and (not isinstance(runner, effis.composition.runner.slurm)):
+        effis.composition.EffisLogger.RaiseError(ValueError, "Current batch setup is for Slurm")
+    elif args.batchtype == "local":
+        runner = None
+
+    extra = {}
+    for key in ('nodes', 'walltime', 'charge', 'constraint'):
+        if key in args.__dict__:
+            extra[key.title()] = args.__dict__[key]
+    for key in ('qos'):
+        if key in args.__dict__:
+            extra[key.upper()] = args.__dict__[key]
+
+    MyWorkflow = effis.composition.Workflow(
+        Runner=runner,
+        Directory=args.outdir,
+        Subdirs=False,
+        **extra,
+    )
+    
+    Simulation = MyWorkflow.Application(
+        cmd=os.path.join(os.path.abspath(os.path.dirname(__file__)), "TestApp.py"),
+        Name="TestRunner",
+        Runner=None,
+    )
+    if args.batchtype == "local":
+        Simulation.CommandLineArguments += "--local"
+
+    #MyWorkflow.Create()
+    MyWorkflow.Submit()
+
+
+    LocalWorkflow = effis.composition.Workflow(
+        Runner=None,
+        Directory=args.outdir,
+        Name="Sleep",
+        Subdirs=True,
+    )
+    sleep = LocalWorkflow.Application(
+        cmd="sleep",
+        CommandLineArguments=["10"],
+    )
+    #LocalWorkflow.Submit(wait=False)
+
+
+    DepWorkflow = effis.composition.Workflow(
+        Runner=runner,
+        Directory="{0}-dependent".format(args.outdir),
+        Subdirs=False,
+        DependsOn=MyWorkflow,
+        **extra,
+    )
+    DepWorkflow.DependsOn += LocalWorkflow
+    date = DepWorkflow.Application(
+        cmd="date",
+        Runner=None,
+    )
+
+    did = DepWorkflow.Submit(BackgroundTimeout=-1)
+    time.sleep(5)
+
+    lid = LocalWorkflow.Submit(wait=False)
+
+    did.join()
+    """
 
