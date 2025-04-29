@@ -33,7 +33,6 @@ except:
 """
 
 
-
 class Chdir(ContextDecorator):
     """
     Context manager that works with Python's with statement -- changes directory and then returns
@@ -350,7 +349,8 @@ class Workflow(UseRunner):
             for dep in app.DependsOn.arguments:
                 depdeps = dep.DependsOn
                 for depdep in depdeps.arguments:
-                    if app.Name == depdep.Name:
+                    #if app.Name == depdep.Name:
+                    if app is depdep:
                         CompositionLogger.RaiseError(ValueError, "Cyclic dependencies between {0} and {1}".format(app.Name, dep.Name))
 
         # Update the file names appropriately
@@ -473,7 +473,71 @@ class Workflow(UseRunner):
                 subprocess.call(fullcmd)
 
 
+    def While(self, condition):
+        if CompositionLogger.ERROR:
+            #CompositionLogger.RaiseError("Workflow Name={0} exiting because of global error".format(self.Name))
+            CompositionLogger.Info("Workflow Name={0} exiting because of global error".format(self.Name))
+            sys.exit()
+        else:
+            return condition
+
+
+    def GetID(self, dep, idstr, start, BackgroundTimeout=0, ids=None, names=None, current=datetime.datetime.now()):
+
+        while self.While(
+            (
+                (current - start).total_seconds() < BackgroundTimeout
+                or
+                BackgroundTimeout == -1
+            )
+            and
+            (
+                idstr not in dep.__dir__()
+            )
+        ):
+            current = datetime.datetime.now()
+
+        if idstr not in dep.__dir__():
+            CompositionLogger.RaiseError(
+                ValueError,
+                "Waiting for Dependency Name={0} of Workflow Name={1} timed out".format(
+                    dep.Name,
+                    self.Name
+                )
+            )
+
+        elif getattr(dep, idstr) is None:
+            CompositionLogger.RaiseError(
+                ValueError,
+                "Cannot determine {2} for Workflow Name={0} to make it a depedency for Workflow Name={1}".format(
+                    dep.Name,
+                    self.Name,
+                    idstr,
+                )
+            )
+
+        if ids is not None:
+            ids += [getattr(dep, idstr)]
+        if names is not None:
+            names += [dep.Name]
+
+        return getattr(dep, idstr), dep.Name
+
+
     def GetDependencies(self, BackgroundTimeout=0):
+
+        # Check for cyclic dependencies, which don't make sense
+        for dep in self.DependsOn.arguments:
+            for depdep in dep.DependsOn.arguments:
+                if depdep is self:
+                    CompositionLogger.RaiseError(
+                        ValueError,
+                        "Cyclic Workflow depencies between {0} and {1}".format(
+                            self.Name,
+                            dep.Name
+                        )
+                    )
+
         runnerdeps = []
         runnernames = []
         threaddeps = []
@@ -485,46 +549,9 @@ class Workflow(UseRunner):
         for dep in self.DependsOn.arguments:
 
             if dep.Runner is not None:
-
-                while (((current - start).total_seconds() < BackgroundTimeout) or (BackgroundTimeout == -1)) and ("JobID" not in dep.__dir__()):
-                    current = datetime.datetime.now()
-
-                if "JobID" not in dep.__dir__():
-                    CompositionLogger.RaiseError(
-                        ValueError,
-                        "Waiting for Dependency Name={0} of Workflow Name={1} timed out".format(
-                            dep.Name, self.Name
-                        )
-                    )
-
-                elif dep.JobID is None:
-                    CompositionLogger.RaiseError(
-                        ValueError,
-                        "Cannot determine JobID for Workflow Name={0} to make it a depedency for Workflow Name={1}".format(
-                            dep.Name, self.Name
-                        )
-                    )
-
-                else:
-                    runnerdeps += [dep.JobID]
-                    runnernames += [dep.Name]
-
+                jobid, name = self.GetID(dep, "JobID", start, BackgroundTimeout=BackgroundTimeout, ids=runnerdeps, names=runnernames)
             else:
-
-                while (((current - start).total_seconds() < BackgroundTimeout) or (BackgroundTimeout == -1)) and ("tid" not in dep.__dir__()):
-                    current = datetime.datetime.now()
-
-                if "tid" not in dep.__dir__():
-                    CompositionLogger.RaiseError(
-                        ValueError,
-                        "Waiting for Dependency Name={0} of Workflow Name={1} timed out".format(
-                            dep.Name, self.Name
-                        )
-                    )
-
-                else:
-                    threaddeps += [dep.tid]
-                    threadnames += [dep.Name]
+                threadid, name = self.GetID(dep, "tid", start, BackgroundTimeout=BackgroundTimeout, ids=threaddeps, names=threadnames)
 
         return runnerdeps, runnernames, threaddeps, threadnames
 
@@ -541,7 +568,7 @@ class Workflow(UseRunner):
             )
 
             alive = [True]*len(threaddeps)
-            while any(alive):
+            while self.While(any(alive)):
                 for i, tid in enumerate(threaddeps):
                     alive[i] = tid.is_alive()
 
@@ -642,7 +669,7 @@ class Workflow(UseRunner):
             GroupRunning[app.Group] = []
 
 
-        while True:
+        while self.While(True):
 
             for app in self.Applications:
 

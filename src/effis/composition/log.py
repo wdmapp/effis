@@ -44,6 +44,7 @@ class EffisFormatter(logging.Formatter):
 
 
 class CompositionLogger:
+    ERROR = False
     
     log = logging.getLogger(__name__)
     log.setLevel(logging.DEBUG)
@@ -90,5 +91,6 @@ class CompositionLogger:
 
     @classmethod
     def RaiseError(cls, MyError, msg):
+        cls.ERROR = True
         cls.log.error(msg)
         raise MyError(msg)

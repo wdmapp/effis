@@ -145,7 +145,7 @@ class UseRunner(object):
                 super().__setattr__(key, None)
 
 
-        # Set what's given in the initalizer call
+        # Set what's given in the initializer call
         for key in kwargs:
             self.__setattr__(key, kwargs[key])
 

@@ -34,6 +34,7 @@ if __name__ == "__main__":
 
     date = SubWorkflow.Application(
         cmd="date",
+        Name="Date",
         Runner=runner,
         LogFile="date.log",
         **appsetup,
@@ -44,10 +45,12 @@ if __name__ == "__main__":
 
     ls = SubWorkflow.Application(
         cmd="ls",
+        Name="List",
         Runner=runner,
         DependsOn=date,
         **appsetup,
     )
+    #date.DependsOn += ls
 
 
     tid = SubWorkflow.Submit(wait=False)
