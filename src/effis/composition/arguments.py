@@ -1,14 +1,16 @@
-from effis.composition.log import CompositionLogger
+from effis.composition.log import CompositionLogger, LogKey
 
 
 class Arguments:
 
+    key = "+"
     arguments = []
    
 
-    def __init__(self, value):
+    def __init__(self, value, key="+"):
 
-        self += value
+        with LogKey(self, key):
+            self += value
 
         
     def __iadd__(self, value):
@@ -17,11 +19,15 @@ class Arguments:
             self.arguments = self.arguments + value.arguments
 
         elif (type(value) is not str) and (type(value) is not list):
-            print(type(value))
             CompositionLogger.RaiseError(
                 ValueError, 
-                "Invalid Argument: {0} -- ".format(str(value)) +
-                "{0} must be given as a string or a list or strings (or another {0} object)".format(self.__class__.__name__)
+                (
+                    "Invalid assignment: {0}={1} --> "
+                    "Must be given as a string or a list or strings".format(
+                        selflkey,
+                        str(value)
+                    )
+                )
             )
 
         elif type(value) is str:
@@ -34,8 +40,15 @@ class Arguments:
                 else:
                     CompositionLogger.RaiseError(
                         ValueError, 
-                        "Invalid Argument: {0} -- ".format(str(value)) +
-                        "{0} must be given as a string or a list or strings (or another {0} object)".format(self.__class__.__name__)
+                        (
+                            "Invalid assignment: {0}={1} --> "
+                            "Must be given as a string or a list or strings; "
+                            "Element={2} is not a string".format(
+                                self.key,
+                                str(value),
+                                str(v)
+                            )
+                        )
                     )
 
         return self

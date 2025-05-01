@@ -190,7 +190,7 @@ class Workflow(UseRunner):
         if name == "SchedulerDirectives":
             super(UseRunner, self).__setattr__(name, Arguments(value))
         elif name == "Input":
-            super(UseRunner, self).__setattr__(name, InputList(value))
+            super(UseRunner, self).__setattr__(name, InputList(value, key=name))
         elif name == "Backup":
             super(UseRunner, self).__setattr__(name, Backup(value))
         elif name == "Applications":
@@ -257,9 +257,8 @@ class Workflow(UseRunner):
         """
 
         if ('Runner' not in kwargs):
-            if self.Runner is None:
+            if (self.Runner is None) and (not isinstance(self, SubWorkflow)):
                 thisrunner = None
-                #CompositionLogger.Info("Application ({0}): Using detected runner {1}".format(UseRunner.kwargsmsg(kwargs), thisrunner.cmd))
             else:
                 thisrunner = Application.DetectRunnerInfo(useprint=False)
                 CompositionLogger.Info("Application ({0}): Using detected runner {1}".format(UseRunner.kwargsmsg(kwargs), thisrunner.cmd))

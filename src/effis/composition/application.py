@@ -119,9 +119,9 @@ class Application(UseRunner):
 
         if name in ["CommandLineArguments", "MPIRunnerArguments"]:
             #self.__dict__[name] = Arguments(value)
-            super(UseRunner, self).__setattr__(name, Arguments(value))
+            super(UseRunner, self).__setattr__(name, Arguments(value, key=name))
         elif name == "Input":
-            super(UseRunner, self).__setattr__(name, InputList(value))
+            super(UseRunner, self).__setattr__(name, InputList(value, key=name))
         elif (name == "DependsOn"):
             super(UseRunner, self).__setattr__(name, DependsClass(value, Application))
         else:

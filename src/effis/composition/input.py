@@ -1,29 +1,40 @@
 import os
-from effis.composition.log import CompositionLogger
+from effis.composition.log import CompositionLogger, LogKey
 
 
-class Input():
-    
-    def __init__(self, value, link=False, rename=None, outpath=None):
+class Input:
+
+    def __init__(self, value, link=False, rename=None, outpath=None, key=""):
 
         if type(value) is not str:
             CompositionLogger.RaiseError(
                 ValueError, 
-                "Invalid Input: {0} -- ".format(str(value)) + 
-                "{0} must be given as a string file path".format(self.__class__.__name__)
+                "Invalid Input {0}={1} --> Must be a string (path)".format(key, str(value))
             )
 
         elif not os.path.exists(value):
-            CompositionLogger.RaiseError(FileNotFoundError, "Cannot find Input path: {0}".format(value))
+            CompositionLogger.RaiseError(
+                FileNotFoundError,
+                "Invalid file path: Cannot find Input path {0}={1}".format(key, value)
+            )
 
         elif type(link) is not bool:
-            CompositionLogger.RaiseError(ValueError, "link attribute of Input is set as either True or False -- gave {0}".format(str(value)))
+            CompositionLogger.RaiseError(
+                ValueError, 
+                "Invalid assignment: link attribute of Input is set as either True or False -- gave {0}".format(str(link))
+            )
 
         elif (rename is not None) and (type(rename) is not str):
-            CompositionLogger.RaiseError(ValueError, "rename attribute of Input is set as a string -- gave {0}".format(str(value)))
+            CompositionLogger.RaiseError(
+                ValueError, 
+                "Invalid assignment: rename attribute of Input is set as a string -- gave {0}".format(str(rename))
+            )
 
         elif (outpath is not None) and (type(outpath) is not str):
-            CompositionLogger.RaiseError(ValueError, "outpath attribute of Input is set as a string -- gave {0}".format(str(value)))
+            CompositionLogger.RaiseError(
+                ValueError, 
+                "Invalid assignment: outpath attribute of Input is set as a string -- gave {0}".format(str(outpath))
+            )
 
         self.inpath = value
         self.link = link
@@ -37,12 +48,14 @@ class InputError(Exception):
 
 class InputList:
 
+    key = "+"
     list = []
     
 
-    def __init__(self, value):
+    def __init__(self, value, key="+"):
 
-        self += value
+        with LogKey(self, key):
+            self += value
         
 
     def __iadd__(self, value):
@@ -54,17 +67,34 @@ class InputList:
             self.list = self.list + [value]
 
         elif type(value) is str:
-            self.list = self.list + [Input(value)]
+            self.list = self.list + [Input(value, key=self.key)]
 
         elif type(value) is list:
             for item in value:
-                self += item
+                if isinstance(value, (Input, str)):
+                    self += item
+                else:
+                    ValueError, 
+                    (
+                        "Invalid assignment: {0}={1} --> "
+                        "Must be given as string, Input(), or list of these; "
+                        "Element={2} is not a string or Input instance".format(
+                            self.key,
+                            str(value),
+                            item
+                        )
+                    )
 
         else:
             CompositionLogger.RaiseError(
-                InputError, 
-                "Invalid Input list: {0} -- ".format(str(value)) +
-                "Can += string, Input(), lists of these, or another {0} object".format(self.__class__.__name__)
+                ValueError, 
+                (
+                    "Invalid assignment: {0}={1} --> "
+                    "Must be given as string, Input(), or list of these".format(
+                        self.key,
+                        str(value)
+                    )
+                )
             )
             
         return self

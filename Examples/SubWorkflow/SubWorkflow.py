@@ -74,9 +74,12 @@ def Run(args, runner=None):
     )
     sleep = LocalWorkflow.Application(
         cmd="sleep",
-        Name="Sleep",
+        #Name="Sleep",
         CommandLineArguments="10",
+        #Input=effis.composition.Input(__file__, outpath=5),
+        #Input="5",
     )
+    #sleep.Input += "5"
     #sleep.CommandLineArguments += [["10"]]
     #LocalWorkflow.Submit(wait=False)
 
