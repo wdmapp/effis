@@ -51,6 +51,9 @@ class ListType:
     class AssignmentError(Exception):
         pass
 
+    class AdditionError(Exception):
+        pass
+
 
     def ErrorMessage(self, given, element=None):
         if element is None:
@@ -95,7 +98,6 @@ class ListType:
             self += value
 
 
-
     def __iadd__(self, value):
 
         if type(value) is type(self):
@@ -121,6 +123,17 @@ class ListType:
             self.List = self.List + [value]
 
         return self
+
+
+    def __add__(self, other):
+        CompositionLogger.RaiseError(
+            self.AdditionError,
+            "Use += with EFFIS ListType attributes, not +"
+        )
+
+
+    def __radd__(self, other):
+        return self.__add__(other)
 
 
 class Arguments(ListType):
