@@ -74,7 +74,7 @@ def Run(args, runner=None):
     )
     sleep = LocalWorkflow.Application(
         cmd="sleep",
-        #Name="Sleep",
+        Name="Sleep",
         CommandLineArguments="10",
         #Input=effis.composition.Input(__file__, outpath=5),
         #Input="5",
@@ -105,6 +105,7 @@ def Run(args, runner=None):
     time.sleep(5)
 
     #LocalWorkflow.DependsOn += DepWorkflow
+    LocalWorkflow.DependsOn += MyWorkflow
     lid = LocalWorkflow.Submit(wait=False)
 
     did.join()

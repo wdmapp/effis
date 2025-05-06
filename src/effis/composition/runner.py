@@ -1,6 +1,9 @@
 import shutil
 import socket
 import os
+import subprocess
+import io
+import csv
 
 from effis.composition.arguments import Arguments
 from effis.composition.log import CompositionLogger
@@ -167,6 +170,9 @@ class ParallelRunner:
     cmd = None
     options = {}
 
+    READY = 0
+    WAIT = 1
+
 
     def Validate(self, Options):
         """
@@ -330,6 +336,68 @@ class slurm(ParallelRunner):
                 "afterok:{0}".format(":".join(deplist))
             ]
         return deps
+
+
+    @classmethod
+    def Monitor(cls, jobid, Name):
+
+        #sacct --jobs 38357777 --allocations --parsable --format jobid,jobname,state,exitcode
+        cmd = [
+            "sacct",
+            "--format", "jobid,jobname,state,exitcode",
+            "--jobs", jobid,
+            "--allocations",    # Only "full job", not .batch, .extern, .<steps>
+            "--parsable",       # Returns like CSV ( | separated )
+        ]
+
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        outstr = result.stdout.decode("utf-8").strip()
+        f = io.StringIO(outstr)
+        reader = csv.DictReader(f, delimiter="|")
+        ResultList = list(reader)
+
+        if len(ResultList) == 0:
+            # This should only happend with dependencies, which sacct doesn't record until the dependent is done
+            state = "DEPENDENT"
+        elif len(ResultList) > 1:
+            CompositionLogger.RaiseError(RuntimeError, "jobid {0} had more than one scct result. This shouldn't happen.".format(jobid))
+        elif len(ResultList) == 1:
+            state = ResultList[0]['State']
+
+        BadStates = [
+            "BOOT_FAIL",
+            "CANCELLED",
+            "DEADLINE",
+            "FAILED",
+            "NODE_FAIL",
+            "OUT_OF_MEMORY",
+            "PREEMPTED",
+            "TIMEOUT",
+        ]
+
+        for badstate in BadStates:
+            if state.find(badstate) != -1:
+                CompositionLogger.RaiseError(
+                    RuntimeError,
+                    "jobid state {0} was '{2}', and Worklow Name={1} depends on it".format(
+                        jobid, Name, state)
+                )
+
+        WaitStates = [
+            "DEPENDENT",
+            "PENDING",
+            "SUSPENDED",
+            "RUNNING",
+        ]
+
+        for waitstate in WaitStates:
+            if state.find(waitstate) != -1:
+                return cls.WAIT
+
+        if state.find("COMPLETED") != -1:
+            return cls.READY
+        else:
+            CompositionLogger.RaiseError(RuntimeError, "Unknown job state occured {0}: state={1}".format(jobid, state))
 
 
 

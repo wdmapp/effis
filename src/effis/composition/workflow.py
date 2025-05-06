@@ -537,6 +537,7 @@ class Workflow(UseRunner):
                         )
                     )
 
+        runners = []
         runnerdeps = []
         runnernames = []
         threaddeps = []
@@ -549,27 +550,75 @@ class Workflow(UseRunner):
 
             if dep.Runner is not None:
                 jobid, name = self.GetID(dep, "JobID", start, BackgroundTimeout=BackgroundTimeout, ids=runnerdeps, names=runnernames)
+                runners += [dep.Runner]
             else:
                 threadid, name = self.GetID(dep, "tid", start, BackgroundTimeout=BackgroundTimeout, ids=threaddeps, names=threadnames)
 
-        return runnerdeps, runnernames, threaddeps, threadnames
+        return runnerdeps, runnernames, runners, threaddeps, threadnames
+
+
+    def BatchWait(self, runnerdeps, runnernames, runners):
+
+        if len(runnerdeps) > 0:
+
+            alive = [1]*len(runnerdeps)
+
+            for i, jobid in enumerate(runnerdeps):
+                alive[i] = runners[i].Monitor(jobid, self.Name)
+                if alive[i]:
+                    CompositionLogger.Info(
+                        "(Runner=None) Workflow Name={0} must wait for (batch) Workflow Name={1} to finish before continuing".format(
+                            self.Name,
+                            runnernames[i]
+                        )
+                    )
+                else:
+                    CompositionLogger.Info(
+                        "(Runner=None) Workflow Name={0} dependency Workflow Name={1} is already satisfied".format(
+                            self.Name,
+                            runnernames[i]
+                        )
+                    )
+
+            while self.While(any(alive)):
+                for i, jobid in enumerate(runnerdeps):
+                    alive[i] = runners[i].Monitor(jobid, self.Name)
+
+            CompositionLogger.Info(
+                "Workflow Name={0} (batch) Workflow dendencies satisfied. Continuing...".format(self.Name)
+            )
 
 
     def ThreadWait(self, threaddeps, threadnames):
 
         if len(threaddeps) > 0:
 
-            CompositionLogger.Info(
-                "Workflow Name={0} must wait for Runner=None Workflows Name={1} to finish before submitting".format(
-                    self.Name,
-                    ','.join(threadnames)
-                )
-            )
-
             alive = [True]*len(threaddeps)
+
+            for i, tid in enumerate(threaddeps):
+                alive[i] = tid.is_alive()
+                if alive[i]:
+                    CompositionLogger.Info(
+                        "Workflow Name={0} must wait for (Runner=None) Workflow Name={1} to finish before submitting".format(
+                            self.Name,
+                            threadnames[i]
+                        )
+                    )
+                else:
+                    CompositionLogger.Info(
+                        "Workflow Name={0} dependency Workflow Name={1} is already satisfied".format(
+                            self.Name,
+                            threadnames[i]
+                        )
+                    )
+
             while self.While(any(alive)):
                 for i, tid in enumerate(threaddeps):
                     alive[i] = tid.is_alive()
+
+            CompositionLogger.Info(
+                "Workflow Name={0} (Runner=None) Workflow dendencies satisfied. Continuing...".format(self.Name)
+            )
 
 
     def RunnerSubmit(self, SubmitCall, threaddeps=[], threadnames=[]):
@@ -607,7 +656,7 @@ class Workflow(UseRunner):
         self.SetupBackup()
         self.SubmitBackup()
 
-        runnerdeps, runnernames, threaddeps, threadnames = self.GetDependencies(BackgroundTimeout=BackgroundTimeout)
+        runnerdeps, runnernames, runners, threaddeps, threadnames = self.GetDependencies(BackgroundTimeout=BackgroundTimeout)
         super(UseRunner, self).__setattr__('Wait', wait)
 
         if self.Runner is not None:
@@ -628,6 +677,9 @@ class Workflow(UseRunner):
 
         else:
 
+            self.BatchWait(runnerdeps, runnernames, runners)
+
+            """
             if len(runnerdeps) > 0:
                 CompositionLogger.RaiseError(
                     ValueError,
@@ -636,6 +688,8 @@ class Workflow(UseRunner):
                         ",".join(runnernames)
                     )
                 )
+            """
+
             self.ThreadWait(threaddeps, threadnames)
             tid = threading.Thread(target=self.SubSubmit)
             return self.ThreadRun(tid)
