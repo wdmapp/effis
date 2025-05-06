@@ -23,9 +23,6 @@ from effis.composition.backup import Backup
 from effis.composition.campaign import Campaign
 
 from effis.composition.log import CompositionLogger
-
-#from effis.composition.arguments import Arguments
-#from effis.composition.input import InputList
 from effis.composition.util import ListType, Arguments, InputList
 
 """
@@ -191,7 +188,6 @@ class Workflow(UseRunner):
 
         # These are for Object types, will throw errors within if necessary
         if name == "SchedulerDirectives":
-            #super(UseRunner, self).__setattr__(name, Arguments(value))
             super(UseRunner, self).__setattr__(name, Arguments(value, key=name))
         elif name == "Input":
             super(UseRunner, self).__setattr__(name, InputList(value, key=name))
