@@ -3,48 +3,11 @@ effis.composition.application
 """
 
 from effis.composition.runner import Detected, UseRunner
-from effis.composition.arguments import Arguments
-from effis.composition.input import InputList
 from effis.composition.log import CompositionLogger
 
-from effis.composition.util import ListType
-
-
-'''
-class DependsClass(Arguments):
-
-    def TypeError(self):
-        CompositionLogger.RaiseError(
-            ValueError,
-            "DependsOn must be given as {0} object or a list of them (or another DependsClass object)".format(self.astype.__name__)
-        )
-
-
-    def __init__(self, value, astype):
-        self.astype = astype
-        if isinstance(value, type(self)):
-            self.arguments = value.arguments
-        elif (not isinstance(value, self.astype)) and (not isinstance(value, list)):
-            self.TypeError()
-        elif isinstance(value, list):
-            self.arguments = value
-        elif isinstance(value, self.astype):
-            self.arguments = [value]
-
-
-    def __iadd__(self, value):
-        if isinstance(value, type(self)):
-            self.arguments = self.arguments + value.arguments
-        elif (not isinstance(value, self.astype)) and (not isinstance(value, list)):
-            self.TypeError()
-        elif isinstance(value, list):
-            self.arguments = self.arguments + value
-        elif isinstance(value, self.astype):
-            self.arguments = self.arguments + [value]
-
-        return self
-'''
-
+#from effis.composition.arguments import Arguments
+#from effis.composition.input import InputList
+from effis.composition.util import ListType, Arguments, InputList
 
 
 class Application(UseRunner):
@@ -101,7 +64,7 @@ class Application(UseRunner):
         RunnerArgs = []
         if self.Runner is not None:
             RunnerArgs = self.Runner.GetCall(self, self.MPIRunnerArguments)
-        Cmd = RunnerArgs + [self.cmd] + self.CommandLineArguments.arguments
+        Cmd = RunnerArgs + [self.cmd] + self.CommandLineArguments.List
         return Cmd
 
 
@@ -122,7 +85,6 @@ class Application(UseRunner):
             CompositionLogger.RaiseError(ValueError, "{0} should be set as a dictionary".format(name))
 
         if name in ["CommandLineArguments", "MPIRunnerArguments"]:
-            #self.__dict__[name] = Arguments(value)
             super(UseRunner, self).__setattr__(name, Arguments(value, key=name))
         elif name == "Input":
             super(UseRunner, self).__setattr__(name, InputList(value, key=name))
@@ -131,7 +93,8 @@ class Application(UseRunner):
         else:
             super(UseRunner, self).__setattr__(name, value)
 
-    
+
+    """
     def _add_(self, other, reverse=False):
         
         if isinstance(other, Application):
@@ -158,4 +121,5 @@ class Application(UseRunner):
     
     def __add__(self, other):
         return self._add_(other)
+    """
 

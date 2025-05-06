@@ -5,7 +5,9 @@ import subprocess
 import io
 import csv
 
-from effis.composition.arguments import Arguments
+#from effis.composition.arguments import Arguments
+from effis.composition.util import Arguments
+
 from effis.composition.log import CompositionLogger
 
 
@@ -162,6 +164,42 @@ class UseRunner(object):
                 self.__setattr__(key, getattr(self, key))
 
 
+    def _add_(self, other, reverse=False):
+        
+        if isinstance(other, type(self)):
+            left = [self]
+            right = [other]
+
+        elif type(other) is list:
+            for i in range(len(other)):
+                if not isinstance(other[i], type(self)):
+                    CompositionLogger.RaiseError(
+                        ValueError, 
+                        "Elements to add must be of type {0}".format(self.__class__.__name___)
+                    )
+            left = [self]
+            right = other
+
+        else:
+            CompositionLogger.RaiseError(
+                ValueError, 
+                "Can only add another {0} object (or lists of them) to {0}".format(self.__class__.__name__)
+            )
+
+        if reverse:
+            return right + left
+        else:
+            return left + right
+        
+    
+    def __radd__(self, other):
+        return self._add_(other, reverse=True)
+        
+    
+    def __add__(self, other):
+        return self._add_(other)
+
+
 class ParallelRunner:
     """
     All Batch Queues and MPI(or other multiprocess) Launchers will inherit from this.
@@ -198,11 +236,14 @@ class ParallelRunner:
             if getattr(Options, option) is not None:
                 RunnerArgs += [self.options[option], str(getattr(Options, option))]
 
+        RunnerArgs += Extra.List
+        """
         for arg in Extra.arguments:
             if not isinstance(arg, str):
                 RunnerArgs += [str(arg)]
             else:
                 RunnerArgs += [arg]
+        """
 
         return RunnerArgs
 
@@ -526,11 +567,14 @@ class srun2jsrun(srun):
             self.CallMap(RunnerArgs, Options, nrs=nrs, RanksPerRs=1)
 
 
+        RunnerArgs += Extra.List
+        """
         for arg in Extra.arguments:
             if not isinstance(arg, str):
                 RunnerArgs += [str(arg)]
             else:
                 RunnerArgs += [arg]
+        """
 
         return RunnerArgs
 

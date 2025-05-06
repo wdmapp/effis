@@ -1,4 +1,5 @@
-from effis.composition.input import InputList, Input
+#from effis.composition.input import InputList, Input
+from effis.composition.util import InputList, Input
 from effis.composition.log import CompositionLogger
 import os
 

@@ -19,13 +19,14 @@ import omas
 
 from effis.composition.runner import Detected, UseRunner
 from effis.composition.application import Application
-from effis.composition.arguments import Arguments
-from effis.composition.input import InputList
 from effis.composition.backup import Backup
 from effis.composition.campaign import Campaign
+
 from effis.composition.log import CompositionLogger
 
-from effis.composition.util import ListType
+#from effis.composition.arguments import Arguments
+#from effis.composition.input import InputList
+from effis.composition.util import ListType, Arguments, InputList
 
 """
 try:
@@ -57,7 +58,7 @@ class Chdir(ContextDecorator):
 
 def InputCopy(setup):
     
-    for item in setup.Input.list:
+    for item in setup.Input.List:
         outpath = setup.Directory
         if item.outpath is not None:
             outpath = os.path.join(outpath, item.outpath)
@@ -190,13 +191,15 @@ class Workflow(UseRunner):
 
         # These are for Object types, will throw errors within if necessary
         if name == "SchedulerDirectives":
-            super(UseRunner, self).__setattr__(name, Arguments(value))
+            #super(UseRunner, self).__setattr__(name, Arguments(value))
+            super(UseRunner, self).__setattr__(name, Arguments(value, key=name))
         elif name == "Input":
             super(UseRunner, self).__setattr__(name, InputList(value, key=name))
         elif name == "Backup":
             super(UseRunner, self).__setattr__(name, Backup(value))
         elif name == "Applications":
-            super(UseRunner, self).__setattr__(name, Application.CheckApplications(value))
+            #super(UseRunner, self).__setattr__(name, Application.CheckApplications(value))
+            super(UseRunner, self).__setattr__(name, ListType(value, Application, key=name))
         elif name == "Campaign":
             super(UseRunner, self).__setattr__(name, Campaign(value))
         elif (name == "DependsOn"):
@@ -234,7 +237,8 @@ class Workflow(UseRunner):
         """
 
         if isinstance(other, Application) or (type(other) is list):
-            self.Applications = self.Applications + other
+            #self.Applications = self.Applications + other
+            self.Applications += other
 
             if self.Directory is not None:
                 if isinstance(other, Application):
@@ -393,7 +397,8 @@ class Workflow(UseRunner):
                     'id': self.Backup.destinations[endpoint].Endpoint,
                     'paths': [],
                 }
-                for entry in self.Backup.destinations[endpoint].Input.list:
+                #for entry in self.Backup.destinations[endpoint].Input.list:
+                for entry in self.Backup.destinations[endpoint].Input.List:
                     entrydict = {}
                     for key in ('inpath', 'outpath', 'link', 'rename'):
                         #entrydict[key] = entry.__dict__[key]

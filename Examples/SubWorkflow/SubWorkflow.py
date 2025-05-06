@@ -4,6 +4,7 @@ import argparse
 import shutil
 import os
 import time
+import getpass
 import effis.composition
 
 
@@ -53,6 +54,8 @@ def Run(args, runner=None):
         Subdirs=False,
         **extra,
     )
+    #MyWorkflow.SchedulerDirectives += 4
+    MyWorkflow.Input += "tmp.txt"
     
     Simulation = MyWorkflow.Application(
         cmd=os.path.join(os.path.abspath(os.path.dirname(__file__)), "TestApp.py"),
@@ -61,6 +64,18 @@ def Run(args, runner=None):
     )
     if args.batchtype == "local":
         Simulation.CommandLineArguments += "--local"
+
+    whoami = effis.composition.Application(
+        Runner=None,
+        cmd="whoami"
+    )
+    uid = effis.composition.Application(
+        Runner=None,
+        cmd="id",
+        CommandLineArguments=["-u", getpass.getuser()]
+    )
+    MyWorkflow += whoami + uid
+
 
     #MyWorkflow.Create()
     MyWorkflow.Submit()
@@ -76,25 +91,19 @@ def Run(args, runner=None):
         cmd="sleep",
         Name="Sleep",
         CommandLineArguments="10",
-        #Input=effis.composition.Input(__file__, outpath=5),
-        #Input="5",
     )
-    #sleep.Input += "5"
-    #sleep.CommandLineArguments += [["10"]]
-    #LocalWorkflow.Submit(wait=False)
-
-    #sleep.Input += __file__
-    #sleep.Input = "wrong"
 
 
     DepWorkflow = effis.composition.Workflow(
         Runner=runner,
         Directory="{0}-dependent".format(args.outdir),
         Subdirs=False,
-        DependsOn=MyWorkflow,
+        #DependsOn=MyWorkflow,
         **extra,
     )
-    DepWorkflow.DependsOn += LocalWorkflow
+    #DepWorkflow.DependsOn += MyWorkflow
+    #DepWorkflow.DependsOn += LocalWorkflow
+    DepWorkflow.DependsOn += MyWorkflow + LocalWorkflow
 
     date = DepWorkflow.Application(
         cmd="date",
