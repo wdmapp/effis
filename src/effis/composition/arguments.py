@@ -23,7 +23,7 @@ class Arguments:
                 ValueError, 
                 (
                     "Invalid assignment: {0}={1} --> "
-                    "Must be given as a string or a list or strings".format(
+                    "Must be given as a string or a list of strings".format(
                         selflkey,
                         str(value)
                     )
@@ -42,7 +42,7 @@ class Arguments:
                         ValueError, 
                         (
                             "Invalid assignment: {0}={1} --> "
-                            "Must be given as a string or a list or strings; "
+                            "Must be given as a string or a list of strings; "
                             "Element={2} is not a string".format(
                                 self.key,
                                 str(value),

@@ -95,6 +95,7 @@ def Run(args, runner=None):
         **extra,
     )
     DepWorkflow.DependsOn += LocalWorkflow
+
     date = DepWorkflow.Application(
         cmd="date",
         Name="Date",

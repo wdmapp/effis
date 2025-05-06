@@ -18,12 +18,14 @@ import getpass
 import omas
 
 from effis.composition.runner import Detected, UseRunner
-from effis.composition.application import Application, DependsClass
+from effis.composition.application import Application
 from effis.composition.arguments import Arguments
 from effis.composition.input import InputList
 from effis.composition.backup import Backup
 from effis.composition.campaign import Campaign
 from effis.composition.log import CompositionLogger
+
+from effis.composition.util import ListType
 
 """
 try:
@@ -198,7 +200,7 @@ class Workflow(UseRunner):
         elif name == "Campaign":
             super(UseRunner, self).__setattr__(name, Campaign(value))
         elif (name == "DependsOn"):
-            super(UseRunner, self).__setattr__(name, DependsClass(value, Workflow))
+            super(UseRunner, self).__setattr__(name, ListType(value, Workflow, key=name))
 
         # Check for some other conditions that don't make sense; don't set anything
         elif (name == "MPMD") and value:
@@ -345,9 +347,9 @@ class Workflow(UseRunner):
 
         # Check for cyclic dependencies
         for app in self.Applications:
-            for dep in app.DependsOn.arguments:
+            for dep in app.DependsOn:
                 depdeps = dep.DependsOn
-                for depdep in depdeps.arguments:
+                for depdep in depdeps:
                     #if app.Name == depdep.Name:
                     if app is depdep:
                         CompositionLogger.RaiseError(ValueError, "Cyclic dependencies between {0} and {1}".format(app.Name, dep.Name))
@@ -526,8 +528,8 @@ class Workflow(UseRunner):
     def GetDependencies(self, BackgroundTimeout=0):
 
         # Check for cyclic dependencies, which don't make sense
-        for dep in self.DependsOn.arguments:
-            for depdep in dep.DependsOn.arguments:
+        for dep in self.DependsOn:
+            for depdep in dep.DependsOn:
                 if depdep is self:
                     CompositionLogger.RaiseError(
                         ValueError,
@@ -546,7 +548,7 @@ class Workflow(UseRunner):
         start = datetime.datetime.now()
         current = start
 
-        for dep in self.DependsOn.arguments:
+        for dep in self.DependsOn:
 
             if dep.Runner is not None:
                 jobid, name = self.GetID(dep, "JobID", start, BackgroundTimeout=BackgroundTimeout, ids=runnerdeps, names=runnernames)
@@ -727,7 +729,7 @@ class Workflow(UseRunner):
             for app in self.Applications:
 
                 blocked = False
-                for dep in app.DependsOn.arguments:
+                for dep in app.DependsOn:
                     if ('Status' not in dep.__dir__()) or (dep.Status is None):
                         blocked = True
                         break

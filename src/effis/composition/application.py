@@ -7,7 +7,10 @@ from effis.composition.arguments import Arguments
 from effis.composition.input import InputList
 from effis.composition.log import CompositionLogger
 
+from effis.composition.util import ListType
 
+
+'''
 class DependsClass(Arguments):
 
     def TypeError(self):
@@ -40,6 +43,7 @@ class DependsClass(Arguments):
             self.arguments = self.arguments + [value]
 
         return self
+'''
 
 
 
@@ -123,7 +127,7 @@ class Application(UseRunner):
         elif name == "Input":
             super(UseRunner, self).__setattr__(name, InputList(value, key=name))
         elif (name == "DependsOn"):
-            super(UseRunner, self).__setattr__(name, DependsClass(value, Application))
+            super(UseRunner, self).__setattr__(name, ListType(value, Application, key=name))
         else:
             super(UseRunner, self).__setattr__(name, value)
 
