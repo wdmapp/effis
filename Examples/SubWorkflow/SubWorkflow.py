@@ -54,8 +54,6 @@ def Run(args, runner=None):
         Subdirs=False,
         **extra,
     )
-    #MyWorkflow.SchedulerDirectives += 4
-    MyWorkflow.Input += "tmp.txt"
     
     Simulation = MyWorkflow.Application(
         cmd=os.path.join(os.path.abspath(os.path.dirname(__file__)), "TestApp.py"),
@@ -86,6 +84,7 @@ def Run(args, runner=None):
         Directory=args.outdir,
         Name="Sleep",
         Subdirs=True,
+        DependsOn=MyWorkflow,
     )
     sleep = LocalWorkflow.Application(
         cmd="sleep",
@@ -98,13 +97,9 @@ def Run(args, runner=None):
         Runner=runner,
         Directory="{0}-dependent".format(args.outdir),
         Subdirs=False,
-        #DependsOn=MyWorkflow,
         **extra,
     )
-    #DepWorkflow.DependsOn += MyWorkflow
-    #DepWorkflow.DependsOn += LocalWorkflow
     DepWorkflow.DependsOn += MyWorkflow + LocalWorkflow
-    #DepWorkflow.DependsOn = DepWorkflow.DependsOn + MyWorkflow + LocalWorkflow
 
     date = DepWorkflow.Application(
         cmd="date",
@@ -115,8 +110,6 @@ def Run(args, runner=None):
     did = DepWorkflow.Submit(AsyncTimeout=-1)
     time.sleep(5)
 
-    #LocalWorkflow.DependsOn += DepWorkflow
-    LocalWorkflow.DependsOn += MyWorkflow
     lid = LocalWorkflow.Submit(wait=False)
 
     did.join()
