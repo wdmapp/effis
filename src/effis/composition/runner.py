@@ -200,6 +200,34 @@ class UseRunner(object):
         return self._add_(other)
 
 
+    def CopyInput(self):
+        
+        for item in self.Input:
+            outpath = self.Directory
+            if item.outpath is not None:
+                outpath = os.path.join(outpath, item.outpath)
+                if not os.path.exists(outpath):
+                    os.makedirs(outpath)
+            if item.rename is not None:
+                outpath = os.path.join(outpath, item.rename)
+            else:
+                outpath = os.path.join(outpath, os.path.basename(item.inpath))
+            
+            if item.link:
+                os.symlink(os.path.abspath(item.inpath), outpath)
+            else:
+                if os.path.isdir(item.inpath):
+                    shutil.copytree(item.inpath, outpath)
+                else:
+                    shutil.copy(item.inpath, outpath)
+
+        if self.SetupFile is not None:
+            outpath = self.Directory
+            shutil.copy(self.SetupFile, outpath)
+            self.SetupFile = os.path.basename(self.SetupFile)
+
+
+
 class ParallelRunner:
     """
     All Batch Queues and MPI(or other multiprocess) Launchers will inherit from this.

@@ -53,33 +53,6 @@ class Chdir(ContextDecorator):
         return None
 
 
-def InputCopy(setup):
-    
-    for item in setup.Input.List:
-        outpath = setup.Directory
-        if item.outpath is not None:
-            outpath = os.path.join(outpath, item.outpath)
-            if not os.path.exists(outpath):
-                os.makedirs(outpath)
-        if item.rename is not None:
-            outpath = os.path.join(outpath, item.rename)
-        else:
-            outpath = os.path.join(outpath, os.path.basename(item.inpath))
-        
-        if item.link:
-            os.symlink(os.path.abspath(item.inpath), outpath)
-        else:
-            if os.path.isdir(item.inpath):
-                shutil.copytree(item.inpath, outpath)
-            else:
-                shutil.copy(item.inpath, outpath)
-
-    if setup.SetupFile is not None:
-        outpath = setup.Directory
-        shutil.copy(setup.SetupFile, outpath)
-        setup.SetupFile = os.path.basename(setup.SetupFile)
-
-
 def FindExt(path, files=[], ext=".bp", isdir=True):
     if path is None:
         path = "./"
@@ -341,9 +314,9 @@ class Workflow(UseRunner):
                 os.makedirs(app.Directory)
 
         # Copy the input files
-        InputCopy(self)
+        self.CopyInput()
         for app in self.Applications:
-            InputCopy(app)
+            app.CopyInput()
 
         # Check for cyclic dependencies
         for app in self.Applications:
@@ -753,7 +726,6 @@ class Workflow(UseRunner):
                     else:
                         super(UseRunner, app).__setattr__('stdout', None)
 
-                    CompositionLogger.Info(msg)
 
                     if app.SetupFile is not None:
                         jobfile = "./{0}.sh".format(app.Name)
@@ -767,9 +739,11 @@ class Workflow(UseRunner):
                             stat.S_IRGRP | stat.S_IXGRP |
                             stat.S_IROTH | stat.S_IXOTH
                         )
-                        p = subprocess.Popen([jobfile], stdout=app.stdout, stderr=app.stdout, env={**os.environ, **app.Environment})
-                    else:
-                        p = subprocess.Popen(cmd, stdout=app.stdout, stderr=app.stdout, env={**os.environ, **app.Environment})
+                        CompositionLogger.Info("Source setup file: {0}".format(os.path.abspath(app.SetupFile)))
+                        cmd = [jobfile]
+
+                    CompositionLogger.Info(msg)
+                    p = subprocess.Popen(cmd, stdout=app.stdout, stderr=app.stdout, env={**os.environ, **app.Environment})
 
                     super(UseRunner, app).__setattr__('procid', p)
                     if app.Group is not None:
