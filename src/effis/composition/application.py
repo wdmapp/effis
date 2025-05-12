@@ -26,7 +26,7 @@ class Application(UseRunner):
     MPIRunnerArguments = []
     
     #: A file to source before lanuching the application (for environment setup, etc.)
-    SetupFile = None
+    SetupFile = []
 
     #: Send the Application's terminal output to a file
     LogFile = None
@@ -76,47 +76,17 @@ class Application(UseRunner):
         """
 
         # Throw errors for bad attribute type settings
-        if (name in ("cmd", "SetupFile", "Name", "Group")) and (value is not None) and (type(value) is not str):
+        if (name in ("cmd", "Name", "Group")) and (value is not None) and (type(value) is not str):
             CompositionLogger.RaiseError(AttributeError, "{0} should be set as a string".format(name))
         if (name in ("Environment")) and (type(value) is not dict):
             CompositionLogger.RaiseError(ValueError, "{0} should be set as a dictionary".format(name))
 
         if name in ["CommandLineArguments", "MPIRunnerArguments"]:
             super(UseRunner, self).__setattr__(name, Arguments(value, key=name))
-        elif name == "Input":
+        elif name in ("Input", "SetupFile"):
             super(UseRunner, self).__setattr__(name, InputList(value, key=name))
         elif (name == "DependsOn"):
             super(UseRunner, self).__setattr__(name, ListType(value, Application, key=name))
         else:
             super(UseRunner, self).__setattr__(name, value)
-
-
-    """
-    def _add_(self, other, reverse=False):
-        
-        if isinstance(other, Application):
-            left = [self]
-            right = [other]
-        elif type(other) is list:
-            for i in range(len(other)):
-                if not isinstance(other[i], Application):
-                    CompositionLogger.RaiseError(ValueError, "List elements to add as applications must be of type Application")
-            left = [self]
-            right = other            
-        else:
-            CompositionLogger.RaiseError(ValueError, "Can only add applications and/or lists of them with elements of type Application")
-
-        if reverse:
-            return right + left
-        else:
-            return left + right
-        
-    
-    def __radd__(self, other):
-        return self._add_(other, reverse=True)
-        
-    
-    def __add__(self, other):
-        return self._add_(other)
-    """
 

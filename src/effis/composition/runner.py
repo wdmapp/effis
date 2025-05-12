@@ -200,31 +200,64 @@ class UseRunner(object):
         return self._add_(other)
 
 
-    def CopyInput(self):
-        
-        for item in self.Input:
-            outpath = self.Directory
-            if item.outpath is not None:
-                outpath = os.path.join(outpath, item.outpath)
-                if not os.path.exists(outpath):
-                    os.makedirs(outpath)
-            if item.rename is not None:
-                outpath = os.path.join(outpath, item.rename)
-            else:
-                outpath = os.path.join(outpath, os.path.basename(item.inpath))
-            
-            if item.link:
-                os.symlink(os.path.abspath(item.inpath), outpath)
-            else:
-                if os.path.isdir(item.inpath):
-                    shutil.copytree(item.inpath, outpath)
-                else:
-                    shutil.copy(item.inpath, outpath)
+    def CopyInput(self, useinput=('Input', 'SetupFile')):
 
-        if self.SetupFile is not None:
-            outpath = self.Directory
-            shutil.copy(self.SetupFile, outpath)
-            self.SetupFile = os.path.basename(self.SetupFile)
+        for kind in useinput:
+        
+            for item in getattr(self, kind):
+
+                outpath = self.Directory
+
+                if item.outpath is not None:
+                    outpath = os.path.join(outpath, item.outpath)
+                    if not os.path.exists(outpath):
+                        os.makedirs(outpath)
+
+                if item.rename is not None:
+                    outpath = os.path.join(outpath, item.rename)
+                else:
+                    outpath = os.path.join(outpath, os.path.basename(item.inpath))
+                
+                if item.link:
+                    os.symlink(os.path.abspath(item.inpath), outpath)
+                else:
+                    if os.path.isdir(item.inpath):
+                        shutil.copytree(item.inpath, outpath)
+                    else:
+                        shutil.copy(item.inpath, outpath)
+
+                item.outpath = os.path.abspath(outpath)
+
+
+    def ShellSetup(self, force=False):
+        setuplines = []
+        
+        if "UpstreamSetupFile" in self.__dir__():
+            for SetupFile in self.UpstreamSetupFile:
+                setuplines += [
+                    ". {0}".format(SetupFile.outpath)
+                ]
+
+        for SetupFile in self.SetupFile:
+            setuplines += [
+                ". {0}".format(SetupFile.outpath)
+            ]
+            #CompositionLogger.Info("Source setup file: {0}".format(SetupFile.outpath))
+
+        if len(setuplines) > 0:
+            setuplines = (
+                "#!{0}".format(os.environ['SHELL']) + "\n" +
+                "\n".join(setuplines) + "\n"
+            )
+            return setuplines
+
+        elif force:
+            return (
+                "#!{0}".format(os.environ['SHELL']) + "\n"
+            )
+
+        else:
+            return None
 
 
 

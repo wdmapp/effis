@@ -100,7 +100,7 @@ class Workflow(UseRunner):
     Directory = None
 
     #: A file to source for environment setup, etc.
-    SetupFile = None
+    SetupFile = []
 
     #: Custom scheduler directives; bypasses setting with Runner
     SchedulerDirectives = []
@@ -152,7 +152,7 @@ class Workflow(UseRunner):
         """
 
         # Throw errors for bad attribute type settings
-        if (name in ("Name", "Directory", "SetupFile")) and (value is not None) and (type(value) is not str):
+        if (name in ("Name", "Directory")) and (value is not None) and (type(value) is not str):
             CompositionLogger.RaiseError(ValueError, "Workflow attribute: {0} should be set as a string".format(name))
         elif name in ("Subdirs", "MPMD", "TimeIndex") and (type(value) is not bool):
             CompositionLogger.RaiseError(ValueError, "Workflow attribute: {0} should be set as a boolean".format(name))
@@ -162,7 +162,7 @@ class Workflow(UseRunner):
         # These are for Object types, will throw errors within if necessary
         if name == "SchedulerDirectives":
             super(UseRunner, self).__setattr__(name, Arguments(value, key=name))
-        elif name == "Input":
+        elif name in ("Input", "SetupFile"):
             super(UseRunner, self).__setattr__(name, InputList(value, key=name))
         elif name == "Backup":
             super(UseRunner, self).__setattr__(name, Backup(value))
@@ -638,8 +638,10 @@ class Workflow(UseRunner):
         if self.Runner is not None:
             SubmitCall = self.GetCall(runnerdeps=runnerdeps)
             with open(self._submitname_, 'w') as outfile:
-                outfile.write("#!/bin/sh" + "\n")
-                outfile.write("effis-submit --sub {0} --name {1}".format(self.Directory, self.Name))
+                outfile.write(self.ShellSetup(force=True))
+                outfile.write(
+                    "effis-submit --sub {0} --name {1}".format(self.Directory, self.Name)
+                )
 
             if len(threaddeps) > 0:
                 tid = threading.Thread(
@@ -652,6 +654,9 @@ class Workflow(UseRunner):
                 self.RunnerSubmit(SubmitCall)
 
         else:
+            
+            for app in self.Applications:
+                super(UseRunner, app).__setattr__("UpstreamSetupFile", self.SetupFile)
 
             self.BatchWait(runnerdeps, runnernames, runners)
 
@@ -726,20 +731,23 @@ class Workflow(UseRunner):
                     else:
                         super(UseRunner, app).__setattr__('stdout', None)
 
+                    ShellSetup = app.ShellSetup()
 
-                    if app.SetupFile is not None:
+                    if ShellSetup is not None:
                         jobfile = "./{0}.sh".format(app.Name)
+
                         with open(jobfile, "w") as outfile:
-                            outfile.write("#!/bin/sh" + "\n")
-                            outfile.write(". ./{0}".format(app.SetupFile) + "\n")
-                            outfile.write("{0}".format(" ".join(cmd)))
+                            outfile.write(ShellSetup)
+                            outfile.write(
+                                "{0}".format(" ".join(cmd))
+                            )
+
                         os.chmod(
                             jobfile,
                             stat.S_IRUSR | stat.S_IXUSR | stat.S_IWUSR |
                             stat.S_IRGRP | stat.S_IXGRP |
                             stat.S_IROTH | stat.S_IXOTH
                         )
-                        CompositionLogger.Info("Source setup file: {0}".format(os.path.abspath(app.SetupFile)))
                         cmd = [jobfile]
 
                     CompositionLogger.Info(msg)
