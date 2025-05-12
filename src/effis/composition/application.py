@@ -3,36 +3,8 @@ effis.composition.application
 """
 
 from effis.composition.runner import Detected, UseRunner
-from effis.composition.arguments import Arguments
-from effis.composition.input import InputList
 from effis.composition.log import CompositionLogger
-
-
-class DependsClass(Arguments):
-
-    def __init__(self, value):
-        if isinstance(value, type(self)):
-            self.arguments = value.arguments
-        elif (not isinstance(value, Application)) and (not isinstance(value, list)):
-            CompositionLogger.RaiseError(ValueError, "DependsOn must be given as an Application or a list of them (or another DependsClass object)")
-        elif isinstance(value, list):
-            self.arguments = value
-        elif isinstance(value, Application):
-            self.arguments = [value]
-
-
-    def __iadd__(self, value):
-        if isinstance(value, type(self)):
-            self.arguments = self.arguments + value.arguments
-        elif (not isinstance(value, Application)) and (not isinstance(value, list)):
-            CompositionLogger.RaiseError(ValueError, "DependsOn must be given as an Application or a list of them")
-        elif isinstance(value, list):
-            self.arguments = self.arguments + value
-        elif isinstance(value, Application):
-            self.arguments = self.arguments + [value]
-
-        return self
-
+from effis.composition.util import ListType, Arguments, InputList
 
 
 class Application(UseRunner):
@@ -54,7 +26,7 @@ class Application(UseRunner):
     MPIRunnerArguments = []
     
     #: A file to source before lanuching the application (for environment setup, etc.)
-    SetupFile = None
+    SetupFile = []
 
     #: Send the Application's terminal output to a file
     LogFile = None
@@ -89,7 +61,7 @@ class Application(UseRunner):
         RunnerArgs = []
         if self.Runner is not None:
             RunnerArgs = self.Runner.GetCall(self, self.MPIRunnerArguments)
-        Cmd = RunnerArgs + [self.cmd] + self.CommandLineArguments.arguments
+        Cmd = RunnerArgs + [self.cmd] + self.CommandLineArguments.List
         return Cmd
 
 
@@ -104,45 +76,17 @@ class Application(UseRunner):
         """
 
         # Throw errors for bad attribute type settings
-        if (name in ("cmd", "SetupFile", "Name", "Group")) and (value is not None) and (type(value) is not str):
+        if (name in ("cmd", "Name", "Group")) and (value is not None) and (type(value) is not str):
             CompositionLogger.RaiseError(AttributeError, "{0} should be set as a string".format(name))
         if (name in ("Environment")) and (type(value) is not dict):
             CompositionLogger.RaiseError(ValueError, "{0} should be set as a dictionary".format(name))
 
         if name in ["CommandLineArguments", "MPIRunnerArguments"]:
-            self.__dict__[name] = Arguments(value)
-        elif name == "Input":
-            self.__dict__[name] = InputList(value)
+            super(UseRunner, self).__setattr__(name, Arguments(value, key=name))
+        elif name in ("Input", "SetupFile"):
+            super(UseRunner, self).__setattr__(name, InputList(value, key=name))
         elif (name == "DependsOn"):
-            self.__dict__[name] = DependsClass(value)
+            super(UseRunner, self).__setattr__(name, ListType(value, Application, key=name))
         else:
-            self.__dict__[name] = value
-
-    
-    def _add_(self, other, reverse=False):
-        
-        if isinstance(other, Application):
-            left = [self]
-            right = [other]
-        elif type(other) is list:
-            for i in range(len(other)):
-                if not isinstance(other[i], Application):
-                    CompositionLogger.RaiseError(ValueError, "List elements to add as applications must be of type Application")
-            left = [self]
-            right = other            
-        else:
-            CompositionLogger.RaiseError(ValueError, "Can only add applications and/or lists of them with elements of type Application")
-
-        if reverse:
-            return right + left
-        else:
-            return left + right
-        
-    
-    def __radd__(self, other):
-        return self._add_(other, reverse=True)
-        
-    
-    def __add__(self, other):
-        return self._add_(other)
+            super(UseRunner, self).__setattr__(name, value)
 

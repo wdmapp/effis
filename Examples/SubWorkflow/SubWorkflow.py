@@ -3,36 +3,42 @@
 import argparse
 import shutil
 import os
+import time
+import getpass
 import effis.composition
 
-if __name__ == "__main__":
 
-    runner = effis.composition.Workflow.DetectRunnerInfo()
+def SetupArgs(runner):
 
-    parser = argparse.ArgumentParser()
+    fullparser = argparse.ArgumentParser()
+    subparsers = fullparser.add_subparsers(help='subcommand help', dest="batchtype")
+    slurmparser = subparsers.add_parser('batch', help='Go through scheduler')
+    localparser = subparsers.add_parser('local', help='Run on current local node')
 
-    if isinstance(runner, effis.composition.runner.perlmutter):
-        parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=1)
-        parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="00:05:00")
-        parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
-        parser.add_argument("-q", "--qos", help="QOS", required=False, type=str, default="regular")
-        parser.add_argument("-k", "--constraint", help="cpu or gpu", required=False, type=str, default="cpu")
+    if isinstance(runner, effis.composition.runner.slurm):
+        slurmparser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=1)
+        slurmparser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="00:05:00")
+        slurmparser.add_argument("-c", "--charge", help="charge", required=True, type=str)
+        if isinstance(runner, effis.composition.runner.perlmutter):
+            slurmparser.add_argument("-q", "--qos", help="QOS", required=False, type=str, default="regular")
+            slurmparser.add_argument("-k", "--constraint", help="cpu or gpu", required=False, type=str, default="cpu")
 
-    elif isinstance(runner, effis.composition.runner.summit):
-        parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=1)
-        parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="5")
-        parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
+    for name, subparser in subparsers.choices.items():
+        subparser.add_argument("-o", "--outdir", help="Path to top parent directory for run directory", required=True, type=str)
 
-    elif isinstance(runner, effis.composition.runner.frontier):
-        parser.add_argument("-n", "--nodes", help="Number of nodes", required=False, type=int, default=1)
-        parser.add_argument("-w", "--walltime", help="Walltime", required=False, type=str, default="00:05:00")
-        parser.add_argument("-c", "--charge", help="charge", required=True, type=str)
+    args = fullparser.parse_args()
+    return args
 
-    elif runner is not None:
-        raise(ValueError, "Example is configured for Perlmutter, Summit or a machine without a scheduler (using mpiexec)")
 
-    parser.add_argument("-o", "--outdir", help="Path to top parent directory for run directory", required=True, type=str)
-    args = parser.parse_args()
+def Run(args, runner=None):
+
+    if (args.batchtype == "batch") and (runner is None):
+        runner = effis.composition.Workflow.DetectRunnerInfo()
+
+    if (args.batchtype == "batch") and (runner is not None) and (not isinstance(runner, effis.composition.runner.slurm)):
+        effis.composition.EffisLogger.RaiseError(ValueError, "Current batch setup is for Slurm")
+    elif args.batchtype == "local":
+        runner = None
 
     extra = {}
     for key in ('nodes', 'walltime', 'charge', 'constraint'):
@@ -54,5 +60,65 @@ if __name__ == "__main__":
         Name="TestRunner",
         Runner=None,
     )
+    if args.batchtype == "local":
+        Simulation.CommandLineArguments += "--local"
 
-    MyWorkflow.Create()
+    whoami = effis.composition.Application(
+        Runner=None,
+        cmd="whoami"
+    )
+    uid = effis.composition.Application(
+        Runner=None,
+        cmd="id",
+        CommandLineArguments=["-u", getpass.getuser()]
+    )
+    MyWorkflow += whoami + uid
+
+
+    #MyWorkflow.Create()
+    MyWorkflow.Submit()
+
+
+    LocalWorkflow = effis.composition.Workflow(
+        Runner=None,
+        Directory=args.outdir,
+        Name="Sleep",
+        Subdirs=True,
+        DependsOn=MyWorkflow,
+    )
+    sleep = LocalWorkflow.Application(
+        cmd="sleep",
+        Name="Sleep",
+        CommandLineArguments="10",
+    )
+
+
+    DepWorkflow = effis.composition.Workflow(
+        Runner=runner,
+        Directory="{0}-dependent".format(args.outdir),
+        Subdirs=False,
+        **extra,
+    )
+    DepWorkflow.DependsOn += MyWorkflow + LocalWorkflow
+
+    date = DepWorkflow.Application(
+        cmd="date",
+        Name="Date",
+        Runner=None,
+    )
+
+    did = DepWorkflow.Submit(AsyncTimeout=-1)
+    time.sleep(5)
+
+    lid = LocalWorkflow.Submit(wait=False)
+
+    did.join()
+
+
+
+if __name__ == "__main__":
+
+    runner = effis.composition.Workflow.DetectRunnerInfo()
+    args = SetupArgs(runner)
+    Run(args, runner=runner)
+

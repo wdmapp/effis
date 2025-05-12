@@ -21,6 +21,7 @@ dependencies = [
   "dill",
   "globus_sdk",
   "pyyaml", 
+  "colorama",
   "omas",
 ]
 
@@ -30,3 +31,12 @@ effis-globus-backup = "effis.runtime.BackupGlobus:main"
 effis-nc2bp = "effis.shim.nc:main"
 effis-omas-gx = "effis.shim.gx_omas:main"
 effis-omas-vmec = "effis.shim.vmec_omas:main"
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = [
+  "Examples",
+]
