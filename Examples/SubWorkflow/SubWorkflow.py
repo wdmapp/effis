@@ -112,7 +112,7 @@ def Run(args, runner=None):
         Runner=None,
     )
 
-    did = DepWorkflow.Submit(BackgroundTimeout=-1)
+    did = DepWorkflow.Submit(AsyncTimeout=-1)
     time.sleep(5)
 
     #LocalWorkflow.DependsOn += DepWorkflow

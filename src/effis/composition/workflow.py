@@ -457,13 +457,13 @@ class Workflow(UseRunner):
             return condition
 
 
-    def GetID(self, dep, idstr, start, BackgroundTimeout=0, ids=None, names=None, current=datetime.datetime.now()):
+    def GetID(self, dep, idstr, start, AsyncTimeout=0, ids=None, names=None, current=datetime.datetime.now()):
 
         while self.While(
             (
-                (current - start).total_seconds() < BackgroundTimeout
+                (current - start).total_seconds() < AsyncTimeout
                 or
-                BackgroundTimeout == -1
+                AsyncTimeout == -1
             )
             and
             (
@@ -475,7 +475,7 @@ class Workflow(UseRunner):
         if idstr not in dep.__dir__():
             CompositionLogger.RaiseError(
                 ValueError,
-                "Waiting for Dependency Name={0} of Workflow Name={1} timed out".format(
+                "Waiting for Dependency Name={0} of Workflow Name={1} to exist timed out".format(
                     dep.Name,
                     self.Name
                 )
@@ -499,7 +499,7 @@ class Workflow(UseRunner):
         return getattr(dep, idstr), dep.Name
 
 
-    def GetDependencies(self, BackgroundTimeout=0):
+    def GetDependencies(self, AsyncTimeout=0):
 
         # Check for cyclic dependencies, which don't make sense
         for dep in self.DependsOn:
@@ -525,10 +525,10 @@ class Workflow(UseRunner):
         for dep in self.DependsOn:
 
             if dep.Runner is not None:
-                jobid, name = self.GetID(dep, "JobID", start, BackgroundTimeout=BackgroundTimeout, ids=runnerdeps, names=runnernames)
+                jobid, name = self.GetID(dep, "JobID", start, AsyncTimeout=AsyncTimeout, ids=runnerdeps, names=runnernames)
                 runners += [dep.Runner]
             else:
-                threadid, name = self.GetID(dep, "tid", start, BackgroundTimeout=BackgroundTimeout, ids=threaddeps, names=threadnames)
+                threadid, name = self.GetID(dep, "tid", start, AsyncTimeout=AsyncTimeout, ids=threaddeps, names=threadnames)
 
         return runnerdeps, runnernames, runners, threaddeps, threadnames
 
@@ -609,19 +609,19 @@ class Workflow(UseRunner):
             super(UseRunner, self).__setattr__('JobID', None)
 
 
-    def Submit(self, wait=True, BackgroundTimeout=0):
-        if BackgroundTimeout == 0:
-            return self._Submit(wait=wait, BackgroundTimeout=BackgroundTimeout)
+    def Submit(self, wait=True, AsyncTimeout=0):
+        if AsyncTimeout == 0:
+            return self._Submit(wait=wait, AsyncTimeout=AsyncTimeout)
         else:
             tid = threading.Thread(
                 target=self._Submit,
-                kwargs={'wait': wait, 'BackgroundTimeout': BackgroundTimeout}
+                kwargs={'wait': wait, 'AsyncTimeout': AsyncTimeout}
             )
             tid.start()
             return tid
 
 
-    def _Submit(self, wait=True, BackgroundTimeout=0):
+    def _Submit(self, wait=True, AsyncTimeout=0):
         if not self._CreateCalled_:
             self.Create()
 
@@ -632,7 +632,7 @@ class Workflow(UseRunner):
         self.SetupBackup()
         self.SubmitBackup()
 
-        runnerdeps, runnernames, runners, threaddeps, threadnames = self.GetDependencies(BackgroundTimeout=BackgroundTimeout)
+        runnerdeps, runnernames, runners, threaddeps, threadnames = self.GetDependencies(AsyncTimeout=AsyncTimeout)
         super(UseRunner, self).__setattr__('Wait', wait)
 
         if self.Runner is not None:
