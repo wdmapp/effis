@@ -438,8 +438,8 @@ class slurm(ParallelRunner):
                 RuntimeError,
                 (
                     "Did not find a JobID" + '\n'
-                    "stdout: {0}".format(outstr) + '\n'
-                    "stderr: {1}".format(errstr)
+                    "stdout: \n{0}".format(outstr) + '\n'
+                    "stderr: \n{0}".format(errstr)
                 )
             )
 
