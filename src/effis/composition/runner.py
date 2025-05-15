@@ -426,8 +426,23 @@ class slurm(ParallelRunner):
 
     @classmethod
     def GetJobID(cls, result):
-        idstr = result.stdout.decode("utf-8").strip()
-        return idstr
+        outstr = result.stdout.decode("utf-8").strip()
+        errstr = result.stderr.decode("utf-8").strip()
+
+        if outstr.isdigit():
+            return outstr
+        elif errstr.isdigit():
+            return errstr
+        else:
+            CompositionLogger.RaiseError(
+                RuntimeError,
+                (
+                    "Did not find a JobID" + '\n'
+                    "stdout: {0}".format(outstr) + '\n'
+                    "stderr: {1}".format(errstr)
+                )
+            )
+
 
     @classmethod
     def Dependency(cls, deplist):
