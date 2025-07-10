@@ -117,6 +117,9 @@ class Workflow(UseRunner):
     #: Run Applications in subdirectories
     Subdirs = True
 
+    #: Default is not continue if run directory exists (but need to allow restarts)
+    AllowExisting = False
+
     #: Lets set a max running for the group
     GroupMax = {}
 
@@ -302,7 +305,7 @@ class Workflow(UseRunner):
         self.SetAppDirectories(self.Applications)
 
         # Don't overwrite original composition; Anticipate that SubWorkflows (Runner=None) will be using the same directory
-        if (self.Runner is not None) and (os.path.exists(self.Directory)):
+        if (not self.AllowExisting) and os.path.exists(self.Directory):
             CompositionLogger.RaiseError(FileExistsError, "Trying to create to a directory that already exists: {0}".format(self.Directory))
 
         # Create Directories
@@ -436,14 +439,20 @@ class Workflow(UseRunner):
                     config = yaml.safe_load(infile)
 
                 storepath = os.path.join(os.path.expanduser(config['Campaign']['campaignstorepath']), "{0}.aca".format(self.Campaign.Name))
+
                 if os.path.exists(storepath):
                     subcmd = "update"
                 else:
                     subcmd = "create"
 
+                '''
                 args = [subcmd, self.Campaign.Name, "--files"] + bp
-
                 fullcmd = [self.Campaign.ManagerCommand] + args
+                '''
+
+                #fullcmd = [self.Campaign.ManagerCommand, "--files"] + bp + [subcmd, storepath]
+                fullcmd = [self.Campaign.ManagerCommand, subcmd, storepath, "--files"] + bp
+
                 CompositionLogger.Info("Campaign management: {0}".format(' '.join(fullcmd)))
                 subprocess.call(fullcmd)
 
@@ -697,6 +706,7 @@ class Workflow(UseRunner):
     def SubSubmit(self):
 
         GroupRunning = {}
+        NoneGroupRunning = []
         for app in self.Applications:
             if (app.Group is None) or (app.Group in GroupRunning):
                 continue
@@ -712,7 +722,7 @@ class Workflow(UseRunner):
                     if ('Status' not in dep.__dir__()) or (dep.Status is None):
                         blocked = True
                         break
-                if (app.Group is not None) and (len(GroupRunning[app.Group]) >= self.GroupMax[app.Group]):
+                if (app.Group is not None) and (app.Group in self.GroupMax) and (len(GroupRunning[app.Group]) >= self.GroupMax[app.Group]):
                     blocked = True
 
                 if blocked:
@@ -723,7 +733,7 @@ class Workflow(UseRunner):
                 with Chdir(app.Directory):
 
                     cmd = app.GetCall()
-                    msg = "Running: {0}".format(" ".join(cmd))
+                    msg = "Application Name = {0} -- Starting:".format(app.Name) + "\n" + " ".join(cmd)
 
                     if app.LogFile is not None:
                         super(UseRunner, app).__setattr__('stdout', open(app.LogFile, 'w'))
@@ -756,6 +766,8 @@ class Workflow(UseRunner):
                     super(UseRunner, app).__setattr__('procid', p)
                     if app.Group is not None:
                         GroupRunning[app.Group] += [app.procid]
+                    else:
+                        NoneGroupRunning += [app.procid]
 
             done = True
             for app in self.Applications:
@@ -766,6 +778,12 @@ class Workflow(UseRunner):
                     done = False
                 elif (app.Group is not None) and (app.procid in GroupRunning[app.Group]):
                     GroupRunning[app.Group].remove(app.procid)
+                    msg = "Application Name = {0} -- Finished".format(app.Name)
+                    CompositionLogger.Info(msg)
+                elif (app.Group is None) and (app.procid in NoneGroupRunning):
+                    NoneGroupRunning.remove(app.procid)
+                    msg = "Application Name = {0} -- Finished".format(app.Name)
+                    CompositionLogger.Info(msg)
 
             if done:
                 break
@@ -790,6 +808,8 @@ class SubWorkflow(Workflow):
     _backupname_ = "sub.backup.json"      # Configures the globus movement
     _submitname_ = "sub.workflow.sh"      # File that submits with scheduler
     _picklename_ = "sub.workflow.pickle"  # Saves workflow description
+
+    AllowExisting = True
 
 
     def __init__(self, **kwargs):
