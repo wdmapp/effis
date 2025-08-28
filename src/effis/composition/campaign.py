@@ -9,7 +9,7 @@ class Campaign:
     Available = False
     Name = None
     ConfigFile = os.path.expanduser("~/.config/adios2/adios2.yaml")
-    ManagerCommand = "hpc_campaign_manager.py"
+    ManagerCommand = None
     SchemaOnly = False
 
 
@@ -19,8 +19,11 @@ class Campaign:
             CompositionLogger.Warning("Can't configure campaign management: {0} does not exist".format(self.ConfigFile))
             return False
 
-        if shutil.which("hpc_campaign_manager.py") is None:
-            CompositionLogger.Warning("Can't configure campaign management: {0} is not in $PATH".format(self.ManagerCommand))
+        if self.ManagerCommand is None :
+            default = "hpc_campaign_manager.py"
+            self.MangerCommand = shutil.which(default) 
+            if self.ManagerCommand is None:
+                CompositionLogger.Warning("Can't configure campaign management: {0} is not in $PATH".format(default))
             return False
 
         with open(self.ConfigFile, 'r') as infile:
@@ -37,18 +40,35 @@ class Campaign:
 
 
 
-    def __init__(self, name, ConfigFile=None, SchemaOnly=False):
+    def __init__(self, name, ConfigFile=None, ManagerCommand=None, SchemaOnly=False):
 
-        self.SchemaOnly = SchemaOnly
+        if isinstance(name, self.__class__):
+            self.Available = name.Available
+            self.Name = name.Name
+            self.ConfigFile = name.ConfigFile
+            self.ManagerCommand = name.ManagerCommand
+            self.SchemaOnly = name.SchemaOnly
 
-        if (ConfigFile is not None) and (not os.path.exists(ConfigFile)):
-            CompositionLogger.RaiseError(ValueError, "ConfigFile={0} does not exist.".format(ConfigFile))
-        elif ConfigFile is not None:
-            self.ConfigFile = ConfigFile
+        else:
+            self.SchemaOnly = SchemaOnly
 
-        if (name is not None) and not isinstance(name, str):
-            CompositionLogger.RaiseError(ValueError, "Can olny set Campaign name with a string")
-        elif name is not None:
-            self.Name = name
-            self.Available = self.ExistenceChecks()
+            if (ConfigFile is not None) and (not os.path.exists(ConfigFile)):
+                CompositionLogger.RaiseError(ValueError, "ConfigFile={0} does not exist.".format(ConfigFile))
+            elif ConfigFile is not None:
+                self.ConfigFile = ConfigFile
+
+            if (ManagerCommand is not None):
+                if os.path.exists(ManagerCommand) or (shutil.which(ManagerCommand) is not None):
+                    self.ManagerCommand = ManagerCommand
+                else:
+                    CompositionLogger.RaiseError(
+                        ValueError, 
+                        "ManagerCommand={0} is invalid: must be in $PATH or an existing file path".format(ManagerCommand)
+                    )
+
+            if (name is not None) and not isinstance(name, str):
+                CompositionLogger.RaiseError(ValueError, "Can olny set Campaign name with a string")
+            elif name is not None:
+                self.Name = name
+                self.Available = self.ExistenceChecks()
         
