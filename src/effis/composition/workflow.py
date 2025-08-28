@@ -358,14 +358,14 @@ class Workflow(UseRunner):
             if self.Backup.source is None:
                 self.Backup.SetSourceEndpoint()
 
-            self.BackupDict = {
+            BackupDict = {
                 'readyfile': self._touchname_,
                 'source': self.Backup.source,
                 'recursive_symlinks': self.Backup.recursive_symlinks,
                 'endpoints': {},
             }
             for endpoint in self.Backup.destinations:
-                self.BackupDict['endpoints'][endpoint] = {
+                BackupDict['endpoints'][endpoint] = {
                     'id': self.Backup.destinations[endpoint].Endpoint,
                     'paths': [],
                 }
@@ -375,10 +375,10 @@ class Workflow(UseRunner):
                     for key in ('inpath', 'outpath', 'link', 'rename'):
                         #entrydict[key] = entry.__dict__[key]
                         entrydict[key] = getattr(entry, key)
-                    self.BackupDict['endpoints'][endpoint]['paths'] += [entrydict]
+                    BackupDict['endpoints'][endpoint]['paths'] += [entrydict]
 
             with open(self._backupname_, "w") as outfile:
-                json.dump(self.BackupDict, outfile, ensure_ascii=False, indent=4)
+                json.dump(BackupDict, outfile, ensure_ascii=False, indent=4)
 
 
     def SubmitBackup(self):

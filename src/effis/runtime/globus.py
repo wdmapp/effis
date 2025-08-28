@@ -33,6 +33,8 @@ class AuthorizedTranserClient:
         'session_required_identities': None,
         'session_required_policies': None,
     }
+    #{"session_required_single_domain": ["sso.ccs.ornl.gov", "clients.auth.globus.org"]}
+
 
     notify_on_succeeded = False
 
