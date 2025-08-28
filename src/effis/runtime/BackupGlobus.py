@@ -158,7 +158,7 @@ def main():
                 elif (oname != fname):
                     paths['outpath'] = os.path.join(paths['outpath'], fname)
                     
-                logger.info("transfer item: {0} --> {1}  [recursive={2}".format(paths['inpath'], paths['outpath'], recursive))
+                logger.info("transfer item: {0} --> {1}  [recursive={2}]".format(paths['inpath'], paths['outpath'], recursive))
                 transfer.add_item(paths['inpath'], paths['outpath'], recursive=recursive)
 
 
