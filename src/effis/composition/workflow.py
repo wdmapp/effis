@@ -770,7 +770,9 @@ class Workflow(UseRunner):
                         NoneGroupRunning += [app.procid]
 
             done = True
+
             for app in self.Applications:
+
                 if ('procid' in app.__dir__()) and (('Status' not in app.__dir__()) or (app.Status is None)):
                     super(UseRunner, app).__setattr__('Status', app.procid.poll())
 
@@ -778,20 +780,13 @@ class Workflow(UseRunner):
                     done = False
                 elif (app.Group is not None) and (app.procid in GroupRunning[app.Group]):
                     GroupRunning[app.Group].remove(app.procid)
-                    msg = "Application Name = {0} -- Finished".format(app.Name)
-                    CompositionLogger.Info(msg)
+                    self.FinishCloseFile(app)
                 elif (app.Group is None) and (app.procid in NoneGroupRunning):
                     NoneGroupRunning.remove(app.procid)
-                    msg = "Application Name = {0} -- Finished".format(app.Name)
-                    CompositionLogger.Info(msg)
+                    self.FinishCloseFile(app)
 
             if done:
                 break
-
-        for app in self.Applications:
-            with Chdir(app.Directory):
-                if app.stdout is not None:
-                    app.stdout.close()
 
         with Chdir(self.Directory):
             with open(self._touchname_, "w") as outfile:
@@ -799,6 +794,15 @@ class Workflow(UseRunner):
 
         if self.Wait:
             self.Campaignify()
+
+
+    @staticmethod
+    def FinishCloseFile(app):
+        msg = "Application Name = {0} -- Finished".format(app.Name)
+        CompositionLogger.Info(msg)
+        if app.stdout is not None:
+            app.stdout.close()
+            app.stdout = None
 
 
 class SubWorkflow(Workflow):
