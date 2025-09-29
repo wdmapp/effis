@@ -13,11 +13,15 @@ cd effis/
 pip install [--editable] .
 ```
 
+# Additinoal Examples
+
+There is another [EFFIS-examples repository](https://github.com/suchyta1/EFFIS-Examples) with additional examples.
+
 # Getting Started
 
 Here, let’s consider running an example simulation that installs with ADIOS (Gray-Scott),
 with workflow options to turn on analysis, plotting, and remote data movement.
-The code that follows below is taken from the [GrayScoot.py](https://github.com/wdmapp/effis/blob/no-cheetah/Examples/GrayScott/GrayScott.py)
+The code that follows below is taken from the [GrayScott.py](Examples/GrayScott/GrayScott.py)
 script from `Examples/GrayScott`.
 
 ## Python Composition
