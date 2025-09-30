@@ -5,6 +5,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["src/"]
 include = [
+  "effis",
   "effis.composition",
   "effis.runtime",
   "effis.shim",
@@ -13,7 +14,7 @@ include = [
 [project]
 name = "effis"
 description = "EFFIS workflow manager"
-version = "1.0.0"
+version = "2.0.0"
 authors = [
   {name="Eric Suchyta", email="eric.d.suchyta@gmail.com"}
 ]
