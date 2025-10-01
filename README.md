@@ -13,7 +13,7 @@ cd effis/
 pip install [--editable] .
 ```
 
-# Additinoal Examples
+# Additional Examples
 
 There is another [EFFIS-examples repository](https://github.com/suchyta1/EFFIS-Examples) with additional examples.
 
