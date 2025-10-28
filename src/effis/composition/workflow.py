@@ -235,11 +235,18 @@ class Workflow(UseRunner):
         """
 
         if ('Runner' not in kwargs):
+
+            '''
             if (self.Runner is None) and (not isinstance(self, SubWorkflow)):
                 thisrunner = None
             else:
                 thisrunner = Application.DetectRunnerInfo(useprint=False)
                 CompositionLogger.Info("Application ({0}): Using detected runner {1}".format(UseRunner.kwargsmsg(kwargs), thisrunner.cmd))
+            '''
+
+            thisrunner = Application.DetectRunnerInfo(useprint=False)
+            CompositionLogger.Info("Application ({0}): Using detected runner {1}".format(UseRunner.kwargsmsg(kwargs), thisrunner.cmd))
+
             kwargs['Runner'] = thisrunner
         self += Application(**kwargs)
         return self.Applications[-1]
