@@ -57,9 +57,9 @@ def Run(args, runner=None):
     )
     
     Simulation = MyWorkflow.Application(
+        Runner=None,
         cmd=os.path.join(os.path.abspath(os.path.dirname(__file__)), "TestApp.py"),
         Name="TestRunner",
-        Runner=None,
     )
     if args.batchtype == "local":
         Simulation.CommandLineArguments += "--local"
@@ -89,6 +89,7 @@ def Run(args, runner=None):
         DependsOn=MyWorkflow,
     )
     sleep = LocalWorkflow.Application(
+        Runner=None,
         cmd="sleep",
         Name="Sleep",
         CommandLineArguments="10",
@@ -105,9 +106,9 @@ def Run(args, runner=None):
     DepWorkflow.DependsOn += MyWorkflow + LocalWorkflow
 
     date = DepWorkflow.Application(
+        Runner=None,
         cmd="date",
         Name="Date",
-        Runner=None,
     )
 
     did = DepWorkflow.Submit(AsyncTimeout=-1)
