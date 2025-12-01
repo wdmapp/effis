@@ -2,6 +2,7 @@
 
 import omas
 import effis.shim
+import effis.composition
 
 import os
 import argparse

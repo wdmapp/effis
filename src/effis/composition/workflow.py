@@ -17,13 +17,13 @@ import yaml
 import getpass
 import omas
 
-from effis.composition.runner import Detected, UseRunner
-from effis.composition.application import Application
-from effis.composition.backup import Backup
-from effis.composition.campaign import Campaign
+from .runner import Detected, UseRunner
+from .application import Application
+from .backup import Backup
+from .campaign import Campaign
 
-from effis.composition.log import CompositionLogger
-from effis.composition.util import ListType, Arguments, InputList
+from .log import CompositionLogger
+from .util import ListType, Arguments, InputList
 
 """
 try:

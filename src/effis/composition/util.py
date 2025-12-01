@@ -1,4 +1,4 @@
-from effis.composition.log import CompositionLogger, LogKey
+from .log import CompositionLogger, LogKey
 import os
 
 

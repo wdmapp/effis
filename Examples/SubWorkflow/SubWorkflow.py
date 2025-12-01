@@ -6,6 +6,7 @@ import os
 import time
 import getpass
 import effis.composition
+import effis.runtime
 
 
 def SetupArgs(runner):

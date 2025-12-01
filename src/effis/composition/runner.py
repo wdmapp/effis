@@ -5,10 +5,8 @@ import subprocess
 import io
 import csv
 
-#from effis.composition.arguments import Arguments
-from effis.composition.util import Arguments
-
-from effis.composition.log import CompositionLogger
+from .util import Arguments
+from .log import CompositionLogger
 
 
 class Detected:

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 import globus_sdk
 from globus_sdk.scopes import TransferScopes
 
-import effis.runtime.globus as globus
+import .globus as globus
 
 
 def AutoActivate(tc, idhash, label):

@@ -2,9 +2,9 @@
 effis.composition.application
 """
 
-from effis.composition.runner import Detected, UseRunner
-from effis.composition.log import CompositionLogger
-from effis.composition.util import ListType, Arguments, InputList
+from .runner import Detected, UseRunner
+from .log import CompositionLogger
+from .util import ListType, Arguments, InputList
 
 
 class Application(UseRunner):

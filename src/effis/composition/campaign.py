@@ -1,7 +1,8 @@
 import os
 import shutil
 import yaml
-from effis.composition.log import CompositionLogger
+
+from .log import CompositionLogger
 
 
 class Campaign:
