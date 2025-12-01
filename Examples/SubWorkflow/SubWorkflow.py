@@ -52,6 +52,7 @@ def Run(args, runner=None):
         Runner=runner,
         Directory=args.outdir,
         Subdirs=False,
+        AllowExisting=True,
         **extra,
     )
     
@@ -84,6 +85,7 @@ def Run(args, runner=None):
         Directory=args.outdir,
         Name="Sleep",
         Subdirs=True,
+        AllowExisting=True,
         DependsOn=MyWorkflow,
     )
     sleep = LocalWorkflow.Application(
@@ -97,6 +99,7 @@ def Run(args, runner=None):
         Runner=runner,
         Directory="{0}-dependent".format(args.outdir),
         Subdirs=False,
+        AllowExisting=True,
         **extra,
     )
     DepWorkflow.DependsOn += MyWorkflow + LocalWorkflow

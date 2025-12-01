@@ -47,7 +47,10 @@ class UseRunner(object):
         if Detected.System is False:
 
             # Check for recognized, commonly used things
-            machine = socket.getaddrinfo(socket.gethostname(), 0, flags=socket.AI_CANONNAME)[0][3].lower()
+            try:
+                machine = socket.getaddrinfo(socket.gethostname(), 0, flags=socket.AI_CANONNAME)[0][3].lower()
+            except socket.gaierror:
+                machine = socket.gethostname()
 
 
             if machine.find("perlmutter") != -1:

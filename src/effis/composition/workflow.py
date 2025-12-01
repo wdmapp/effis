@@ -245,7 +245,10 @@ class Workflow(UseRunner):
             '''
 
             thisrunner = Application.DetectRunnerInfo(useprint=False)
-            CompositionLogger.Info("Application ({0}): Using detected runner {1}".format(UseRunner.kwargsmsg(kwargs), thisrunner.cmd))
+            if thisrunner is not None:
+                CompositionLogger.Info("Application ({0}): Using detected runner {1}".format(UseRunner.kwargsmsg(kwargs), thisrunner.cmd))
+            else:
+                CompositionLogger.Info("Application ({0}): No runner detected, using None".format(UseRunner.kwargsmsg(kwargs)))
 
             kwargs['Runner'] = thisrunner
         self += Application(**kwargs)
