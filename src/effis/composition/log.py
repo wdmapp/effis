@@ -2,9 +2,12 @@ import logging
 import shutil
 from contextlib import ContextDecorator
 
+'''
 import sys
 import traceback
-from colorama import Fore, Back, Style
+from colorama import Back
+'''
+from colorama import Fore, Style
 
 
 class LogKey(ContextDecorator):
@@ -13,7 +16,7 @@ class LogKey(ContextDecorator):
 
         if (type(key) is not str):
             CompositionLogger.RaiseError(
-                ValueError, 
+                ValueError,
                 "LogKey must be given as a string -- gave {0}".format(key)
             )
 
@@ -26,11 +29,9 @@ class LogKey(ContextDecorator):
         self.newkey = key
         self.thing = thing
 
-
     def __enter__(self):
         self.thing.key = self.newkey
         return self
-
 
     def __exit__(self, *exc):
         if self.haskey:
@@ -51,7 +52,6 @@ class EffisFormatter(logging.Formatter):
         logging.CRITICAL: Style.BRIGHT + Fore.RED,
     }
 
-
     def __init__(
         self,
         fmt='EFFIS [%(asctime)s.%(msecs)03d]  %(levelname)-8s  %(message)s',
@@ -60,7 +60,7 @@ class EffisFormatter(logging.Formatter):
         logging.Formatter.__init__(self, fmt=fmt, datefmt=datefmt)
 
         self.last = None
-        self.cols, self.lines = shutil.get_terminal_size(fallback=(150,10))
+        self.cols, self.lines = shutil.get_terminal_size(fallback=(150, 10))
 
         self.startsize = (
             5 +             # EFFIS
@@ -69,7 +69,6 @@ class EffisFormatter(logging.Formatter):
             10 + 1 + 12 +   # Date, Space, Time (what's in the brackets)
             8               # levelname field
         )
-
 
     def format(self, record):
         format_orig = self._fmt
@@ -90,7 +89,9 @@ class EffisFormatter(logging.Formatter):
             self.last = "short"
 
         if shutil.get_terminal_size(fallback=(-1, -1)) != (-1, -1):
-            self._fmt = self.FORMATS.get(record.levelno) + self._fmt + Style.RESET_ALL
+            self._fmt = (
+                self.FORMATS.get(record.levelno) + self._fmt + Style.RESET_ALL
+            )
 
         self._style = logging.PercentStyle(self._fmt)
         result = logging.Formatter.format(self, record)
@@ -100,18 +101,20 @@ class EffisFormatter(logging.Formatter):
 
 class CompositionLogger:
     ERROR = False
-    
     log = logging.getLogger(__name__)
     log.setLevel(logging.DEBUG)
-    #formatter = logging.Formatter('EFFIS [%(asctime)s.%(msecs)03d] - %(levelname)s - %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+    '''
+    formatter = logging.Formatter(
+        'EFFIS [%(asctime)s.%(msecs)03d] - %(levelname)s - %(message)s',
+        datefmt="%Y-%m-%d %H:%M:%S"
+    )
+    '''
     formatter = EffisFormatter()
 
     streamhandler = logging.StreamHandler()
-    #streamhandler.setLevel(logging.WARNING)
     streamhandler.setLevel(logging.INFO)
     streamhandler.setFormatter(formatter)
     log.addHandler(streamhandler)
-
 
     @classmethod
     def SetLevel(cls, level):
@@ -132,16 +135,14 @@ class CompositionLogger:
     @classmethod
     def Warning(cls, msg):
         cls.log.warning(msg)
-        
+
     @classmethod
     def Debug(cls, msg):
         cls.log.debug(msg)
-        
-        
+
     @classmethod
     def RunnerError(cls, msg):
         return cls.RaiseError(ValueError, msg)
-
 
     @classmethod
     def RaiseError(cls, MyError, msg):
@@ -155,7 +156,8 @@ class CompositionLogger:
         cls.log.error(msg + "\n" + stack.strip() )
         '''
 
-        #raise SystemExit(msg)
-        #sys.tracebacklimit = 0
+        '''
+        raise SystemExit(msg)
+        sys.tracebacklimit = 0
+        '''
         raise MyError(msg)
-
