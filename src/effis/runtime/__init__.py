@@ -7,3 +7,9 @@ from ..composition.application import Application
 
 # Also enable the Logger here
 from ..composition.log import CompositionLogger as EffisLogger
+
+__all__ = [
+    "SubWorkflow",
+    "Application",
+    "EffisLogger",
+]
