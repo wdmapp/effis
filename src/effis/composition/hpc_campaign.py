@@ -93,13 +93,9 @@ class Campaign:
             )
         else:
             dirpath = os.path.dirname(self.filename)
+            relpath = os.path.relpath(os.path.abspath(filename), start=dirpath)
+            args = ["dataset", relpath]
+            if name is not None:
+                args += ["--name", name]
             with Chdir(dirpath):
-                relpath = os.path.relpath(
-                    os.path.abspath(filename),
-                    start=dirpath
-                )
-                args = ["dataset", relpath]
-                if name is not None:
-                    args += ["--name", name]
                 self.Manager(*args)
-
