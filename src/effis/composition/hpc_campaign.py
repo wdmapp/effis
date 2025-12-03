@@ -1,7 +1,9 @@
 import os
 import shutil
 import subprocess
+
 from .log import CompositionLogger
+from .workflow import Chdir
 
 
 class Campaign:
@@ -36,7 +38,7 @@ class Campaign:
                 "Supplied {0} is not an existing file".format(keyfile)
             )
 
-        self.filename = filename
+        self.filename = os.path.abspath(filename)
         self.hostname = hostname
         self.keyfile = keyfile
 
@@ -89,7 +91,15 @@ class Campaign:
                     filename
                 )
             )
-        elif name is not None:
-            self.Manager("dataset", filename, "--name", name)
         else:
-            self.Manager("dataset", filename)
+            dirpath = os.path.dirname(self.filename)
+            with Chdir(dirpath):
+                relpath = os.path.relpath(
+                    os.path.abspath(filename),
+                    start=dirpath
+                )
+                args = ["dataset", relpath]
+                if name is not None:
+                    args += ["--name", name]
+                self.Manager(*args)
+
