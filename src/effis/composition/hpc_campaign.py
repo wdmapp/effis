@@ -30,7 +30,7 @@ class Campaign:
         self.CheckString(filename, "filename (path) Campaign initializer")
         self.CheckString(hostname, "hostname")
         self.CheckString(keyfile, "keyfile (path)")
-        if not os.path.isfile(keyfile):
+        if (keyfile is not None) and (not os.path.isfile(keyfile)):
             CompositionLogger.RaiseError(
                 ValueError,
                 "Supplied {0} is not an existing file".format(keyfile)

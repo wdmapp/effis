@@ -13,6 +13,8 @@ from .backup import SendData
 # Logger
 from .log import CompositionLogger as EffisLogger
 
+from .hpc_campaign import Campaign
+
 
 __all__ = [
     "Workflow",
@@ -22,4 +24,5 @@ __all__ = [
     "Destination",
     "SendData",
     "EffisLogger",
+    "Campaign",
 ]
