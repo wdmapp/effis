@@ -2,9 +2,9 @@
 effis.composition.application
 """
 
-from effis.composition.runner import Detected, UseRunner
-from effis.composition.log import CompositionLogger
-from effis.composition.util import ListType, Arguments, InputList
+from .runner import Detected, UseRunner
+from .log import CompositionLogger
+from .util import ListType, Arguments, InputList
 
 
 class Application(UseRunner):
@@ -24,14 +24,15 @@ class Application(UseRunner):
 
     #: Custom MPI launcher settings; bypasses setting with Runner
     MPIRunnerArguments = []
-    
-    #: A file to source before lanuching the application (for environment setup, etc.)
+
+    #: A file to source before lanuching the application
+    #: (for environment setup, etc.)
     SetupFile = []
 
     #: Send the Application's terminal output to a file
     LogFile = None
 
-    #: Set environment variables with Python dictionary (instead of setup file); Not implemented yet
+    #: Set environment variables with Python dictionary (instead of setup file)
     Environment = {}
 
     #: This application depends on others finishing
@@ -40,22 +41,33 @@ class Application(UseRunner):
     #: Input files to copy for the Application
     Input = []
 
-    _RunnerError_ = (CompositionLogger.RunnerError, "No MPI [Application] Runner found. Exiting...")
+    _RunnerError_ = (
+        CompositionLogger.RunnerError,
+        "No MPI [Application] Runner found. Exiting..."
+    )
 
     #: Lets set a max running for the group
     Group = None
-
 
     @classmethod
     def CheckApplications(cls, other):
         if type(other) is list:
             for i in range(len(other)):
                 if not isinstance(other[i], cls):
-                    CompositionLogger.RaiseError(ValueError, "List elements to add as applications must be of type Application")
+                    CompositionLogger.RaiseError(
+                        ValueError, (
+                            "List elements to add as applications "
+                            "must be of type Application"
+                        )
+                    )
         elif not isinstance(other, cls):
-            CompositionLogger.RaiseError(ValueError, "Can only add applications and/or lists of them with elements of type Application")
+            CompositionLogger.RaiseError(
+                ValueError, (
+                    "Can only add applications and/or lists of them with "
+                    "elements of type Application"
+                )
+            )
         return other
-
 
     def GetCall(self):
         RunnerArgs = []
@@ -64,29 +76,47 @@ class Application(UseRunner):
         Cmd = RunnerArgs + [self.cmd] + self.CommandLineArguments.List
         return Cmd
 
-
     @staticmethod
     def AutoRunner():
         return Detected.Runner
-    
-    
+
     def setattr(self, name, value):
         """
-        Attribute setting; due to inheritance, names are guaranteed to be in the class
+        Attribute setting;
+        Due to inheritance, names are guaranteed to be in the class
         """
 
         # Throw errors for bad attribute type settings
-        if (name in ("cmd", "Name", "Group")) and (value is not None) and (type(value) is not str):
-            CompositionLogger.RaiseError(AttributeError, "{0} should be set as a string".format(name))
+        if (
+            (name in ("cmd", "Name", "Group"))
+            and
+            (value is not None)
+            and
+            (type(value) is not str)
+        ):
+            CompositionLogger.RaiseError(
+                AttributeError,
+                "{0} should be set as a string".format(name)
+            )
         if (name in ("Environment")) and (type(value) is not dict):
-            CompositionLogger.RaiseError(ValueError, "{0} should be set as a dictionary".format(name))
+            CompositionLogger.RaiseError(
+                ValueError,
+                "{0} should be set as a dictionary".format(name)
+            )
 
         if name in ["CommandLineArguments", "MPIRunnerArguments"]:
-            super(UseRunner, self).__setattr__(name, Arguments(value, key=name))
+            super(UseRunner, self).__setattr__(
+                name, Arguments(value, key=name)
+            )
         elif name in ("Input", "SetupFile"):
-            super(UseRunner, self).__setattr__(name, InputList(value, key=name))
+            super(UseRunner, self).__setattr__(
+                name, InputList(value, key=name)
+            )
         elif (name == "DependsOn"):
-            super(UseRunner, self).__setattr__(name, ListType(value, Application, key=name))
+            super(UseRunner, self).__setattr__(
+                name, ListType(value, Application, key=name)
+            )
         else:
-            super(UseRunner, self).__setattr__(name, value)
-
+            super(UseRunner, self).__setattr__(
+                name, value
+            )

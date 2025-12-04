@@ -6,6 +6,7 @@ import os
 import time
 import getpass
 import effis.composition
+import effis.runtime
 
 
 def SetupArgs(runner):
@@ -52,13 +53,14 @@ def Run(args, runner=None):
         Runner=runner,
         Directory=args.outdir,
         Subdirs=False,
+        AllowExisting=True,
         **extra,
     )
     
     Simulation = MyWorkflow.Application(
+        Runner=None,
         cmd=os.path.join(os.path.abspath(os.path.dirname(__file__)), "TestApp.py"),
         Name="TestRunner",
-        Runner=None,
     )
     if args.batchtype == "local":
         Simulation.CommandLineArguments += "--local"
@@ -84,9 +86,11 @@ def Run(args, runner=None):
         Directory=args.outdir,
         Name="Sleep",
         Subdirs=True,
+        AllowExisting=True,
         DependsOn=MyWorkflow,
     )
     sleep = LocalWorkflow.Application(
+        Runner=None,
         cmd="sleep",
         Name="Sleep",
         CommandLineArguments="10",
@@ -97,14 +101,15 @@ def Run(args, runner=None):
         Runner=runner,
         Directory="{0}-dependent".format(args.outdir),
         Subdirs=False,
+        AllowExisting=True,
         **extra,
     )
     DepWorkflow.DependsOn += MyWorkflow + LocalWorkflow
 
     date = DepWorkflow.Application(
+        Runner=None,
         cmd="date",
         Name="Date",
-        Runner=None,
     )
 
     did = DepWorkflow.Submit(AsyncTimeout=-1)

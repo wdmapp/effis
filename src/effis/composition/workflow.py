@@ -8,45 +8,35 @@ import subprocess
 import threading
 import json
 import sys
-import shutil
 import stat
 import atexit
 from contextlib import ContextDecorator
 import dill as pickle
 import yaml
-import getpass
 import omas
 
-from effis.composition.runner import Detected, UseRunner
-from effis.composition.application import Application
-from effis.composition.backup import Backup
-from effis.composition.campaign import Campaign
+from .runner import Detected, UseRunner
+from .application import Application
+from .backup import Backup
+from .campaign import Campaign
 
-from effis.composition.log import CompositionLogger
-from effis.composition.util import ListType, Arguments, InputList
-
-"""
-try:
-    import adios2
-except:
-    adios2 = None
-"""
+from .log import CompositionLogger
+from .util import ListType, Arguments, InputList
 
 
 class Chdir(ContextDecorator):
     """
-    Context manager that works with Python's with statement -- changes directory and then returns
+    Context manager that works with Python's with statement;
+    Changes directory and then returns
     """
 
     def __init__(self, directory):
         self.newdir = directory
         self.olddir = os.getcwd()
 
-
     def __enter__(self):
         os.chdir(self.newdir)
         return self
-
 
     def __exit__(self, *exc):
         os.chdir(self.olddir)
@@ -71,21 +61,8 @@ def FindExt(path, files=[], ext=".bp", isdir=True):
 
 
 def FindBP(path=None):
-    '''
-    if path is None:
-        path = "./"
-    paths = os.listdir(path)
-    for p in paths:
-        fullpath = os.path.join(path, p)
-        if os.path.isdir(fullpath):
-            if fullpath.endswith(".bp"):
-                bp += [fullpath]
-            else:
-                FindBP(path=fullpath, bp=bp)
-    '''
     bp = FindExt(path, ext=".bp", isdir=True)
     return bp
-
 
 
 class Workflow(UseRunner):
@@ -117,7 +94,8 @@ class Workflow(UseRunner):
     #: Run Applications in subdirectories
     Subdirs = True
 
-    #: Default is not continue if run directory exists (but need to allow restarts)
+    #: Default is not continue if run directory exists
+    #: (but need to allow restarts, e.g.)
     AllowExisting = False
 
     #: Lets set a max running for the group
@@ -132,84 +110,144 @@ class Workflow(UseRunner):
     # Use MPI MPMD; not supported yet
     MPMD = False
 
-    # Appends the current time to the created workflow directory (Might get rid of this)
+    # Appends the current time to the created workflow directory
+    # (Might get rid of this)
     TimeIndex = False
 
-
     # Various workflow files
-    _touchname_ = "workflow.done"     # Signals workflow finished, can run backup
-    _backupname_ = "backup.json"      # Configures the globus movement
+    _touchname_ = "workflow.done"   # Signals workflow finished, can run backup
+    _backupname_ = "backup.json"    # Configures the globus movement
     _submitname_ = "workflow.sh"      # File that submits with scheduler
     _picklename_ = "workflow.pickle"  # Saves workflow description
 
     # Used with checking for the Runner
-    _RunnerError_ = (CompositionLogger.Warning, "No batch queue [Workflow] Runner found, conintuining without one.")
+    _RunnerError_ = (
+        CompositionLogger.Warning,
+        "No batch queue [Workflow] Runner found, conintuining without one."
+    )
 
     # Used to make sure Create() is called before Submit()
     _CreateCalled_ = False
 
-    
     def setattr(self, name, value):
         """
-        Attribute setting; due to inheritance, names are guaranteed to be in the class
+        Attribute setting;
+        Due to inheritance, names are guaranteed to be in the class
         """
 
         # Throw errors for bad attribute type settings
-        if (name in ("Name", "Directory")) and (value is not None) and (type(value) is not str):
-            CompositionLogger.RaiseError(ValueError, "Workflow attribute: {0} should be set as a string".format(name))
-        elif name in ("Subdirs", "MPMD", "TimeIndex") and (type(value) is not bool):
-            CompositionLogger.RaiseError(ValueError, "Workflow attribute: {0} should be set as a boolean".format(name))
+        if (
+            (name in ("Name", "Directory"))
+            and
+            (value is not None)
+            and
+            (type(value) is not str)
+        ):
+            CompositionLogger.RaiseError(
+                ValueError,
+                "Workflow attribute: {0} should be set as a string".format(
+                    name
+                )
+            )
+        elif (
+            name in ("Subdirs", "MPMD", "TimeIndex")
+            and
+            (type(value) is not bool)
+        ):
+            CompositionLogger.RaiseError(
+                ValueError,
+                "Workflow attribute: {0} should be set as a boolean".format(
+                    name
+                )
+            )
         elif (name == "GroupMax") and (not isinstance(value, dict)):
-            CompositionLogger.RaiseError(ValueError, "Workflow attribute: {0} should be set as a dictionary".format(name))
+            CompositionLogger.RaiseError(
+                ValueError,
+                "Workflow attribute: {0} should be set as a dictionary".format(
+                    name
+                )
+            )
 
         # These are for Object types, will throw errors within if necessary
         if name == "SchedulerDirectives":
-            super(UseRunner, self).__setattr__(name, Arguments(value, key=name))
+            super(UseRunner, self).__setattr__(
+                name, Arguments(value, key=name)
+            )
         elif name in ("Input", "SetupFile"):
-            super(UseRunner, self).__setattr__(name, InputList(value, key=name))
+            super(UseRunner, self).__setattr__(
+                name, InputList(value, key=name)
+            )
         elif name == "Backup":
-            super(UseRunner, self).__setattr__(name, Backup(value))
+            super(UseRunner, self).__setattr__(
+                name, Backup(value)
+            )
         elif name == "Applications":
-            #super(UseRunner, self).__setattr__(name, Application.CheckApplications(value))
-            super(UseRunner, self).__setattr__(name, ListType(value, Application, key=name))
+            super(UseRunner, self).__setattr__(
+                name, ListType(value, Application, key=name)
+            )
         elif name == "Campaign":
-            super(UseRunner, self).__setattr__(name, Campaign(value))
+            super(UseRunner, self).__setattr__(
+                name, Campaign(value)
+            )
         elif (name == "DependsOn"):
-            super(UseRunner, self).__setattr__(name, ListType(value, Workflow, key=name))
+            super(UseRunner, self).__setattr__(
+                name, ListType(value, Workflow, key=name)
+            )
 
-        # Check for some other conditions that don't make sense; don't set anything
+        # Check for some other conditions that don't make sense;
+        # Don't set anything
         elif (name == "MPMD") and value:
-            CompositionLogger.RaiseError(ValueError, "Workflow attribute: {0} is not supported yet".format(name))
+            CompositionLogger.RaiseError(
+                ValueError,
+                "Workflow attribute: {0} is not supported yet".format(name)
+            )
         elif (name == "Subdirs") and value and self.MPMD:
-            CompositionLogger.Warning("Cannot set subdirs=True because MPMD=True")
+            CompositionLogger.Warning(
+                "Cannot set subdirs=True because MPMD=True"
+            )
 
-        # Will set verbatim self.<name> = value 
+        # Will set verbatim self.<name> = value
         else:
 
             if (name == "MPMD") and value and self.Subdirs:
-                CompositionLogger.Info("Setting Subdirs=False because it is required with MPMD=True")
+                CompositionLogger.Info(
+                    (
+                        "Setting Subdirs=False because it is required with "
+                        "MPMD=True"
+                    )
+                )
                 super(UseRunner, self).__setattr__("Subdirs", False)
 
             if (name in ("Subdir", "MPMD")) and (len(self.Applications) > 0):
-                CompositionLogger.Warning("Changing Subdir or MPMD after Application(s) have been added to a Workflow can break referencing Directory before Create()")
+                CompositionLogger.Warning(
+                    (
+                        "Changing Subdir or MPMD after Application(s) have "
+                        "been added to a Workflow can break referencing "
+                        "Directory before Create()"
+                    )
+                )
             elif (name == "Directory") and (self.Directory is not None):
-                CompositionLogger.Warning("Changing Directory after it's been set can break referencing Directory before Create()")
+                CompositionLogger.Warning(
+                    (
+                        "Changing Directory after it's been set can break "
+                        "referencing Directory before Create()"
+                    )
+                )
 
             super(UseRunner, self).__setattr__(name, value)
 
             if (name == "Directory") and (self.Directory is not None):
                 self.SetWorkflowDirectory()
 
-
     def __iadd__(self, other):
         """
-        Meant as an intuitive way to build the workflow by adding applications; takes single applications or lists:
-            workflow += application 
+        Meant as an intuitive way to build the workflow by adding applications;
+        Takes single applications or lists:
+            workflow += application
             workflow += [app1, app2]
         """
 
         if isinstance(other, Application) or (type(other) is list):
-            #self.Applications = self.Applications + other
             self.Applications += other
 
             if self.Directory is not None:
@@ -221,13 +259,14 @@ class Workflow(UseRunner):
 
             return self
         else:
-            CompositionLogger.RaiseError(ValueError, "Only Application objects can be added to a Workflow object")
-
+            CompositionLogger.RaiseError(
+                ValueError,
+                "Only Application objects can be added to a Workflow object"
+            )
 
     @staticmethod
     def AutoRunner():
         return Detected.System
-
 
     def Application(self, **kwargs):
         """
@@ -236,21 +275,23 @@ class Workflow(UseRunner):
 
         if ('Runner' not in kwargs):
 
-            '''
-            if (self.Runner is None) and (not isinstance(self, SubWorkflow)):
-                thisrunner = None
-            else:
-                thisrunner = Application.DetectRunnerInfo(useprint=False)
-                CompositionLogger.Info("Application ({0}): Using detected runner {1}".format(UseRunner.kwargsmsg(kwargs), thisrunner.cmd))
-            '''
-
             thisrunner = Application.DetectRunnerInfo(useprint=False)
-            CompositionLogger.Info("Application ({0}): Using detected runner {1}".format(UseRunner.kwargsmsg(kwargs), thisrunner.cmd))
+            if thisrunner is not None:
+                CompositionLogger.Info(
+                    "Application ({0}): Using detected runner {1}".format(
+                        UseRunner.kwargsmsg(kwargs), thisrunner.cmd
+                    )
+                )
+            else:
+                CompositionLogger.Info(
+                    "Application ({0}): No runner detected, using None".format(
+                        UseRunner.kwargsmsg(kwargs)
+                    )
+                )
 
             kwargs['Runner'] = thisrunner
         self += Application(**kwargs)
         return self.Applications[-1]
-
 
     def GetCall(self, runnerdeps=[]):
         RunnerArgs = []
@@ -260,36 +301,52 @@ class Workflow(UseRunner):
             RunnerArgs += [self._submitname_]
         return RunnerArgs
 
-
     def SetWorkflowDirectory(self):
         if self.TimeIndex:
-            super(UseRunner, self).__setattr__("Directory", "{0}.{1}".format(self.Directory, datetime.datetime.now().strftime('%Y-%m-%d.%H.%M.%S')))
-        super(UseRunner, self).__setattr__("Directory", os.path.abspath(self.Directory))
-
+            super(UseRunner, self).__setattr__(
+                "Directory", "{0}.{1}".format(
+                    self.Directory,
+                    datetime.datetime.now().strftime('%Y-%m-%d.%H.%M.%S')
+                )
+            )
+        super(UseRunner, self).__setattr__(
+            "Directory", os.path.abspath(self.Directory)
+        )
 
     def SetAppDirectories(self, applications):
         for app in applications:
             super(UseRunner, app).__setattr__("Directory", self.Directory)
             if self.Subdirs and (app.Name is not None):
-                super(UseRunner, app).__setattr__("Directory", os.path.join(app.Directory, app.Name))
-    
+                super(UseRunner, app).__setattr__(
+                    "Directory", os.path.join(app.Directory, app.Name)
+                )
 
     def PickleWrite(self):
         """
         Write the workflow to a pickle file
         """
 
-        with open(os.path.join(self.Directory, self._picklename_), 'wb') as handle:
-            pickle.dump(self, handle, protocol=pickle.HIGHEST_PROTOCOL, recurse=True)
+        with open(
+            os.path.join(self.Directory, self._picklename_),
+            'wb'
+        ) as handle:
+            pickle.dump(
+                self, handle,
+                protocol=pickle.HIGHEST_PROTOCOL,
+                recurse=True
+            )
 
-    
     def Create(self):
         """
-        Create the Workflow description and copy associated files to the run directories
+        Create the Workflow description and
+        copy associated files to the run directories
         """
 
         if (self.Name is None) and (self.Directory is None):
-            CompositionLogger.RaiseError(AttributeError, "Must set at least one of Name or Directory for a Workflow")
+            CompositionLogger.RaiseError(
+                AttributeError,
+                "Must set at least one of Name or Directory for a Workflow"
+            )
         elif self.Name is None:
             self.Name = os.path.basename(self.Directory)
         elif self.Directory is None:
@@ -300,20 +357,35 @@ class Workflow(UseRunner):
 
         # Check things that don't make really make sense for applications
         for i, app in enumerate(self.Applications):
-            
+
             if app.cmd is None:
-                CompositionLogger.RaiseError(AttributeError, "Cannot use an Application (#{0}) with no cmd attribute".format(i))
+                CompositionLogger.RaiseError(
+                    AttributeError,
+                    (
+                        "Cannot use an Application "
+                        "(#{0}) with no cmd attribute".format(i)
+                    )
+                )
 
             if app.Name is None:
                 app.Name = os.path.basename(app.cmd)
-                CompositionLogger.Warning("Workflow Name={3} Application (#{0}) cmd={1} did not set Name -- using {2}".format(i, app.cmd, app.Name, self.Name))
+                CompositionLogger.Warning(
+                    "Workflow Name={3} Application (#{0}) cmd={1} did not set "
+                    "Name -- using {2}".format(i, app.cmd, app.Name, self.Name)
+                )
 
         # May already be set, but call in case not
         self.SetAppDirectories(self.Applications)
 
-        # Don't overwrite original composition; Anticipate that SubWorkflows (Runner=None) will be using the same directory
+        # Don't overwrite original composition unless signaled;
         if (not self.AllowExisting) and os.path.exists(self.Directory):
-            CompositionLogger.RaiseError(FileExistsError, "Trying to create to a directory that already exists: {0}".format(self.Directory))
+            CompositionLogger.RaiseError(
+                FileExistsError,
+                (
+                    "Trying to create to a directory that already exists: "
+                    "{0}".format(self.Directory)
+                )
+            )
 
         # Create Directories
         if not os.path.exists(self.Directory):
@@ -333,30 +405,41 @@ class Workflow(UseRunner):
             for dep in app.DependsOn:
                 depdeps = dep.DependsOn
                 for depdep in depdeps:
-                    #if app.Name == depdep.Name:
                     if app is depdep:
-                        CompositionLogger.RaiseError(ValueError, "Cyclic dependencies between {0} and {1}".format(app.Name, dep.Name))
+                        CompositionLogger.RaiseError(
+                            ValueError,
+                            (
+                                "Cyclic dependencies between {0} and {1}"
+                                "".format(app.Name, dep.Name)
+                            )
+                        )
 
         # Update the file names appropriately
-        super(UseRunner, self).__setattr__("_touchname_", os.path.join(self.Directory, "{0}.{1}".format(self.Name, self._touchname_)))
-        super(UseRunner, self).__setattr__("_backupname_", os.path.join(self.Directory, "{0}.{1}".format(self.Name, self._backupname_)))
-        super(UseRunner, self).__setattr__("_submitname_", os.path.join(self.Directory, "{0}.{1}".format(self.Name, self._submitname_)))
-        super(UseRunner, self).__setattr__("_picklename_", os.path.join(self.Directory, "{0}.{1}".format(self.Name, self._picklename_)))
-
-        """
-        if adios2 is not None:
-            bpname = "Workflow-{0}.bp".format(self.Name)
-            super(UseRunner, self).__setattr__('Stream', adios2.Stream(os.path.join(self.Directory, bpname), "w"))
-            self.Stream.write("user", getpass.getuser())
-            self.Stream.write("CreateTime", str(datetime.datetime.now()))
-            self.Stream.close()
-        """
+        super(UseRunner, self).__setattr__(
+            "_touchname_", os.path.join(
+                self.Directory, "{0}.{1}".format(self.Name, self._touchname_)
+            )
+        )
+        super(UseRunner, self).__setattr__(
+            "_backupname_", os.path.join(
+                self.Directory, "{0}.{1}".format(self.Name, self._backupname_)
+            )
+        )
+        super(UseRunner, self).__setattr__(
+            "_submitname_", os.path.join(
+                self.Directory, "{0}.{1}".format(self.Name, self._submitname_)
+            )
+        )
+        super(UseRunner, self).__setattr__(
+            "_picklename_", os.path.join(
+                self.Directory, "{0}.{1}".format(self.Name, self._picklename_)
+            )
+        )
 
         super(UseRunner, self).__setattr__("_CreateCalled_", True)
 
         # Dump pickle file when Python closes
         atexit.register(self.PickleWrite)
-
 
     def SetupBackup(self):
 
@@ -376,23 +459,19 @@ class Workflow(UseRunner):
                     'id': self.Backup.destinations[endpoint].Endpoint,
                     'paths': [],
                 }
-                #for entry in self.Backup.destinations[endpoint].Input.list:
                 for entry in self.Backup.destinations[endpoint].Input.List:
                     entrydict = {}
                     for key in ('inpath', 'outpath', 'link', 'rename'):
-                        #entrydict[key] = entry.__dict__[key]
                         entrydict[key] = getattr(entry, key)
                     BackupDict['endpoints'][endpoint]['paths'] += [entrydict]
 
             with open(self._backupname_, "w") as outfile:
                 json.dump(BackupDict, outfile, ensure_ascii=False, indent=4)
 
-
     def SubmitBackup(self):
 
         if len(self.Backup.destinations) > 0:
 
-            #cmd = ["python3", scriptname, jsonname, "--checkdest"]
             cmd = ["effis-globus-backup", self._backupname_]
             p = subprocess.Popen(cmd, stderr=subprocess.PIPE)
 
@@ -408,12 +487,10 @@ class Workflow(UseRunner):
 
             p.stderr = sys.stderr
 
-
     def Campaignify(self):
 
         if self.Campaign.Available:
 
-            CampaignName = self.Campaign.Name
             cdir = os.path.dirname(self.Directory)
             reldir = os.path.basename(self.Directory)
 
@@ -426,26 +503,36 @@ class Workflow(UseRunner):
                     names = info.keys()
                     newbp = []
                     for filename in bp:
-                        if os.path.splitext(os.path.basename(filename))[0] in names:
+                        if os.path.splitext(
+                            os.path.basename(filename)
+                        )[0] in names:
                             newbp += [filename]
                     bp = newbp
 
                 if len(bp) == 0:
-                    CompositionLogger.Debug("Skipping campaign management: No .bp files")
+                    CompositionLogger.Debug(
+                        "Skipping campaign management: No .bp files"
+                    )
                     return
 
                 if not self.Campaign.ExistenceChecks():
                     return
 
                 CompositionLogger.Info(
-                    "BP files to add to campaign {0}:".format(self.Campaign.Name) + "\n" + 
-                    "\n".join(bp)
+                    "BP files to add to campaign {0}:".format(
+                        self.Campaign.Name
+                    ) + "\n" + "\n".join(bp)
                 )
 
                 with open(self.Campaign.ConfigFile, 'r') as infile:
                     config = yaml.safe_load(infile)
 
-                storepath = os.path.join(os.path.expanduser(config['Campaign']['campaignstorepath']), "{0}.aca".format(self.Campaign.Name))
+                storepath = os.path.join(
+                    os.path.expanduser(
+                        config['Campaign']['campaignstorepath']
+                    ),
+                    "{0}.aca".format(self.Campaign.Name)
+                )
 
                 if os.path.exists(storepath):
                     subcmd = "update"
@@ -457,23 +544,36 @@ class Workflow(UseRunner):
                 fullcmd = [self.Campaign.ManagerCommand] + args
                 '''
 
-                #fullcmd = [self.Campaign.ManagerCommand, "--files"] + bp + [subcmd, storepath]
-                fullcmd = [self.Campaign.ManagerCommand, subcmd, storepath, "--files"] + bp
+                fullcmd = [
+                    self.Campaign.ManagerCommand,
+                    subcmd,
+                    storepath,
+                    "--files"
+                ] + bp
 
-                CompositionLogger.Info("Campaign management: {0}".format(' '.join(fullcmd)))
+                CompositionLogger.Info(
+                    "Campaign management: {0}".format(' '.join(fullcmd))
+                )
                 subprocess.call(fullcmd)
-
 
     def While(self, condition):
         if CompositionLogger.ERROR:
-            #CompositionLogger.RaiseError("Workflow Name={0} exiting because of global error".format(self.Name))
-            CompositionLogger.Info("Workflow Name={0} exiting because of global error".format(self.Name))
+            CompositionLogger.Info(
+                "Workflow Name={0} exiting because of global error".format(
+                    self.Name
+                )
+            )
             sys.exit()
         else:
             return condition
 
-
-    def GetID(self, dep, idstr, start, AsyncTimeout=0, ids=None, names=None, current=datetime.datetime.now()):
+    def GetID(
+        self, dep, idstr, start,
+        AsyncTimeout=0,
+        ids=None,
+        names=None,
+        current=datetime.datetime.now()
+    ):
 
         while self.While(
             (
@@ -491,19 +591,19 @@ class Workflow(UseRunner):
         if idstr not in dep.__dir__():
             CompositionLogger.RaiseError(
                 ValueError,
-                "Waiting for Dependency Name={0} of Workflow Name={1} to exist timed out".format(
-                    dep.Name,
-                    self.Name
+                (
+                    "Waiting for Dependency Name={0} of Workflow Name={1} "
+                    "to exist timed out".format(dep.Name, self.Name)
                 )
             )
 
         elif getattr(dep, idstr) is None:
             CompositionLogger.RaiseError(
-                ValueError,
-                "Cannot determine {2} for Workflow Name={0} to make it a depedency for Workflow Name={1}".format(
-                    dep.Name,
-                    self.Name,
-                    idstr,
+                ValueError, (
+                    "Cannot determine {2} for Workflow Name={0} to make it a "
+                    "depedency for Workflow Name={1}".format(
+                        dep.Name, self.Name, idstr,
+                    )
                 )
             )
 
@@ -513,7 +613,6 @@ class Workflow(UseRunner):
             names += [dep.Name]
 
         return getattr(dep, idstr), dep.Name
-
 
     def GetDependencies(self, AsyncTimeout=0):
 
@@ -536,18 +635,26 @@ class Workflow(UseRunner):
         threadnames = []
 
         start = datetime.datetime.now()
-        current = start
 
         for dep in self.DependsOn:
 
             if dep.Runner is not None:
-                jobid, name = self.GetID(dep, "JobID", start, AsyncTimeout=AsyncTimeout, ids=runnerdeps, names=runnernames)
+                jobid, name = self.GetID(
+                    dep, "JobID", start,
+                    AsyncTimeout=AsyncTimeout,
+                    ids=runnerdeps,
+                    names=runnernames
+                )
                 runners += [dep.Runner]
             else:
-                threadid, name = self.GetID(dep, "tid", start, AsyncTimeout=AsyncTimeout, ids=threaddeps, names=threadnames)
+                threadid, name = self.GetID(
+                    dep, "tid", start,
+                    AsyncTimeout=AsyncTimeout,
+                    ids=threaddeps,
+                    names=threadnames
+                )
 
         return runnerdeps, runnernames, runners, threaddeps, threadnames
-
 
     def BatchWait(self, runnerdeps, runnernames, runners):
 
@@ -559,17 +666,15 @@ class Workflow(UseRunner):
                 alive[i] = runners[i].Monitor(jobid, self.Name)
                 if alive[i]:
                     CompositionLogger.Info(
-                        "(Runner=None) Workflow Name={0} must wait for (batch) Workflow Name={1} to finish before continuing".format(
-                            self.Name,
-                            runnernames[i]
-                        )
+                        "(Runner=None) Workflow Name={0} must wait for "
+                        "(batch) Workflow Name={1} to finish before continuing"
+                        "".format(self.Name, runnernames[i])
                     )
                 else:
                     CompositionLogger.Info(
-                        "(Runner=None) Workflow Name={0} dependency Workflow Name={1} is already satisfied".format(
-                            self.Name,
-                            runnernames[i]
-                        )
+                        "(Runner=None) Workflow Name={0} dependency Workflow "
+                        "Name={1} is already satisfied"
+                        "".format(self.Name, runnernames[i])
                     )
 
             while self.While(any(alive)):
@@ -577,9 +682,9 @@ class Workflow(UseRunner):
                     alive[i] = runners[i].Monitor(jobid, self.Name)
 
             CompositionLogger.Info(
-                "Workflow Name={0} (batch) Workflow dendencies satisfied. Continuing...".format(self.Name)
+                "Workflow Name={0} (batch) Workflow dendencies satisfied. "
+                "Continuing...".format(self.Name)
             )
-
 
     def ThreadWait(self, threaddeps, threadnames):
 
@@ -591,17 +696,14 @@ class Workflow(UseRunner):
                 alive[i] = tid.is_alive()
                 if alive[i]:
                     CompositionLogger.Info(
-                        "Workflow Name={0} must wait for (Runner=None) Workflow Name={1} to finish before submitting".format(
-                            self.Name,
-                            threadnames[i]
-                        )
+                        "Workflow Name={0} must wait for (Runner=None) "
+                        "Workflow Name={1} to finish before submitting"
+                        "".format(self.Name, threadnames[i])
                     )
                 else:
                     CompositionLogger.Info(
-                        "Workflow Name={0} dependency Workflow Name={1} is already satisfied".format(
-                            self.Name,
-                            threadnames[i]
-                        )
+                        "Workflow Name={0} dependency Workflow Name={1} is "
+                        "already satisfied".format(self.Name, threadnames[i])
                     )
 
             while self.While(any(alive)):
@@ -609,21 +711,28 @@ class Workflow(UseRunner):
                     alive[i] = tid.is_alive()
 
             CompositionLogger.Info(
-                "Workflow Name={0} (Runner=None) Workflow dendencies satisfied. Continuing...".format(self.Name)
+                "Workflow Name={0} (Runner=None) Workflow dendencies "
+                "satisfied. Continuing...".format(self.Name)
             )
-
 
     def RunnerSubmit(self, SubmitCall, threaddeps=[], threadnames=[]):
         self.ThreadWait(threaddeps, threadnames)
         CompositionLogger.Info("Calling: {0}".format(" ".join(SubmitCall)))
-        result = subprocess.run(SubmitCall, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = subprocess.run(
+            SubmitCall,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
 
         if 'GetJobID' in self.Runner.__dir__():
-            super(UseRunner, self).__setattr__('JobID', self.Runner.GetJobID(result))
-            CompositionLogger.Info("Submitted as Job ID: {0}".format(self.JobID))
+            super(UseRunner, self).__setattr__(
+                'JobID', self.Runner.GetJobID(result)
+            )
+            CompositionLogger.Info(
+                "Submitted as Job ID: {0}".format(self.JobID)
+            )
         else:
             super(UseRunner, self).__setattr__('JobID', None)
-
 
     def Submit(self, wait=True, AsyncTimeout=0):
         if AsyncTimeout == 0:
@@ -636,7 +745,6 @@ class Workflow(UseRunner):
             tid.start()
             return tid
 
-
     def _Submit(self, wait=True, AsyncTimeout=0):
         if not self._CreateCalled_:
             self.Create()
@@ -648,7 +756,9 @@ class Workflow(UseRunner):
         self.SetupBackup()
         self.SubmitBackup()
 
-        runnerdeps, runnernames, runners, threaddeps, threadnames = self.GetDependencies(AsyncTimeout=AsyncTimeout)
+        runnerdeps, runnernames, runners, threaddeps, threadnames = (
+            self.GetDependencies(AsyncTimeout=AsyncTimeout)
+        )
         super(UseRunner, self).__setattr__('Wait', wait)
 
         if self.Runner is not None:
@@ -656,49 +766,37 @@ class Workflow(UseRunner):
             with open(self._submitname_, 'w') as outfile:
                 outfile.write(self.ShellSetup(force=True))
                 outfile.write(
-                    "effis-submit --sub {0} --name {1}".format(self.Directory, self.Name)
+                    "effis-submit --sub {0} --name {1}".format(
+                        self.Directory, self.Name
+                    )
                 )
 
             if len(threaddeps) > 0:
                 tid = threading.Thread(
                     target=self.RunnerSubmit,
                     args=(SubmitCall, ),
-                    kwargs={'threaddeps': threaddeps, 'threadnames': threadnames}
+                    kwargs={
+                        'threaddeps': threaddeps,
+                        'threadnames': threadnames
+                    }
                 )
                 return self.ThreadRun(tid)
             else:
                 self.RunnerSubmit(SubmitCall)
 
         else:
-            
             for app in self.Applications:
-                super(UseRunner, app).__setattr__("UpstreamSetupFile", self.SetupFile)
+                super(UseRunner, app).__setattr__(
+                    "UpstreamSetupFile", self.SetupFile
+                )
 
             self.BatchWait(runnerdeps, runnernames, runners)
-
-            """
-            if len(runnerdeps) > 0:
-                CompositionLogger.RaiseError(
-                    ValueError,
-                    "Runner=None Workflow={0} depends on Queued jobs: {1}. This isn't implemented yet.".format(
-                        self.Name,
-                        ",".join(runnernames)
-                    )
-                )
-            """
 
             self.ThreadWait(threaddeps, threadnames)
             tid = threading.Thread(target=self.SubSubmit)
             return self.ThreadRun(tid)
 
-        '''
-        if adios2 is not None:
-            self.Stream.write("LastTime", str(datetime.datetime.now()))
-            self.Stream.close()
-        '''
-
         self.PickleWrite()
-
 
     def ThreadRun(self, tid):
 
@@ -709,7 +807,6 @@ class Workflow(UseRunner):
 
         return self.tid
 
-
     def SubSubmit(self):
 
         GroupRunning = {}
@@ -718,7 +815,6 @@ class Workflow(UseRunner):
             if (app.Group is None) or (app.Group in GroupRunning):
                 continue
             GroupRunning[app.Group] = []
-
 
         while self.While(True):
 
@@ -729,7 +825,13 @@ class Workflow(UseRunner):
                     if ('Status' not in dep.__dir__()) or (dep.Status is None):
                         blocked = True
                         break
-                if (app.Group is not None) and (app.Group in self.GroupMax) and (len(GroupRunning[app.Group]) >= self.GroupMax[app.Group]):
+                if (
+                    (app.Group is not None)
+                    and
+                    (app.Group in self.GroupMax)
+                    and
+                    (len(GroupRunning[app.Group]) >= self.GroupMax[app.Group])
+                ):
                     blocked = True
 
                 if blocked:
@@ -740,10 +842,14 @@ class Workflow(UseRunner):
                 with Chdir(app.Directory):
 
                     cmd = app.GetCall()
-                    msg = "Application Name = {0} -- Starting:".format(app.Name) + "\n" + " ".join(cmd)
+                    msg = (
+                        "Application Name = {0} -- Starting:".format(app.Name)
+                    ) + "\n" + " ".join(cmd)
 
                     if app.LogFile is not None:
-                        super(UseRunner, app).__setattr__('stdout', open(app.LogFile, 'w'))
+                        super(UseRunner, app).__setattr__(
+                            'stdout', open(app.LogFile, 'w')
+                        )
                         msg = msg + " > {0} 2>&1".format(app.LogFile)
                     else:
                         super(UseRunner, app).__setattr__('stdout', None)
@@ -768,7 +874,12 @@ class Workflow(UseRunner):
                         cmd = [jobfile]
 
                     CompositionLogger.Info(msg)
-                    p = subprocess.Popen(cmd, stdout=app.stdout, stderr=app.stdout, env={**os.environ, **app.Environment})
+                    p = subprocess.Popen(
+                        cmd,
+                        stdout=app.stdout,
+                        stderr=app.stdout,
+                        env={**os.environ, **app.Environment}
+                    )
 
                     super(UseRunner, app).__setattr__('procid', p)
                     if app.Group is not None:
@@ -780,12 +891,22 @@ class Workflow(UseRunner):
 
             for app in self.Applications:
 
-                if ('procid' in app.__dir__()) and (('Status' not in app.__dir__()) or (app.Status is None)):
-                    super(UseRunner, app).__setattr__('Status', app.procid.poll())
+                if (
+                    ('procid' in app.__dir__())
+                    and
+                    (('Status' not in app.__dir__()) or (app.Status is None))
+                ):
+                    super(UseRunner, app).__setattr__(
+                        'Status', app.procid.poll()
+                    )
 
                 if ('Status' not in app.__dir__()) or (app.Status is None):
                     done = False
-                elif (app.Group is not None) and (app.procid in GroupRunning[app.Group]):
+                elif (
+                    (app.Group is not None)
+                    and
+                    (app.procid in GroupRunning[app.Group])
+                ):
                     GroupRunning[app.Group].remove(app.procid)
                     self.FinishCloseFile(app)
                 elif (app.Group is None) and (app.procid in NoneGroupRunning):
@@ -802,7 +923,6 @@ class Workflow(UseRunner):
         if self.Wait:
             self.Campaignify()
 
-
     @staticmethod
     def FinishCloseFile(app):
         msg = "Application Name = {0} -- Finished".format(app.Name)
@@ -815,18 +935,19 @@ class Workflow(UseRunner):
 class SubWorkflow(Workflow):
 
     # Various workflow files
-    _touchname_ = "sub.workflow.done"     # Signals workflow finished, can run backup
+    _touchname_ = "sub.workflow.done"     # Workflow finished, can run backup
     _backupname_ = "sub.backup.json"      # Configures the globus movement
     _submitname_ = "sub.workflow.sh"      # File that submits with scheduler
     _picklename_ = "sub.workflow.pickle"  # Saves workflow description
 
     AllowExisting = True
 
-
     def __init__(self, **kwargs):
 
         if 'Runner' in kwargs:
-            CompositionLogger.RaiseError(ValueError, "SubWorkflow attribute: Runner is not supported allowed")
+            CompositionLogger.RaiseError(
+                ValueError,
+                "SubWorkflow attribute: Runner is not supported allowed"
+            )
         kwargs['Runner'] = None
         super().__init__(**kwargs)
-
