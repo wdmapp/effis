@@ -160,5 +160,14 @@ class InputList(ListType):
 
         if isinstance(value, str):
             value = Input(value, key=self.key)
+        elif isinstance(value, list):
+            for i, item in enumerate(value):
+                if isinstance(item, str):
+                    value[i] = Input(item, key=self.key)
+                elif not isinstance(item, Input):
+                    CompositionLogger.RaiseError(
+                        self.AssignmentError,
+                        self.ErrorMessage(value, element=item)
+                    )
 
         return super().__iadd__(value)
