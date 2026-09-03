@@ -367,6 +367,7 @@ class Workflow(UseRunner):
                     )
                 )
 
+            #print(app.Name)
             if app.Name is None:
                 app.Name = os.path.basename(app.cmd)
                 CompositionLogger.Warning(
@@ -857,7 +858,15 @@ class Workflow(UseRunner):
                     ShellSetup = app.ShellSetup()
 
                     if ShellSetup is not None:
-                        jobfile = "./{0}.sh".format(app.Name)
+
+                        #jobfile = "./{0}.sh".format(app.Name)
+
+                        # Name can be set with /'s for getting directories right
+                        jobfile = "./{0}.sh".format(
+                            os.path.basename(
+                                app.Name
+                            )
+                        )
 
                         with open(jobfile, "w") as outfile:
                             outfile.write(ShellSetup)
