@@ -171,7 +171,7 @@ def TimeBlockGroups(SubTable, blocks, nkeys, nonblocks, others, stream):
 
 def GetTimeBlocks(ods, first=True, timeblocks=[], timenonblocks=[], others=[]):
 
-    pattern = re.compile("^\d+$")
+    pattern = re.compile(r"^\d+$")
     KeepKeys = []
 
     for key in ods.keys():
